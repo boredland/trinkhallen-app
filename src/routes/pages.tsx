@@ -1,6 +1,8 @@
 import type { Hono } from "hono";
 import type { Env } from "../env";
+import { KioskDetail } from "../components/KioskDetail";
 import { Layout } from "../components/Layout";
+import { getKioskById } from "../lib/db";
 
 export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/", (c) => {
@@ -60,12 +62,26 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     ),
   );
 
-  app.get("/k/:id", (c) => {
+  app.get("/k/:id", async (c) => {
     const id = c.req.param("id");
+    const kiosk = await getKioskById(c.env.DB, id);
+    if (!kiosk) {
+      return c.html(
+        <Layout title="Nicht gefunden" nav="map">
+          <h1 class="font-display text-4xl tracking-wide text-fg">404 — Kiosk nicht gefunden</h1>
+          <p class="mt-3 text-fg-muted">
+            Die ID <code class="font-mono">{id}</code> existiert nicht.{" "}
+            <a class="text-neon-cyan underline-offset-2 hover:underline" href="/">
+              Zurück zur Karte
+            </a>
+          </p>
+        </Layout>,
+        404,
+      );
+    }
     return c.html(
-      <Layout title={`Kiosk ${id}`} nav="map">
-        <h1 class="font-display text-4xl tracking-wide text-fg">Kiosk {id}</h1>
-        <p class="mt-3 text-fg-muted">Detailseite folgt.</p>
+      <Layout title={kiosk.name} nav="map">
+        <KioskDetail kiosk={kiosk} userAgent={c.req.header("user-agent") ?? null} />
       </Layout>,
     );
   });

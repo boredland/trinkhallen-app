@@ -1,19 +1,23 @@
 /**
- * Seed the local D1 database from the trinkhallen-data repo.
+ * Seed a D1 database from the trinkhallen-data repo.
  *
  * Bypasses the /api/sync webhook handler (which requires a real GitHub push
- * payload). For dev only.
+ * payload). Defaults to --local; pass --remote to seed the production DB.
  *
- * Usage: pnpm tsx scripts/seed-d1-local.ts [../trinkhallen-data]
+ * Usage:
+ *   pnpm tsx scripts/seed-d1-local.ts [data-repo-path] [--remote]
  */
 
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { resolve, relative } from "node:path";
 
-const DATA_REPO = resolve(process.argv[2] ?? "../trinkhallen-data");
+const args = process.argv.slice(2);
+const REMOTE = args.includes("--remote");
+const DATA_REPO = resolve(args.find((a) => !a.startsWith("--")) ?? "../trinkhallen-data");
 const TMP_DIR = resolve(".tmp");
 const DB_NAME = "trinkhallen-prod";
+const DB_FLAG = REMOTE ? "--remote" : "--local";
 
 interface Feature {
   geometry: { coordinates: [number, number] };
@@ -97,7 +101,7 @@ function buildSql(region: string, features: Feature[]): string[] {
 function main(): void {
   mkdirSync(TMP_DIR, { recursive: true });
   const files = findGeojsonFiles(DATA_REPO);
-  console.log(`Seeding ${files.length} region file(s) from ${DATA_REPO}`);
+  console.log(`Seeding ${files.length} region file(s) from ${DATA_REPO} (${REMOTE ? "REMOTE" : "local"})`);
 
   let chunkIdx = 0;
   for (const file of files) {
@@ -112,7 +116,7 @@ function main(): void {
       console.log(`    applying ${relative(process.cwd(), path)} (${sql.split("\n").length} stmts)`);
       execFileSync(
         "pnpm",
-        ["wrangler", "d1", "execute", DB_NAME, "--local", `--file=${path}`],
+        ["wrangler", "d1", "execute", DB_NAME, DB_FLAG, `--file=${path}`],
         { stdio: ["ignore", "pipe", "inherit"] },
       );
       chunkIdx++;

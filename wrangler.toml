@@ -13,7 +13,7 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "trinkhallen-prod"
-database_id = "REPLACE_WITH_REAL_ID_AFTER_wrangler_d1_create"
+database_id = "27575e60-47dc-4552-ba98-15db77d6d4c2"
 migrations_dir = "migrations"
 
 [[r2_buckets]]

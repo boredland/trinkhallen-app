@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "vite build --mode client && tsx scripts/write-asset-manifest.ts && vite build",
     "preview": "wrangler dev",
-    "deploy": "wrangler deploy --minify",
+    "cf:deploy": "wrangler deploy --minify",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -17,6 +17,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply trinkhallen-prod --remote",
     "db:reset:local": "rm -rf .wrangler/state/v3/d1 && pnpm db:migrate:local",
     "db:seed:local": "tsx scripts/seed-d1-local.ts",
+    "db:seed:remote": "tsx scripts/seed-d1-local.ts --remote",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
