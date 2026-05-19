@@ -7,6 +7,7 @@ import { Layout } from "../components/Layout";
 import { countKiosks, getKioskById, queryKiosksAll, queryKiosksInBbox } from "../lib/db";
 import { applyFilters, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
+import { getAggregate, getOwnRating } from "../lib/ratings";
 
 export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/", async (c) => {
@@ -130,10 +131,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
 
   app.get("/k/:id", async (c) => {
     const id = c.req.param("id");
+    const user = c.get("user");
     const kiosk = await getKioskById(c.env.DB, id);
     if (!kiosk) {
       return c.html(
-        <Layout title="Nicht gefunden" nav="map" user={c.get("user")}>
+        <Layout title="Nicht gefunden" nav="map" user={user}>
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Kiosk nicht gefunden</h1>
           <p class="mt-3 text-fg-muted">
             Die ID <code class="font-mono">{id}</code> existiert nicht.{" "}
@@ -145,9 +147,19 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         404,
       );
     }
+    const [aggregate, ownRating] = await Promise.all([
+      getAggregate(c.env, kiosk.id),
+      user ? getOwnRating(c.env, kiosk.id, user.id) : Promise.resolve(null),
+    ]);
     return c.html(
-      <Layout title={kiosk.name} nav="map" user={c.get("user")}>
-        <KioskDetail kiosk={kiosk} userAgent={c.req.header("user-agent") ?? null} />
+      <Layout title={kiosk.name} nav="map" user={user}>
+        <KioskDetail
+          kiosk={kiosk}
+          userAgent={c.req.header("user-agent") ?? null}
+          aggregate={aggregate}
+          ownRating={ownRating}
+          isLoggedIn={!!user}
+        />
       </Layout>,
     );
   });

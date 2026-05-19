@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
         entry: "src/index.ts",
         outputDir: "dist",
         minify: true,
-        external: [/^cloudflare:/],
+        external: ["cloudflare:email", "cloudflare:workers", "cloudflare:sockets"],
       }),
       devServer({
         adapter,

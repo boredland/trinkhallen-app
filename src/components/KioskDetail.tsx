@@ -2,7 +2,9 @@ import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
 import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, formatStatus } from "../lib/opening-hours";
+import type { Aggregate, RatingRow } from "../lib/ratings";
 import { tagLabel } from "../lib/tags";
+import { RatingBlock } from "./RatingBlock";
 
 type TriState = "yes" | "no" | "unknown";
 
@@ -15,10 +17,13 @@ const PAYMENT_LABELS: Record<string, { de: string; icon: string }> = {
 };
 const PAYMENT_ORDER = ["cash", "cards", "contactless", "girocard", "mobile"] as const;
 
-export const KioskDetail: FC<{ kiosk: KioskRecord; userAgent: string | null }> = ({
-  kiosk,
-  userAgent,
-}) => {
+export const KioskDetail: FC<{
+  kiosk: KioskRecord;
+  userAgent: string | null;
+  aggregate: Aggregate;
+  ownRating: RatingRow | null;
+  isLoggedIn: boolean;
+}> = ({ kiosk, userAgent, aggregate, ownRating, isLoggedIn }) => {
   const status = computeStatus(kiosk.hours?.raw);
   const statusLabel = formatStatus(status);
   const nav = buildNavigateTargets({
@@ -144,6 +149,18 @@ export const KioskDetail: FC<{ kiosk: KioskRecord; userAgent: string | null }> =
           </ul>
         </section>
       )}
+
+      <section class="border-b-2 border-border p-6">
+        <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
+          Bewertungen
+        </h2>
+        <RatingBlock
+          kioskId={kiosk.id}
+          aggregate={aggregate}
+          own={ownRating}
+          isLoggedIn={isLoggedIn}
+        />
+      </section>
 
       <footer class="flex flex-col gap-2 p-6 text-sm text-fg-dim sm:flex-row sm:items-center sm:justify-between">
         <p>

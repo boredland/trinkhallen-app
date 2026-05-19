@@ -3,6 +3,7 @@ import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
 import { apiKiosks } from "./routes/api.kiosks.tsx";
+import { apiRatings } from "./routes/api.ratings.tsx";
 import { apiSync } from "./routes/api.sync";
 import { auth, attachUser } from "./routes/auth.tsx";
 import { registerPageRoutes } from "./routes/pages";
@@ -31,6 +32,7 @@ app.use(
 app.use("*", attachUser);
 app.route("/", auth);
 app.route("/", apiKiosks);
+app.route("/", apiRatings);
 app.route("/", apiSync);
 registerPageRoutes(app);
 
