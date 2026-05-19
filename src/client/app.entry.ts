@@ -91,6 +91,21 @@ function attachFilterForm(form: HTMLFormElement): void {
 
 document.querySelectorAll<HTMLFormElement>("[data-filter-form]").forEach(attachFilterForm);
 
+// ── Report form: show only the fieldset matching the selected `kind` ────────
+document.querySelectorAll("[data-report-form]").forEach((root) => {
+  const select = root.querySelector("select[name=kind]") as HTMLSelectElement | null;
+  if (!select) return;
+  const fieldsets = root.querySelectorAll("fieldset[data-kind]") as NodeListOf<HTMLFieldSetElement>;
+  const apply = () => {
+    const kind = select.value;
+    fieldsets.forEach((fs) => {
+      fs.classList.toggle("hidden", fs.dataset["kind"] !== kind);
+    });
+  };
+  select.addEventListener("change", apply);
+  apply();
+});
+
 // Bridge bbox changes from the map into the panel's data-panel-url, so the
 // next filter change hits the right bbox.
 window.addEventListener("tk:bbox-changed", (e) => {

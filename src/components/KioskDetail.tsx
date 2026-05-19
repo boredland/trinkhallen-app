@@ -5,6 +5,7 @@ import { computeStatus, formatStatus } from "../lib/opening-hours";
 import type { Aggregate, RatingRow } from "../lib/ratings";
 import { tagLabel } from "../lib/tags";
 import { RatingBlock } from "./RatingBlock";
+import { ReportForm } from "./ReportForm";
 
 type TriState = "yes" | "no" | "unknown";
 
@@ -159,6 +160,17 @@ export const KioskDetail: FC<{
           aggregate={aggregate}
           own={ownRating}
           isLoggedIn={isLoggedIn}
+        />
+      </section>
+
+      <section class="border-b-2 border-border p-6">
+        <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
+          Daten falsch?
+        </h2>
+        <ReportForm
+          kioskId={kiosk.id}
+          isLoggedIn={isLoggedIn}
+          currentHoursRaw={kiosk.hours?.raw}
         />
       </section>
 
