@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/db";
+import { hasGithubAppCreds, openIssue } from "../lib/github-app";
 
 export const apiReports = new Hono<{ Bindings: Env }>();
 
@@ -46,6 +47,48 @@ apiReports.post("/api/reports", async (c) => {
     .bind(id, kioskId, user.id, kind, JSON.stringify(payload), now, now)
     .run();
 
-  // GitHub PR creation lands in a follow-up commit; for now we just record.
+  // Open a GitHub issue if the App is configured — fire-and-forget so the
+  // user gets their redirect immediately. The webhook on PR/issue close
+  // later updates `reports.status`.
+  if (hasGithubAppCreds(c.env)) {
+    c.executionCtx.waitUntil(
+      (async () => {
+        const issue = await openIssue(c.env, {
+          title: `[${kind}] ${kiosk.name} (${kiosk.id})`,
+          body: renderReportIssueBody({ kioskId, kiosk, kind, payload, reportId: id }),
+          labels: ["report", kind],
+        });
+        if (issue) {
+          await c.env.DB
+            .prepare(`UPDATE reports SET pr_url = ?, status = 'pr_opened' WHERE id = ?`)
+            .bind(issue.html_url, id)
+            .run();
+        }
+      })(),
+    );
+  }
+
   return c.redirect(`/k/${kioskId}?reported=ok`);
 });
+
+function renderReportIssueBody(args: {
+  kioskId: string;
+  kiosk: { name: string };
+  kind: string;
+  payload: Record<string, unknown>;
+  reportId: string;
+}): string {
+  const lines: string[] = [
+    `**Kiosk**: \`${args.kioskId}\` — ${args.kiosk.name}`,
+    `**Kind**: \`${args.kind}\``,
+    `**Report ID**: \`${args.reportId}\``,
+    "",
+    "**Payload**",
+    "```json",
+    JSON.stringify(args.payload, null, 2),
+    "```",
+    "",
+    `_Filed via trinkhallen.app. Moderator action: edit the relevant geojson under \`data/**\` and merge, then close this issue._`,
+  ];
+  return lines.join("\n");
+}
