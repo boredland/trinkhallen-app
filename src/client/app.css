@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Späti Neon — design tokens.
+
+   Dark mode is canonical. Light mode is a muted respectful secondary, not a
+   mirror. Themes flip via [data-theme="light"] on <html>.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  --header-h: 56px;
+
+  /* Dark (default) palette */
+  --color-bg: #0a0a0a;
+  --color-surface: #141414;
+  --color-surface-2: #1f1f1f;
+  --color-border: #2a2a2a;
+  --color-border-hi: #3a3a3a;
+  --color-fg: #f5f2ec;
+  --color-fg-muted: #a8a39a;
+  --color-fg-dim: #6b6862;
+
+  --color-neon-pink: #ff2d6f;
+  --color-neon-amber: #ffd93d;
+  --color-neon-cyan: #5ee2ff;
+
+  --color-success: #4ade80;
+  --color-warn: #ffd93d;
+  --color-danger: #ff2d6f;
+
+  /* Status mapping for payment / open-now chips */
+  --color-pay-yes: #4ade80;
+  --color-pay-unknown: #6b6862;
+  --color-pay-no: #ff2d6f;
+
+  --shadow-glow-pink: 0 0 0 1px #ff2d6f, 0 0 24px -4px rgba(255, 45, 111, 0.4);
+  --shadow-glow-amber: 0 0 0 1px #ffd93d, 0 0 18px -4px rgba(255, 217, 61, 0.33);
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  --font-display: "Anton", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Light theme — used sparingly. Same accent system, inverted surfaces. */
+[data-theme="light"] {
+  --color-bg: #f5f2ec;
+  --color-surface: #ffffff;
+  --color-surface-2: #ebe7df;
+  --color-border: #1a1a1a;
+  --color-border-hi: #000000;
+  --color-fg: #0a0a0a;
+  --color-fg-muted: #4a4a4a;
+  --color-fg-dim: #8a8780;
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    color-scheme: dark;
+  }
+
+  [data-theme="light"] {
+    color-scheme: light;
+  }
+
+  body {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--color-neon-pink);
+    color: var(--color-bg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-neon-pink);
+    outline-offset: 2px;
+  }
+}
+
+/* Component-level conveniences. Kept small; most styling is utility-first. */
+@layer components {
+  .glow-pink {
+    box-shadow: var(--shadow-glow-pink);
+  }
+
+  .glow-amber {
+    box-shadow: var(--shadow-glow-amber);
+  }
+
+  /* Primary CTA — used for "Hin navigieren" etc. */
+  .btn-neon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--color-neon-pink);
+    color: #0a0a0a;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: box-shadow 150ms ease-out, transform 150ms ease-out;
+  }
+  .btn-neon:hover,
+  .btn-neon:focus-visible {
+    box-shadow: var(--shadow-glow-pink);
+  }
+  .btn-neon:active {
+    transform: translateY(1px);
+  }
+}

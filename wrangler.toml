@@ -1,0 +1,42 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "trinkhallen-app"
+main = "./dist/index.js"
+compatibility_date = "2026-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Workers Assets — serves /dist/static built by Vite
+[assets]
+directory = "./dist/static"
+binding = "ASSETS"
+
+# Production environment
+[[d1_databases]]
+binding = "DB"
+database_name = "trinkhallen-prod"
+database_id = "REPLACE_WITH_REAL_ID_AFTER_wrangler_d1_create"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "TILES"
+bucket_name = "trinkhallen-tiles"
+
+[vars]
+PUBLIC_ORIGIN = "https://trinkhallen.app"
+
+# Secrets (set via `wrangler secret put`):
+#   SESSION_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+#   GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_INSTALLATION_ID,
+#   GITHUB_WEBHOOK_SECRET
+
+# Custom domain — uncomment after DNS is pointed at the Worker
+# [[routes]]
+# pattern = "trinkhallen.app"
+# custom_domain = true
+
+[observability.logs]
+enabled = true
+
+# Local dev: D1 + R2 are emulated via Miniflare; secrets read from .dev.vars
+[env.local]
+[env.local.vars]
+PUBLIC_ORIGIN = "http://localhost:8787"
