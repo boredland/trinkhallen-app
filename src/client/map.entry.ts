@@ -30,7 +30,7 @@ interface FeatureCollection {
 
 const mount = document.getElementById("map");
 if (mount instanceof HTMLElement) {
-  const styleUrl = mount.dataset.style ?? "/style-night.json";
+  const styleUrl = mount.dataset["style"] ?? "/style-night.json";
 
   // Center on Frankfurt-am-Main by default; bbox attribute is parsed but
   // currently only used as a fallback if center/zoom are missing.
@@ -135,15 +135,28 @@ if (mount instanceof HTMLElement) {
   let refreshTimer: ReturnType<typeof setTimeout> | undefined;
   map.on("moveend", () => {
     if (refreshTimer !== undefined) clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(() => void refresh(map), 200);
+    refreshTimer = setTimeout(() => {
+      const b = map.getBounds();
+      const bbox = `${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}`;
+      window.dispatchEvent(new CustomEvent("tk:bbox-changed", { detail: { bbox } }));
+      void refresh(map);
+    }, 200);
   });
+
+  window.addEventListener("tk:filters-changed", () => void refresh(map));
 }
 
 async function refresh(map: MlMap): Promise<void> {
   const b = map.getBounds();
   const bbox = `${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}`;
+  const url = new URL("/api/kiosks", location.origin);
+  url.searchParams.set("bbox", bbox);
+  for (const k of ["pay", "tags", "open_now", "q"]) {
+    const v = new URLSearchParams(location.search).get(k);
+    if (v) url.searchParams.set(k, v);
+  }
   try {
-    const resp = await fetch(`/api/kiosks?bbox=${bbox}`, { headers: { accept: "application/geo+json" } });
+    const resp = await fetch(url.toString(), { headers: { accept: "application/geo+json" } });
     if (!resp.ok) return;
     const collection = (await resp.json()) as FeatureCollection;
     const source = map.getSource("kiosks") as GeoJSONSource | undefined;

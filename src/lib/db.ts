@@ -79,3 +79,23 @@ export async function getKioskById(db: D1Database, id: string): Promise<KioskRec
   const row = await db.prepare("SELECT * FROM kiosks WHERE id = ?").bind(id).first<KioskRow>();
   return row ? rowToRecord(row) : null;
 }
+
+/**
+ * Whole-dataset query for the /list page. No bbox; pages through alphabetical
+ * order. Filters apply post-fetch in JS, so we pull a generous batch.
+ */
+export async function queryKiosksAll(
+  db: D1Database,
+  limit = 5000,
+): Promise<KioskRecord[]> {
+  const { results } = await db
+    .prepare("SELECT * FROM kiosks ORDER BY name COLLATE NOCASE LIMIT ?")
+    .bind(limit)
+    .all<KioskRow>();
+  return results.map(rowToRecord);
+}
+
+export async function countKiosks(db: D1Database): Promise<number> {
+  const row = await db.prepare("SELECT COUNT(*) AS n FROM kiosks").first<{ n: number }>();
+  return row?.n ?? 0;
+}

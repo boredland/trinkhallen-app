@@ -1,6 +1,8 @@
 import { Hono } from "hono";
+import { KioskList } from "../components/KioskList";
 import type { Env } from "../env";
 import { getKioskById, queryKiosksInBbox, type KioskRecord } from "../lib/db";
+import { applyFilters, filterSignature, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox, quantizeBbox } from "../lib/geo";
 
 export const apiKiosks = new Hono<{ Bindings: Env }>();
@@ -18,17 +20,24 @@ apiKiosks.get("/api/kiosks", async (c) => {
   if (!bbox) return c.json({ error: "bbox required as ?bbox=w,s,e,n" }, 400);
 
   const limit = clamp(parseInt(c.req.query("limit") ?? "5000", 10), 1, 10000);
+  const filter = parseFilterFromQuery(new URL(c.req.url).searchParams);
+  const sig = filterSignature(filter);
 
   const qb = quantizeBbox(bbox, 0.01);
   const cacheKey = new Request(
-    `https://cache.trinkhallen.app/kiosks?b=${qb.west},${qb.south},${qb.east},${qb.north}&l=${limit}`,
+    `https://cache.trinkhallen.app/kiosks?b=${qb.west},${qb.south},${qb.east},${qb.north}&l=${limit}&f=${sig}`,
     { method: "GET" },
   );
   const cache = (caches as unknown as { default: Cache }).default;
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached;
+  // Filter signature changes invalidate; open_now changes minute-by-minute,
+  // so we skip cache for it.
+  const cacheable = !filter.openNow;
+  if (cacheable) {
+    const cached = await cache.match(cacheKey);
+    if (cached) return cached;
+  }
 
-  const records = await queryKiosksInBbox(c.env.DB, bbox, limit);
+  const records = applyFilters(await queryKiosksInBbox(c.env.DB, bbox, limit), filter);
   const body = JSON.stringify(toFeatureCollection(records));
   const resp = new Response(body, {
     headers: {
@@ -36,8 +45,30 @@ apiKiosks.get("/api/kiosks", async (c) => {
       "cache-control": "public, max-age=60, s-maxage=60",
     },
   });
-  c.executionCtx.waitUntil(cache.put(cacheKey, resp.clone()));
+  if (cacheable) c.executionCtx.waitUntil(cache.put(cacheKey, resp.clone()));
   return resp;
+});
+
+/**
+ * HTML fragment of the side panel for the current bbox + filters.
+ * Targeted via HTMX from filter chips and the map's moveend handler.
+ */
+apiKiosks.get("/api/kiosks/panel", async (c) => {
+  const bbox = parseBbox(c.req.query("bbox"));
+  if (!bbox) return c.html(<KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />);
+  const filter = parseFilterFromQuery(new URL(c.req.url).searchParams);
+  const all = await queryKiosksInBbox(c.env.DB, bbox, 5000);
+  const filtered = applyFilters(all, filter);
+  // Sort by name; downstream client can re-sort by distance.
+  filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
+  return c.html(
+    <KioskList
+      kiosks={filtered.slice(0, 100)}
+      totalInBbox={all.length}
+      filteredCount={filtered.length}
+      userAgent={c.req.header("user-agent") ?? null}
+    />,
+  );
 });
 
 apiKiosks.get("/api/kiosks/:id", async (c) => {

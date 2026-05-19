@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
-import { apiKiosks } from "./routes/api.kiosks";
+import { apiKiosks } from "./routes/api.kiosks.tsx";
 import { apiSync } from "./routes/api.sync";
 import { registerPageRoutes } from "./routes/pages";
 
