@@ -28,10 +28,9 @@ PUBLIC_ORIGIN = "https://trinkhallen.app"
 #   GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_INSTALLATION_ID,
 #   GITHUB_WEBHOOK_SECRET
 
-# Custom domain — uncomment after DNS is pointed at the Worker
-# [[routes]]
-# pattern = "trinkhallen.app"
-# custom_domain = true
+[[routes]]
+pattern = "trinkhallen.app"
+custom_domain = true
 
 [observability.logs]
 enabled = true
