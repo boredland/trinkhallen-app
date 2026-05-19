@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => {
         entry: "src/index.ts",
         outputDir: "dist",
         minify: true,
+        external: [/^cloudflare:/],
       }),
       devServer({
         adapter,
@@ -45,5 +46,10 @@ export default defineConfig(({ mode }) => {
       }),
       tailwindcss(),
     ],
+    ssr: {
+      // `cloudflare:email` etc. are Workers runtime virtuals — the bundler
+      // must leave them as bare imports for workerd to resolve at runtime.
+      external: ["cloudflare:email", "cloudflare:workers", "cloudflare:sockets"],
+    },
   };
 });

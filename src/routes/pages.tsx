@@ -34,7 +34,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     }
 
     return c.html(
-      <Layout title="Karte" nav="map" clientEntries={["app", "map"]} fullBleed>
+      <Layout title="Karte" nav="map" clientEntries={["app", "map"]} fullBleed user={c.get("user")}>
         <div class="relative h-full w-full">
           <div
             id="map"
@@ -76,7 +76,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
 
     return c.html(
-      <Layout title="Liste" nav="list">
+      <Layout title="Liste" nav="list" user={c.get("user")}>
         <header class="mb-6">
           <h1 class="font-display text-4xl tracking-wide text-fg">Liste</h1>
           <p class="mt-1 text-sm text-fg-muted">
@@ -106,7 +106,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
 
   app.get("/about", (c) =>
     c.html(
-      <Layout title="Über" nav="about">
+      <Layout title="Über" nav="about" user={c.get("user")}>
         <h1 class="font-display text-4xl tracking-wide text-fg">Über trinkhallen.app</h1>
         <div class="mt-6 space-y-4 text-fg-muted">
           <p>
@@ -133,7 +133,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const kiosk = await getKioskById(c.env.DB, id);
     if (!kiosk) {
       return c.html(
-        <Layout title="Nicht gefunden" nav="map">
+        <Layout title="Nicht gefunden" nav="map" user={c.get("user")}>
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Kiosk nicht gefunden</h1>
           <p class="mt-3 text-fg-muted">
             Die ID <code class="font-mono">{id}</code> existiert nicht.{" "}
@@ -146,20 +146,120 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       );
     }
     return c.html(
-      <Layout title={kiosk.name} nav="map">
+      <Layout title={kiosk.name} nav="map" user={c.get("user")}>
         <KioskDetail kiosk={kiosk} userAgent={c.req.header("user-agent") ?? null} />
       </Layout>,
     );
   });
 
-  app.get("/me", (c) =>
-    c.html(
-      <Layout title="Profil" nav="me">
-        <h1 class="font-display text-4xl tracking-wide text-fg">Profil</h1>
-        <p class="mt-3 text-fg-muted">Anmeldung folgt im Auth-Slice.</p>
+  app.get("/me", (c) => {
+    const user = c.get("user");
+    if (!user) {
+      const magic = c.req.query("magic");
+      return c.html(
+        <Layout title="Anmelden" nav="me" user={undefined}>
+          <section class="border-2 border-border bg-surface p-8">
+            <h1 class="font-display text-3xl tracking-wide text-fg sm:text-4xl">Anmelden</h1>
+            <p class="mt-3 text-fg-muted">
+              Anmelden, um Spätis zu bewerten und Korrekturen einzureichen. Anonyme
+              Nutzung der Karte bleibt jederzeit möglich.
+            </p>
+
+            {magic === "sent" && (
+              <div class="mt-6 border-2 border-success/60 bg-success/10 p-4 text-success">
+                ▶▶▶ Check deinen Posteingang. Der Link ist 15 Minuten gültig.
+              </div>
+            )}
+            {magic === "invalid" && (
+              <div class="mt-6 border-2 border-danger/60 bg-danger/10 p-4 text-danger">
+                Diese E-Mail-Adresse sieht nicht gültig aus.
+              </div>
+            )}
+            {magic === "expired" && (
+              <div class="mt-6 border-2 border-danger/60 bg-danger/10 p-4 text-danger">
+                Der Login-Link ist abgelaufen oder schon verwendet. Forder einen neuen an.
+              </div>
+            )}
+
+            <form action="/auth/magic" method="post" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+              <label class="flex-1">
+                <span class="sr-only">E-Mail-Adresse</span>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="du@beispiel.de"
+                  class="w-full border-2 border-border-hi bg-surface-2 px-3 py-2.5 text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
+                />
+              </label>
+              <button type="submit" class="btn-neon shrink-0">
+                ▶ Login-Link per Mail
+              </button>
+            </form>
+
+            <div class="my-6 flex items-center gap-3 text-xs uppercase tracking-wider text-fg-dim">
+              <span class="h-px flex-1 bg-border" />
+              <span>oder</span>
+              <span class="h-px flex-1 bg-border" />
+            </div>
+
+            <a href="/auth/google" class="btn-neon inline-flex w-full justify-center sm:w-auto">
+              ▶ Mit Google anmelden
+            </a>
+
+            <p class="mt-6 text-xs text-fg-dim">
+              Wir speichern bei E-Mail-Login nur deine Adresse, bei Google zusätzlich Name und
+              Profilbild. Mehr nicht.
+            </p>
+          </section>
+        </Layout>,
+      );
+    }
+    return c.html(
+      <Layout title="Profil" nav="me" user={user}>
+        <section class="border-2 border-border bg-surface p-6">
+          <div class="flex items-center gap-4">
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt=""
+                width="64"
+                height="64"
+                class="rounded-full border-2 border-border-hi"
+                referrerpolicy="no-referrer"
+              />
+            ) : (
+              <span class="grid h-16 w-16 place-items-center border-2 border-border-hi bg-neon-pink/20 font-display text-2xl text-neon-pink">
+                {(user.displayName ?? user.email)[0]!.toUpperCase()}
+              </span>
+            )}
+            <div>
+              <h1 class="font-display text-3xl tracking-wide text-fg">
+                {user.displayName ?? user.email}
+              </h1>
+              <p class="text-fg-muted">{user.email}</p>
+              <p class="mt-1 text-xs uppercase tracking-wider text-fg-dim">
+                Rolle: {user.role}
+              </p>
+            </div>
+          </div>
+          <form action="/auth/logout" method="post" class="mt-6">
+            <button type="submit" class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg-muted transition-colors hover:border-neon-pink hover:text-neon-pink">
+              Abmelden
+            </button>
+          </form>
+        </section>
+
+        <section class="mt-6 border-2 border-border bg-surface p-6">
+          <h2 class="font-display text-xl tracking-wide text-fg">Deine Beiträge</h2>
+          <p class="mt-2 text-fg-muted">
+            Bewertungen, Korrekturen und eingereichte Kioske erscheinen hier — sobald die
+            Funktionen freigeschaltet sind.
+          </p>
+        </section>
       </Layout>,
-    ),
-  );
+    );
+  });
 }
 
 function Paginator({ page, totalPages, baseUrl }: { page: number; totalPages: number; baseUrl: URL }) {

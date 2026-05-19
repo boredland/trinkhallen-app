@@ -4,6 +4,7 @@ import { secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
 import { apiKiosks } from "./routes/api.kiosks.tsx";
 import { apiSync } from "./routes/api.sync";
+import { auth, attachUser } from "./routes/auth.tsx";
 import { registerPageRoutes } from "./routes/pages";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -27,6 +28,8 @@ app.use(
   }),
 );
 
+app.use("*", attachUser);
+app.route("/", auth);
 app.route("/", apiKiosks);
 app.route("/", apiSync);
 registerPageRoutes(app);

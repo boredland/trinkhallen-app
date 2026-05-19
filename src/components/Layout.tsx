@@ -1,6 +1,14 @@
 import type { FC, PropsWithChildren } from "hono/jsx";
 import { asset, type ClientEntry } from "../lib/assets";
 
+export interface LayoutUser {
+  id: string;
+  email: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  role: "user" | "moderator" | "admin";
+}
+
 export interface LayoutProps {
   title?: string;
   description?: string;
@@ -10,6 +18,8 @@ export interface LayoutProps {
   clientEntries?: ClientEntry[];
   /** Set to true on the map page so the body becomes full-bleed. */
   fullBleed?: boolean;
+  /** Pass `c.var.user` through; controls the header right-hand area. */
+  user?: LayoutUser | undefined;
 }
 
 const SITE = "TRINKHALLEN.APP";
@@ -23,6 +33,7 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
   nav = "map",
   clientEntries = ["app"],
   fullBleed = false,
+  user,
 }) => {
   const fullTitle = title ? `${title} · ${SITE}` : SITE;
 
@@ -62,7 +73,7 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         })()}
       </head>
       <body class={fullBleed ? "h-dvh overflow-hidden" : "min-h-dvh"}>
-        <Header nav={nav} />
+        <Header nav={nav} user={user} />
         <main class={fullBleed ? "absolute inset-0 top-[var(--header-h)]" : "mx-auto w-full max-w-5xl px-4 py-8"}>
           {children}
         </main>
@@ -72,7 +83,10 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
   );
 };
 
-const Header: FC<{ nav: NonNullable<LayoutProps["nav"]> }> = ({ nav }) => (
+const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | undefined }> = ({
+  nav,
+  user,
+}) => (
   <header class="sticky top-0 z-40 h-[var(--header-h)] border-b-2 border-border bg-bg/95 backdrop-blur">
     <div class="mx-auto flex h-full w-full max-w-7xl items-center gap-6 px-4">
       <a href="/" class="font-display text-xl tracking-wide text-fg">
@@ -92,16 +106,52 @@ const Header: FC<{ nav: NonNullable<LayoutProps["nav"]> }> = ({ nav }) => (
         >
           ☾
         </button>
-        <a
-          href="/me"
-          class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg transition-colors hover:border-neon-pink hover:text-neon-pink"
-        >
-          {nav === "me" ? "Profil" : "Login"}
-        </a>
+        {user ? (
+          <a
+            href="/me"
+            class="flex items-center gap-2 border-2 border-border-hi px-2 py-1 font-display text-sm tracking-wide text-fg transition-colors hover:border-neon-pink hover:text-neon-pink"
+          >
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt=""
+                width="24"
+                height="24"
+                class="rounded-full"
+                referrerpolicy="no-referrer"
+              />
+            ) : (
+              <span class="grid h-6 w-6 place-items-center bg-neon-pink/20 text-xs text-neon-pink">
+                {initials(user)}
+              </span>
+            )}
+            <span class="hidden sm:inline">{shortName(user)}</span>
+          </a>
+        ) : (
+          <a
+            href="/auth/google"
+            class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg transition-colors hover:border-neon-pink hover:text-neon-pink"
+          >
+            Login
+          </a>
+        )}
       </div>
     </div>
   </header>
 );
+
+function shortName(user: LayoutUser): string {
+  if (user.displayName) return user.displayName.split(" ")[0]!;
+  return user.email.split("@")[0]!;
+}
+function initials(user: LayoutUser): string {
+  const name = user.displayName ?? user.email;
+  const parts = name.split(/\s+|@/).filter(Boolean);
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join("");
+}
 
 const NavLink: FC<{ href: string; active: boolean; label: string }> = ({ href, active, label }) => (
   <a

@@ -6,11 +6,12 @@ export interface Env {
   DB: D1Database;
   TILES: R2Bucket;
   ASSETS: Fetcher;
+  EMAIL: SendEmail;
 
   // Vars
   PUBLIC_ORIGIN: string;
 
-  // Secrets
+  // Secrets — some may be empty in dev / before operator setup
   SESSION_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
@@ -22,6 +23,12 @@ export interface Env {
 
 declare module "hono" {
   interface ContextVariableMap {
-    user?: { id: string; email: string; displayName: string | null; role: "user" | "moderator" | "admin" };
+    user?: {
+      id: string;
+      email: string;
+      displayName: string | null;
+      avatarUrl: string | null;
+      role: "user" | "moderator" | "admin";
+    };
   }
 }

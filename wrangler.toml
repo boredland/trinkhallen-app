@@ -19,6 +19,17 @@ migrations_dir = "migrations"
 binding = "TILES"
 bucket_name = "trinkhallen-tiles"
 
+# Cloudflare Email Routing outbound binding.
+# Operator setup:
+#   1. Enable Email Routing for trinkhallen.app in the Cloudflare dashboard.
+#   2. Verify feedback@trinkhallen.app as a destination address (Email
+#      Routing → Destination addresses → Add → click verification email).
+#   3. DKIM is auto-managed by Cloudflare; SPF/DMARC records are added when
+#      Email Routing is enabled.
+# Without those steps, env.EMAIL.send() will return 5xx.
+[[send_email]]
+name = "EMAIL"
+
 [vars]
 PUBLIC_ORIGIN = "https://trinkhallen.app"
 
