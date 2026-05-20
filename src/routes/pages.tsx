@@ -178,7 +178,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const initialLng = url.searchParams.get("lng") ?? "";
     const error = url.searchParams.get("error");
     return c.html(
-      <Layout title="Späti hinzufügen" nav="map" user={user}>
+      <Layout title="Späti hinzufügen" nav="map" user={user} clientEntries={["app", "pick"]}>
         <header class="mb-6">
           <h1 class="font-display text-4xl tracking-wide text-fg">Späti vorschlagen</h1>
           <p class="mt-2 text-fg-muted">
@@ -200,6 +200,14 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         <form action="/add" method="post" class="space-y-6 border-2 border-border bg-surface p-6">
           <fieldset class="space-y-3">
             <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">Ort</legend>
+            <div
+              id="pick-map"
+              class="h-72 w-full border-2 border-border-hi bg-bg sm:h-96"
+            />
+            <p class="text-xs text-fg-dim">
+              ▶ Klick auf die Karte, um die genaue Position zu setzen. Geolokalisierung
+              (Pfeil-Symbol oben rechts) füllt automatisch ein.
+            </p>
             <div class="grid grid-cols-2 gap-3">
               <label>
                 <span class="block text-xs uppercase tracking-wider text-fg-dim">Breitengrad (lat)</span>
@@ -226,9 +234,6 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 />
               </label>
             </div>
-            <p class="text-xs text-fg-dim">
-              Tipp: Auf der Karte einen Späti suchen, Rechtsklick → Koordinaten kopieren.
-            </p>
           </fieldset>
 
           <fieldset class="space-y-3">

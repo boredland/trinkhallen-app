@@ -9,7 +9,7 @@ import { manifest } from "./manifest.generated";
  *   embedded into the Worker bundle by `scripts/write-asset-manifest.ts`,
  *   which runs between the client and worker builds.
  */
-export type ClientEntry = "app" | "map";
+export type ClientEntry = "app" | "map" | "pick";
 
 export interface AssetUrls {
   js: string;
