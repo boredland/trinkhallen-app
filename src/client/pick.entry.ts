@@ -13,6 +13,7 @@ import maplibregl, {
   type MapMouseEvent,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { resolveStyle } from "./build-style";
 
 const mount = document.getElementById("pick-map");
 if (mount instanceof HTMLElement) {
@@ -24,7 +25,7 @@ if (mount instanceof HTMLElement) {
 
   const map = new maplibregl.Map({
     container: mount,
-    style: "/style-night.json",
+    style: resolveStyle(mount),
     center: hasInitial ? [initialLng, initialLat] : [8.6821, 50.1109],
     zoom: hasInitial ? 16 : 11,
     minZoom: 5,

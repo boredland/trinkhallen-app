@@ -11,6 +11,9 @@ importers:
       '@hono/oauth-providers':
         specifier: ^0.6.0
         version: 0.6.2(hono@4.12.21)
+      '@protomaps/basemaps':
+        specifier: ^5.7.2
+        version: 5.7.2
       alpinejs:
         specifier: ^3.14.9
         version: 3.15.12
@@ -819,6 +822,10 @@ packages:
 
   '@poppinss/exception@1.2.3':
     resolution: {integrity: sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==}
+
+  '@protomaps/basemaps@5.7.2':
+    resolution: {integrity: sha512-K1Yk6bWdULulYg+R2QRVXx4NzJZan5YQhpejEG0c1/sXruJrfPIPZuakpf3jwAgVmjIRVQwAv+yRafDeN0aaUQ==}
+    hasBin: true
 
   '@rollup/rollup-android-arm-eabi@4.60.4':
     resolution: {integrity: sha512-F5QXMSiFebS9hKZj02XhWLLnRpJ3B3AROP0tWbFBSj+6kCbg5m9j5JoHKd4mmSVy5mS/IMQloYgYxCuJC0fxEQ==}
@@ -1898,6 +1905,8 @@ snapshots:
       supports-color: 10.2.2
 
   '@poppinss/exception@1.2.3': {}
+
+  '@protomaps/basemaps@5.7.2': {}
 
   '@rollup/rollup-android-arm-eabi@4.60.4':
     optional: true

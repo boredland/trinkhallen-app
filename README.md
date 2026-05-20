@@ -54,8 +54,8 @@ wrangler secret put GITHUB_WEBHOOK_SECRET
 pnpm db:migrate:remote
 
 # 4. Upload the Germany PMTiles to R2 (one-time, refresh quarterly)
-#    Download from https://maps.protomaps.com/builds/ then:
-wrangler r2 object put trinkhallen-tiles/de.pmtiles --file ./tmp/de.pmtiles
+#    See the "Dark vector map" section below for build options.
+wrangler r2 object put trinkhallen-tiles/de.pmtiles --file ./tmp/de.pmtiles --remote
 
 # 5. Deploy
 pnpm deploy
@@ -84,6 +84,50 @@ src/
 migrations/
   0001_init.sql           initial D1 schema
 ```
+
+## Dark vector map (PMTiles)
+
+The app uses the **Protomaps `BLACK` basemap flavor** (via `@protomaps/basemaps`)
+served from a Germany-only PMTiles file in R2. The Worker route `/tiles/:filename`
+proxies range requests against the `TILES` bucket so MapLibre's `pmtiles://`
+protocol can fetch directory + tile blobs incrementally.
+
+If R2 is empty, the SSR check (`pmtilesAvailable()`) silently falls back to
+dimmed OSM raster — the site stays functional during a missing or stale upload.
+
+### One-time setup
+
+Get a Germany PMTiles file. The cleanest path is to run
+[planetiler](https://github.com/onthegomap/planetiler) against a Germany OSM
+extract from Geofabrik:
+
+```sh
+# Roughly 10–30 minutes on a laptop with 8+ GB RAM
+docker run --rm -v "$(pwd)":/data ghcr.io/onthegomap/planetiler:latest \
+  --area=germany --download
+
+# Output is /data/data/output.pmtiles (≈ 1–2 GB)
+mv data/output.pmtiles tmp/de.pmtiles
+```
+
+Alternative: use `pmtiles extract` (from
+[`go-pmtiles`](https://github.com/protomaps/go-pmtiles)) to pull a Germany
+slice from a worldwide PMTiles host:
+
+```sh
+pmtiles extract https://example.com/world.pmtiles tmp/de.pmtiles \
+  --bbox=5.87,47.27,15.04,55.06 --maxzoom=14
+```
+
+Then upload to R2:
+
+```sh
+wrangler r2 object put trinkhallen-tiles/de.pmtiles \
+  --file=tmp/de.pmtiles --remote --content-type=application/octet-stream
+```
+
+The site auto-detects on the next render (cached for ~60 s via
+`caches.default`); no redeploy required.
 
 ## License
 

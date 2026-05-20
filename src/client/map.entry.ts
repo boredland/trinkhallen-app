@@ -17,6 +17,7 @@ import maplibregl, {
   type MapLayerMouseEvent,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { resolveStyle } from "./build-style";
 
 interface KioskFeature {
   type: "Feature";
@@ -30,13 +31,11 @@ interface FeatureCollection {
 
 const mount = document.getElementById("map");
 if (mount instanceof HTMLElement) {
-  const styleUrl = mount.dataset["style"] ?? "/style-night.json";
-
   // Center on Frankfurt-am-Main by default; bbox attribute is parsed but
   // currently only used as a fallback if center/zoom are missing.
   const map = new maplibregl.Map({
     container: mount,
-    style: styleUrl,
+    style: resolveStyle(mount),
     center: [8.6821, 50.1109],
     zoom: 12,
     minZoom: 5,
