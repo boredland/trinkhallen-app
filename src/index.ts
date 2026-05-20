@@ -19,14 +19,21 @@ app.use(
   secureHeaders({
     contentSecurityPolicy: {
       defaultSrc: ["'self'"],
-      // Anton + Inter from Google Fonts
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      // Anton + Inter from Google Fonts; PBF glyphs from Protomaps' assets host
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://protomaps.github.io"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https://lh3.googleusercontent.com"],
-      // MapLibre uses workers + wasm; Alpine + HTMX are bundled local
+      // Avatars + Protomaps basemap sprite (PNG + JSON metadata)
+      imgSrc: ["'self'", "data:", "blob:", "https://lh3.googleusercontent.com", "https://protomaps.github.io"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
       workerSrc: ["'self'", "blob:"],
-      connectSrc: ["'self'", "https://tiles.trinkhallen.app", "https://api.protomaps.com"],
+      // tiles.trinkhallen.app: PMTiles range fetches.
+      // protomaps.github.io: sprite + glyph fetches by MapLibre.
+      connectSrc: [
+        "'self'",
+        "https://tiles.trinkhallen.app",
+        "https://protomaps.github.io",
+        "https://api.protomaps.com",
+      ],
       frameAncestors: ["'none'"],
     },
   }),
