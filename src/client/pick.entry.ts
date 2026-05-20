@@ -12,7 +12,7 @@ import maplibregl, {
   type Map as MlMap,
   type MapMouseEvent,
 } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
+// maplibre-gl.css is imported from app.entry.ts; see comment there.
 import { resolveStyle } from "./build-style";
 
 const mount = document.getElementById("pick-map");

@@ -16,7 +16,9 @@ import maplibregl, {
   type Map as MlMap,
   type MapLayerMouseEvent,
 } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
+// maplibre-gl.css is imported from app.entry.ts (always loaded) so its
+// styles always reach the page; importing here splits into a chunk our
+// manifest reader doesn't pull in transitively.
 import { resolveStyle } from "./build-style";
 
 interface KioskFeature {
@@ -53,10 +55,23 @@ if (mount instanceof HTMLElement) {
     "top-right",
   );
 
-  /** Add the kiosk source + 3 layers. Idempotent — safe to re-call after a
-   *  `map.setStyle()` (which strips custom sources/layers). */
-  function addKioskLayers(): void {
+  /** Lazy-load + register the bottle-silhouette icon used by the unclustered
+   *  symbol layer. SDF (single distance field) lets us re-tint per theme via
+   *  `icon-color` without shipping multiple PNGs.
+   */
+  async function ensureKioskIcon(): Promise<void> {
+    if (map.hasImage("kiosk-icon")) return;
+    const img = await map.loadImage("/marker-kiosk.svg");
+    map.addImage("kiosk-icon", img.data, { sdf: true });
+  }
+
+  /** Add the kiosk source + layers. Idempotent — safe to re-call after a
+   *  `map.setStyle()` (which strips custom sources/layers, but `addImage`
+   *  registrations survive). */
+  async function addKioskLayers(): Promise<void> {
     if (map.getSource("kiosks")) return;
+    await ensureKioskIcon();
+
     map.addSource("kiosks", {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
@@ -67,7 +82,7 @@ if (mount instanceof HTMLElement) {
 
     const isLight = document.documentElement.dataset["theme"] === "light";
     const clusterCountColor = isLight ? "#F5F2EC" : "#0A0A0A";
-    const unclusteredStroke = isLight ? "#F5F2EC" : "#0A0A0A";
+    const iconHaloColor = isLight ? "#F5F2EC" : "#0A0A0A";
 
     map.addLayer({
       id: "clusters",
@@ -90,7 +105,6 @@ if (mount instanceof HTMLElement) {
       filter: ["has", "point_count"],
       layout: {
         "text-field": ["get", "point_count_abbreviated"],
-        // Protomaps' glyph host ships Noto Sans Regular/Medium/Italic.
         "text-font": ["Noto Sans Medium"],
         "text-size": 12,
       },
@@ -99,23 +113,30 @@ if (mount instanceof HTMLElement) {
       },
     });
 
+    // Bottle-silhouette icon on a pink halo. The halo (icon-halo-color +
+    // -width) gives a one-pixel contrast outline that doesn't change with
+    // zoom; the bottle scales smoothly via icon-size interpolation.
     map.addLayer({
       id: "unclustered",
-      type: "circle",
+      type: "symbol",
       source: "kiosks",
       filter: ["!", ["has", "point_count"]],
+      layout: {
+        "icon-image": "kiosk-icon",
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.35, 14, 0.55, 18, 0.85],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+      },
       paint: {
-        "circle-color": "#FF2D6F",
-        "circle-stroke-color": unclusteredStroke,
-        "circle-stroke-width": 1,
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 3, 14, 6, 18, 10],
-        "circle-opacity": 0.95,
+        "icon-color": "#FF2D6F",
+        "icon-halo-color": iconHaloColor,
+        "icon-halo-width": 1.2,
       },
     });
   }
 
   map.on("load", () => {
-    addKioskLayers();
+    void addKioskLayers();
 
     map.on("click", "clusters", async (e: MapLayerMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
@@ -167,8 +188,7 @@ if (mount instanceof HTMLElement) {
   // Whenever the style finishes loading (initial load *and* every setStyle),
   // make sure our custom source + layers are present and repopulated.
   map.on("style.load", () => {
-    addKioskLayers();
-    void refresh(map);
+    void addKioskLayers().then(() => refresh(map));
   });
 }
 

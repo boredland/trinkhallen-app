@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#0A0A0A"/>
+  <text x="16" y="22" font-family="Anton, Impact, sans-serif" font-size="20" font-weight="700"
+        text-anchor="middle" fill="#F5F2EC" letter-spacing="-1">T</text>
+  <circle cx="22" cy="22" r="2.5" fill="#FF2D6F"/>
+</svg>

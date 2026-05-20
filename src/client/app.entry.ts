@@ -1,5 +1,11 @@
 import Alpine from "alpinejs";
 import "./app.css";
+// Bundled into the main app stylesheet so the map's controls + attribution
+// have the styles MapLibre relies on (absolute positioning of `.ctrl-*-*`
+// corner containers, button sizing, default cursor). Loading it from
+// map.entry.ts splits it into a chunk our asset manifest reader doesn't
+// pick up transitively, so controls render as zero-height boxes.
+import "maplibre-gl/dist/maplibre-gl.css";
 
 // ── Theme toggle ────────────────────────────────────────────────────────────
 const root = document.documentElement;
