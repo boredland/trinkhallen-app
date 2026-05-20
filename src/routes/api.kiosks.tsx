@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { KioskList } from "../components/KioskList";
 import type { Env } from "../env";
 import { getKioskById, queryKiosksInBbox, type KioskRecord } from "../lib/db";
-import { applyFilters, filterSignature, parseFilterFromQuery } from "../lib/filters";
+import { applyFilters, filterSignature, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox, quantizeBbox } from "../lib/geo";
 
 export const apiKiosks = new Hono<{ Bindings: Env }>();
@@ -66,6 +66,8 @@ apiKiosks.get("/api/kiosks/panel", async (c) => {
       kiosks={filtered.slice(0, 100)}
       totalInBbox={all.length}
       filteredCount={filtered.length}
+      filterActive={isFilterActive(filter)}
+      resetHref="/"
       userAgent={c.req.header("user-agent") ?? null}
     />,
   );
