@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
-import { getKioskById } from "../lib/db";
+import { getKioskById } from "../lib/asset-kiosks";
 
 export const apiReports = new Hono<{ Bindings: Env }>();
 
@@ -15,7 +15,7 @@ apiReports.post("/api/reports", async (c) => {
   const kind = (form.get("kind") ?? "").toString();
   if (!kioskId || !ALLOWED_KINDS.has(kind)) return c.text("Bad request", 400);
 
-  const kiosk = await getKioskById(c.env.DB, kioskId);
+  const kiosk = await getKioskById(c.env, kioskId);
   if (!kiosk) return c.text("Kiosk nicht gefunden", 404);
 
   // Capture per-kind structured payload so moderators see a one-glance diff.

@@ -17,8 +17,6 @@
     "db:migrate:local": "wrangler d1 migrations apply trinkhallen-prod --local",
     "db:migrate:remote": "wrangler d1 migrations apply trinkhallen-prod --remote",
     "db:reset:local": "rm -rf .wrangler/state/v3/d1 && pnpm db:migrate:local",
-    "db:seed:local": "tsx scripts/seed-d1-local.ts",
-    "db:seed:remote": "tsx scripts/seed-d1-local.ts --remote",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {

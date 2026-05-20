@@ -8,6 +8,7 @@ import {
   rejectReport,
   rejectSubmission,
 } from "../lib/moderation";
+import { getKioskById } from "../lib/asset-kiosks";
 
 export const moderate = new Hono<{ Bindings: Env }>();
 
@@ -68,14 +69,25 @@ moderate.get("/moderate", async (c) => {
       .all<PendingSubmissionRow>(),
     c.env.DB
       .prepare(
-        `SELECT r.*, k.name AS kiosk_name, u.display_name AS user_display_name, u.email AS user_email
+        `SELECT r.*, u.display_name AS user_display_name, u.email AS user_email
          FROM reports r
-         LEFT JOIN kiosks k ON k.id = r.kiosk_id
          LEFT JOIN users u ON u.id = r.user_id
          WHERE r.status = 'open' ORDER BY r.created_at ASC LIMIT 100`,
       )
-      .all<PendingReportRow>(),
+      .all<Omit<PendingReportRow, "kiosk_name">>(),
   ]);
+
+  const reportKioskNames = new Map<string, string>();
+  await Promise.all(
+    [...new Set(reports.results.map((r) => r.kiosk_id))].map(async (id) => {
+      const k = await getKioskById(c.env, id);
+      if (k) reportKioskNames.set(id, k.name);
+    }),
+  );
+  const reportRows: PendingReportRow[] = reports.results.map((r) => ({
+    ...r,
+    kiosk_name: reportKioskNames.get(r.kiosk_id) ?? r.kiosk_id,
+  }));
 
   return c.html(
     <Layout title="Moderation" nav="me" user={user}>
@@ -86,13 +98,13 @@ moderate.get("/moderate", async (c) => {
 
       <nav class="mb-6 flex gap-2 border-b-2 border-border">
         <TabLink href="/moderate?tab=submissions" active={tab === "submissions"} label={`Vorschläge (${subs.results.length})`} />
-        <TabLink href="/moderate?tab=reports" active={tab === "reports"} label={`Korrekturen (${reports.results.length})`} />
+        <TabLink href="/moderate?tab=reports" active={tab === "reports"} label={`Korrekturen (${reportRows.length})`} />
       </nav>
 
       {tab === "submissions" ? (
         <SubmissionQueue rows={subs.results} />
       ) : (
-        <ReportQueue rows={reports.results} />
+        <ReportQueue rows={reportRows} />
       )}
     </Layout>,
   );
@@ -295,9 +307,7 @@ moderate.post("/api/moderate/reports/:id/approve", async (c) => {
   const moderator = c.get("user")!;
   const row = await c.env.DB
     .prepare(
-      `SELECT r.*, k.id AS k_id, k.region AS k_region, k.name AS k_name
-       FROM reports r LEFT JOIN kiosks k ON k.id = r.kiosk_id
-       WHERE r.id = ? AND r.status = 'open'`,
+      `SELECT * FROM reports WHERE id = ? AND status = 'open'`,
     )
     .bind(id)
     .first<{
@@ -309,11 +319,10 @@ moderate.post("/api/moderate/reports/:id/approve", async (c) => {
       status: string;
       pr_url: string | null;
       created_at: number;
-      k_id: string | null;
-      k_region: string | null;
-      k_name: string | null;
     }>();
-  if (!row || !row.k_id) return c.text("report not actionable", 404);
+  if (!row) return c.text("report not actionable", 404);
+  const kiosk = await getKioskById(c.env, row.kiosk_id);
+  if (!kiosk) return c.text("report kiosk not found in dataset", 404);
   await approveReport(
     c.env,
     {
@@ -326,7 +335,7 @@ moderate.post("/api/moderate/reports/:id/approve", async (c) => {
       pr_url: row.pr_url,
       created_at: row.created_at,
     },
-    { id: row.k_id, region: row.k_region ?? "", name: row.k_name ?? "" },
+    { id: kiosk.id, region: kiosk.region, name: kiosk.name },
     moderator,
   );
   return c.redirect("/moderate?tab=reports");

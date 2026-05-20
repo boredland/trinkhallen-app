@@ -4,7 +4,8 @@ import { FilterChips } from "../components/FilterChips";
 import { KioskDetail } from "../components/KioskDetail";
 import { KioskList } from "../components/KioskList";
 import { Layout } from "../components/Layout";
-import { countKiosks, getKioskById, queryKiosksInBbox, type KioskRecord } from "../lib/db";
+import type { KioskRecord } from "../lib/db";
+import { countKiosks, getKioskById, queryKiosksInBbox } from "../lib/asset-kiosks";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
 import { getAggregate, getOwnRating } from "../lib/ratings";
@@ -44,7 +45,7 @@ async function renderMapPage(
 
   let initialPanel = <KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />;
   if (initialBbox) {
-    const all = await queryKiosksInBbox(c.env.DB, initialBbox, 5000);
+    const all = await queryKiosksInBbox(c.env, initialBbox, 5000);
     const filtered = applyFilters(all, filter);
     filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
     initialPanel = (
@@ -163,7 +164,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/list", (c) => c.redirect("/", 301));
 
   app.get("/about", async (c) => {
-    const total = await countKiosks(c.env.DB);
+    const total = await countKiosks(c.env);
     return c.html(
       <Layout title="Über" nav="about" user={c.get("user")}>
         <article class="space-y-10">
@@ -285,7 +286,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const id = c.req.param("id");
     const user = c.get("user");
     const partial = c.req.query("partial") === "1";
-    const kiosk = await getKioskById(c.env.DB, id);
+    const kiosk = await getKioskById(c.env, id);
     if (!kiosk) {
       if (partial) return c.text("not found", 404);
       return c.html(
@@ -581,12 +582,12 @@ async function renderProfile(
   const [reportsRes, submissionsRes, ratingsCountRow] = await Promise.all([
     c.env.DB
       .prepare(
-        `SELECT r.id, r.kiosk_id, k.name AS kiosk_name, r.kind, r.status, r.pr_url, r.created_at
-         FROM reports r JOIN kiosks k ON k.id = r.kiosk_id
+        `SELECT r.id, r.kiosk_id, r.kind, r.status, r.pr_url, r.created_at
+         FROM reports r
          WHERE r.user_id = ? ORDER BY r.created_at DESC LIMIT 50`,
       )
       .bind(user.id)
-      .all<ReportListRow>(),
+      .all<Omit<ReportListRow, "kiosk_name">>(),
     c.env.DB
       .prepare(
         `SELECT id, payload, status, pr_url, created_at FROM submissions
@@ -600,7 +601,18 @@ async function renderProfile(
       .first<{ n: number }>(),
   ]);
 
-  const reports = reportsRes.results;
+  const reportRows = reportsRes.results;
+  const kioskNames = new Map<string, string>();
+  await Promise.all(
+    [...new Set(reportRows.map((r) => r.kiosk_id))].map(async (id) => {
+      const k = await getKioskById(c.env, id);
+      if (k) kioskNames.set(id, k.name);
+    }),
+  );
+  const reports: ReportListRow[] = reportRows.map((r) => ({
+    ...r,
+    kiosk_name: kioskNames.get(r.kiosk_id) ?? r.kiosk_id,
+  }));
   const submissions = submissionsRes.results;
   const ratingsCount = ratingsCountRow?.n ?? 0;
   const fmtDate = (s: number) => new Date(s * 1000).toLocaleDateString("de-DE");

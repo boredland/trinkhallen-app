@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { KioskList } from "../components/KioskList";
 import type { Env } from "../env";
-import { getKioskById, queryKiosksInBbox, type KioskRecord } from "../lib/db";
+import { findNearestKiosk, getKioskById, queryKiosksInBbox } from "../lib/asset-kiosks";
+import type { KioskRecord } from "../lib/db";
 import { applyFilters, filterSignature, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { haversineMeters, parseBbox, parseLatLng, quantizeBbox } from "../lib/geo";
 
@@ -37,7 +38,7 @@ apiKiosks.get("/api/kiosks", async (c) => {
     if (cached) return cached;
   }
 
-  const records = applyFilters(await queryKiosksInBbox(c.env.DB, bbox, limit), filter);
+  const records = applyFilters(await queryKiosksInBbox(c.env, bbox, limit), filter);
   const body = JSON.stringify(toFeatureCollection(records));
   const resp = new Response(body, {
     headers: {
@@ -59,7 +60,7 @@ apiKiosks.get("/api/kiosks/panel", async (c) => {
   const origin = parseLatLng(url.searchParams.get("origin"));
   if (!bbox) return c.html(<KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />);
   const filter = parseFilterFromQuery(url.searchParams);
-  const all = await queryKiosksInBbox(c.env.DB, bbox, 5000);
+  const all = await queryKiosksInBbox(c.env, bbox, 5000);
   const filtered = applyFilters(all, filter);
   if (origin) {
     filtered.sort(
@@ -99,25 +100,19 @@ apiKiosks.get("/api/kiosks/nearest", async (c) => {
   const origin = parseLatLng(c.req.query("origin"));
   if (!origin) return c.json({ error: "origin lat,lng required" }, 400);
 
-  const { results } = await c.env.DB
-    .prepare("SELECT id, name, lng, lat FROM kiosks")
-    .all<{ id: string; name: string; lng: number; lat: number }>();
+  const hit = await findNearestKiosk(c.env, origin);
+  if (!hit) return c.json({ error: "no kiosks in dataset" }, 404);
 
-  let best: { id: string; name: string; lng: number; lat: number; distance: number } | null = null;
-  for (const r of results) {
-    const d = haversineMeters(origin, { lat: r.lat, lng: r.lng });
-    if (best === null || d < best.distance) best = { ...r, distance: d };
-  }
-  if (!best) return c.json({ error: "no kiosks in dataset" }, 404);
-
-  return c.json(best, 200, {
-    "cache-control": "public, max-age=30, s-maxage=30",
-  });
+  return c.json(
+    { id: hit.record.id, name: hit.record.name, lng: hit.record.lng, lat: hit.record.lat, distance: hit.distance },
+    200,
+    { "cache-control": "public, max-age=30, s-maxage=30" },
+  );
 });
 
 apiKiosks.get("/api/kiosks/:id", async (c) => {
   const id = c.req.param("id");
-  const record = await getKioskById(c.env.DB, id);
+  const record = await getKioskById(c.env, id);
   if (!record) return c.json({ error: "not found" }, 404);
   return c.json({ ...toFeature(record), aggregate: null });
 });

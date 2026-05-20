@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { RatingBlock } from "../components/RatingBlock";
 import type { Env } from "../env";
-import { getKioskById } from "../lib/db";
+import { getKioskById } from "../lib/asset-kiosks";
 import { deleteRating, getAggregate, getOwnRating, upsertRating } from "../lib/ratings";
 
 export const apiRatings = new Hono<{ Bindings: Env }>();
@@ -20,7 +20,7 @@ apiRatings.post("/api/ratings", async (c) => {
     return c.text("stars must be 1..5", 400);
   }
 
-  const kiosk = await getKioskById(c.env.DB, kioskId);
+  const kiosk = await getKioskById(c.env, kioskId);
   if (!kiosk) return c.text("kiosk not found", 404);
 
   await upsertRating(c.env, {
