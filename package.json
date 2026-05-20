@@ -36,6 +36,7 @@
     "@hono/vite-dev-server": "^0.20.0",
     "@tailwindcss/vite": "^4.1.0",
     "@types/alpinejs": "^3.13.11",
+    "playwright": "^1.60.0",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.0",

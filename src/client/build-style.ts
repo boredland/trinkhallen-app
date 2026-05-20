@@ -61,10 +61,10 @@ export function buildVectorStyle(pmtilesUrl: string, lang = "de"): StyleSpecific
         attribution: '<a href="https://protomaps.com" target="_blank">Protomaps</a> · <a href="https://openstreetmap.org" target="_blank">OpenStreetMap</a>',
       },
     },
-    layers: [
-      { id: "background", type: "background", paint: { "background-color": flavor.background } },
-      ...layers("protomaps", flavor, { lang }),
-    ],
+    // @protomaps/basemaps' layers() already emits a `background` layer using
+    // `flavor.background`; don't prepend our own or MapLibre rejects the
+    // duplicate id and the whole style fails to load.
+    layers: layers("protomaps", flavor, { lang }),
   } as StyleSpecification;
 }
 
