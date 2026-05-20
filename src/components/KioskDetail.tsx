@@ -43,6 +43,13 @@ export const KioskDetail: FC<{
 
   return (
     <article class="border-2 border-border bg-surface">
+      <a
+        href="/"
+        data-back
+        class="block border-b-2 border-border px-6 py-3 font-display text-xs tracking-wider uppercase text-fg-muted transition-colors hover:text-neon-pink"
+      >
+        ← Zurück zur Karte
+      </a>
       <header class="border-b-2 border-border p-6">
         <p
           class={`mb-3 font-display text-sm tracking-wider uppercase ${

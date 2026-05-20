@@ -33,13 +33,28 @@ interface FeatureCollection {
 
 const mount = document.getElementById("map");
 if (mount instanceof HTMLElement) {
-  // Center on Frankfurt-am-Main by default; bbox attribute is parsed but
-  // currently only used as a fallback if center/zoom are missing.
+  // ?c=lat,lng&z=zoom — restore the previously-saved viewport, e.g. when
+  // returning from /k/:id or following a shared link. Defaults to Frankfurt.
+  const params = new URL(location.href).searchParams;
+  const initialCenter = (() => {
+    const c = params.get("c");
+    if (!c) return [8.6821, 50.1109] as [number, number];
+    const [lat, lng] = c.split(",").map(Number);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && lat! >= -90 && lat! <= 90 && lng! >= -180 && lng! <= 180) {
+      return [lng!, lat!] as [number, number];
+    }
+    return [8.6821, 50.1109] as [number, number];
+  })();
+  const initialZoom = (() => {
+    const z = parseFloat(params.get("z") ?? "");
+    return Number.isFinite(z) && z >= 5 && z <= 19 ? z : 12;
+  })();
+
   const map = new maplibregl.Map({
     container: mount,
     style: resolveStyle(mount),
-    center: [8.6821, 50.1109],
-    zoom: 12,
+    center: initialCenter,
+    zoom: initialZoom,
     minZoom: 5,
     maxZoom: 19,
     attributionControl: { compact: true },
@@ -203,6 +218,14 @@ if (mount instanceof HTMLElement) {
       const b = map.getBounds();
       const bbox = `${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}`;
       window.dispatchEvent(new CustomEvent("tk:bbox-changed", { detail: { bbox } }));
+      // Persist viewport to URL so refresh / share / browser-back preserves
+      // the user's position. replaceState (not pushState) — we don't want
+      // every pan to bloat the back-button stack.
+      const center = map.getCenter();
+      const u = new URL(location.href);
+      u.searchParams.set("c", `${center.lat.toFixed(5)},${center.lng.toFixed(5)}`);
+      u.searchParams.set("z", map.getZoom().toFixed(2));
+      history.replaceState(null, "", u.toString());
       void refresh(map);
     }, 200);
   });

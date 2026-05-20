@@ -112,6 +112,18 @@ function attachFilterForm(form: HTMLFormElement): void {
 
 document.querySelectorAll<HTMLFormElement>("[data-filter-form]").forEach(attachFilterForm);
 
+// ── data-back links: prefer history.back() when we came from same-origin ────
+// Lets the back link on /k/:id pop us back to the exact map viewport the
+// user was looking at, instead of resetting to the home default.
+document.querySelectorAll<HTMLAnchorElement>("[data-back]").forEach((el) => {
+  el.addEventListener("click", (e) => {
+    if (document.referrer.startsWith(location.origin) && history.length > 1) {
+      e.preventDefault();
+      history.back();
+    }
+  });
+});
+
 // ── Report form: show only the fieldset matching the selected `kind` ────────
 document.querySelectorAll("[data-report-form]").forEach((root) => {
   const select = root.querySelector("select[name=kind]") as HTMLSelectElement | null;
