@@ -481,19 +481,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               </button>
             </form>
 
-            <div class="my-6 flex items-center gap-3 text-xs uppercase tracking-wider text-fg-dim">
-              <span class="h-px flex-1 bg-border" />
-              <span>oder</span>
-              <span class="h-px flex-1 bg-border" />
-            </div>
-
-            <a href="/auth/google" class="btn-neon inline-flex w-full justify-center sm:w-auto">
-              ▶ Mit Google anmelden
-            </a>
-
             <p class="mt-6 text-xs text-fg-dim">
-              Wir speichern bei E-Mail-Login nur deine Adresse, bei Google zusätzlich Name und
-              Profilbild. Mehr nicht.
+              Wir speichern nur deine E-Mail-Adresse. Mehr nicht.
             </p>
           </section>
         </Layout>,
