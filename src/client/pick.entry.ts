@@ -43,22 +43,30 @@ if (mount instanceof HTMLElement) {
     "top-right",
   );
 
-  map.on("load", () => {
-    map.addSource("pin", {
-      type: "geojson",
-      data: pinFeature(hasInitial ? [initialLng, initialLat] : null),
-    });
-    map.addLayer({
-      id: "pin-circle",
-      type: "circle",
-      source: "pin",
-      paint: {
-        "circle-radius": 10,
-        "circle-color": "#FF2D6F",
-        "circle-stroke-color": "#0A0A0A",
-        "circle-stroke-width": 2,
-      },
-    });
+
+  // Theme swap — rebuild style + re-add the pin source on style.load.
+  window.addEventListener("tk:theme-changed", () => {
+    map.setStyle(resolveStyle(mount), { diff: false });
+  });
+  map.on("style.load", () => {
+    if (!map.getSource("pin")) {
+      map.addSource("pin", {
+        type: "geojson",
+        data: pinFeature(hasInitial ? [initialLng, initialLat] : null),
+      });
+      map.addLayer({
+        id: "pin-circle",
+        type: "circle",
+        source: "pin",
+        paint: {
+          "circle-radius": 10,
+          "circle-color": "#FF2D6F",
+          "circle-stroke-color":
+            document.documentElement.dataset["theme"] === "light" ? "#F5F2EC" : "#0A0A0A",
+          "circle-stroke-width": 2,
+        },
+      });
+    }
   });
 
   map.on("click", (e: MapMouseEvent) => {

@@ -53,7 +53,10 @@ if (mount instanceof HTMLElement) {
     "top-right",
   );
 
-  map.on("load", () => {
+  /** Add the kiosk source + 3 layers. Idempotent — safe to re-call after a
+   *  `map.setStyle()` (which strips custom sources/layers). */
+  function addKioskLayers(): void {
+    if (map.getSource("kiosks")) return;
     map.addSource("kiosks", {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
@@ -61,6 +64,10 @@ if (mount instanceof HTMLElement) {
       clusterMaxZoom: 15,
       clusterRadius: 48,
     });
+
+    const isLight = document.documentElement.dataset["theme"] === "light";
+    const clusterCountColor = isLight ? "#F5F2EC" : "#0A0A0A";
+    const unclusteredStroke = isLight ? "#F5F2EC" : "#0A0A0A";
 
     map.addLayer({
       id: "clusters",
@@ -84,12 +91,11 @@ if (mount instanceof HTMLElement) {
       layout: {
         "text-field": ["get", "point_count_abbreviated"],
         // Protomaps' glyph host ships Noto Sans Regular/Medium/Italic.
-        // Default MapLibre fonts (Open Sans, Arial Unicode) 404 here.
         "text-font": ["Noto Sans Medium"],
         "text-size": 12,
       },
       paint: {
-        "text-color": "#0A0A0A",
+        "text-color": clusterCountColor,
       },
     });
 
@@ -100,12 +106,16 @@ if (mount instanceof HTMLElement) {
       filter: ["!", ["has", "point_count"]],
       paint: {
         "circle-color": "#FF2D6F",
-        "circle-stroke-color": "#0A0A0A",
+        "circle-stroke-color": unclusteredStroke,
         "circle-stroke-width": 1,
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 3, 14, 6, 18, 10],
         "circle-opacity": 0.95,
       },
     });
+  }
+
+  map.on("load", () => {
+    addKioskLayers();
 
     map.on("click", "clusters", async (e: MapLayerMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
@@ -145,6 +155,21 @@ if (mount instanceof HTMLElement) {
   });
 
   window.addEventListener("tk:filters-changed", () => void refresh(map));
+
+  // Theme toggle in app.entry.ts dispatches this; rebuild the style with the
+  // matching flavor + sprite, then re-add our kiosk source/layers on the new
+  // style. setStyle's `diff: false` ensures a clean swap; we own the markers.
+  window.addEventListener("tk:theme-changed", () => {
+    const next = resolveStyle(mount);
+    map.setStyle(next, { diff: false });
+  });
+
+  // Whenever the style finishes loading (initial load *and* every setStyle),
+  // make sure our custom source + layers are present and repopulated.
+  map.on("style.load", () => {
+    addKioskLayers();
+    void refresh(map);
+  });
 }
 
 async function refresh(map: MlMap): Promise<void> {

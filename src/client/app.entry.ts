@@ -11,6 +11,8 @@ document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]").forEach((btn
     const next = root.dataset.theme === "light" ? "dark" : "light";
     root.dataset.theme = next;
     localStorage.setItem("tk-theme", next);
+    // Map islands listen and reload their style to match.
+    window.dispatchEvent(new CustomEvent("tk:theme-changed", { detail: next }));
   });
 });
 
