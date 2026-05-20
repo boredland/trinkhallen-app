@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="24" height="32">
-  <!-- Flat beer-bottle silhouette in pure black so MapLibre's SDF tinting
-       can recolour it (icon-color in the symbol layer). The contour is
-       intentionally chunky so it reads at 18–24px. -->
+  <!-- Beer-bottle silhouette in Späti Neon magenta with a warm-white stroke
+       so it reads on both light + dark basemaps without theme-aware tinting.
+       Chunky on purpose for readability at small sizes. -->
   <path d="M9.5 0 v3 h5 v3 q0 2 0.8 3.6 l1.7 3.4 q1 2 1 4.2 v11 q0 3.8 -3.8 3.8 h-4.4 q-3.8 0 -3.8 -3.8 v-11 q0 -2.2 1 -4.2 l1.7 -3.4 Q9.5 8 9.5 6 z"
-        fill="#000" />
+        fill="#FF2D6F" stroke="#F5F2EC" stroke-width="1.2" stroke-linejoin="round" />
 </svg>

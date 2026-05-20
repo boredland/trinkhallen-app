@@ -56,13 +56,32 @@ if (mount instanceof HTMLElement) {
   );
 
   /** Lazy-load + register the bottle-silhouette icon used by the unclustered
-   *  symbol layer. SDF (single distance field) lets us re-tint per theme via
-   *  `icon-color` without shipping multiple PNGs.
-   */
+   *  symbol layer.
+   *
+   *  MapLibre's `map.loadImage()` rejects SVG (it pipes through ImageBitmap
+   *  which only handles raster formats), so we rasterise to a canvas at the
+   *  pixel ratio we want and hand over the ImageData. Native SDF tinting is
+   *  skipped — the icon is self-contained with its own brand colour + stroke. */
   async function ensureKioskIcon(): Promise<void> {
     if (map.hasImage("kiosk-icon")) return;
-    const img = await map.loadImage("/marker-kiosk.svg");
-    map.addImage("kiosk-icon", img.data, { sdf: true });
+    const w = 24;
+    const h = 32;
+    const scale = (window.devicePixelRatio ?? 1) >= 2 ? 2 : 1;
+    const img = new Image();
+    img.decoding = "async";
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("kiosk icon failed to load"));
+      img.src = "/marker-kiosk.svg";
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = w * scale;
+    canvas.height = h * scale;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(img, 0, 0, w * scale, h * scale);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    map.addImage("kiosk-icon", data, { pixelRatio: scale });
   }
 
   /** Add the kiosk source + layers. Idempotent — safe to re-call after a
@@ -82,7 +101,7 @@ if (mount instanceof HTMLElement) {
 
     const isLight = document.documentElement.dataset["theme"] === "light";
     const clusterCountColor = isLight ? "#F5F2EC" : "#0A0A0A";
-    const iconHaloColor = isLight ? "#F5F2EC" : "#0A0A0A";
+    const dotStroke = isLight ? "#F5F2EC" : "#0A0A0A";
 
     map.addLayer({
       id: "clusters",
@@ -113,9 +132,23 @@ if (mount instanceof HTMLElement) {
       },
     });
 
-    // Bottle-silhouette icon on a pink halo. The halo (icon-halo-color +
-    // -width) gives a one-pixel contrast outline that doesn't change with
-    // zoom; the bottle scales smoothly via icon-size interpolation.
+    // Low-zoom dot: keeps unclustered markers visible when they're tiny and
+    // the bottle icon would just be noise. Fades out as the icon fades in.
+    map.addLayer({
+      id: "unclustered-dot",
+      type: "circle",
+      source: "kiosks",
+      filter: ["!", ["has", "point_count"]],
+      paint: {
+        "circle-color": "#FF2D6F",
+        "circle-stroke-color": dotStroke,
+        "circle-stroke-width": 1,
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 3, 13, 5, 14, 0],
+        "circle-opacity": ["interpolate", ["linear"], ["zoom"], 12, 1, 14, 0],
+      },
+    });
+
+    // Bottle icon: scales up at high zoom where the dot would feel small.
     map.addLayer({
       id: "unclustered",
       type: "symbol",
@@ -123,14 +156,13 @@ if (mount instanceof HTMLElement) {
       filter: ["!", ["has", "point_count"]],
       layout: {
         "icon-image": "kiosk-icon",
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.35, 14, 0.55, 18, 0.85],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.5, 14, 0.9, 18, 1.4],
+        "icon-anchor": "bottom",
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },
       paint: {
-        "icon-color": "#FF2D6F",
-        "icon-halo-color": iconHaloColor,
-        "icon-halo-width": 1.2,
+        "icon-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0, 14, 1],
       },
     });
   }
