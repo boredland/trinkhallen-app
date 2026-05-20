@@ -65,7 +65,7 @@ export async function openIssue(
 
 // ── token plumbing ──────────────────────────────────────────────────────────
 
-async function getInstallationToken(env: Env): Promise<string> {
+export async function getInstallationToken(env: Env): Promise<string> {
   const appJwt = await mintAppJwt(env.GITHUB_APP_ID, env.GITHUB_APP_PRIVATE_KEY);
   const resp = await fetch(
     `${GITHUB_API}/app/installations/${env.GITHUB_APP_INSTALLATION_ID}/access_tokens`,

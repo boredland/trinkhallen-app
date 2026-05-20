@@ -50,6 +50,11 @@ wrangler secret put GITHUB_APP_PRIVATE_KEY
 wrangler secret put GITHUB_APP_INSTALLATION_ID
 wrangler secret put GITHUB_WEBHOOK_SECRET
 
+# Promote yourself (after first login) so /moderate becomes accessible.
+# The user row is created on first magic-link or Google login.
+wrangler d1 execute trinkhallen-prod --remote --command \
+  "UPDATE users SET role='moderator' WHERE email='you@example.com'"
+
 # 3. Apply migrations to the real DB
 pnpm db:migrate:remote
 
@@ -128,6 +133,29 @@ wrangler r2 object put trinkhallen-tiles/de.pmtiles \
 
 The site auto-detects on the next render (cached for ~60 s via
 `caches.default`); no redeploy required.
+
+## Moderation
+
+User-submitted reports and proposed kiosks land in D1 with status `open` /
+`pending`. They become visible at `/moderate` to anyone with `role` ∈
+`{moderator, admin}`.
+
+Per item, moderators **Approve** or **Reject** with an optional reason note.
+Approve triggers an auto-PR on `boredland/trinkhallen-data` via the GitHub
+App, with the diff already applied to the right region file. Reject just
+records the dismissal — submitter sees the status on `/me`.
+
+The GitHub App needs these permissions on `boredland/trinkhallen-data`:
+
+| Permission | Level |
+|---|---|
+| Repository: Contents | Read & Write |
+| Repository: Pull requests | Read & Write |
+| Repository: Issues | Write |
+| Repository: Metadata | Read |
+
+Without those secrets, approvals still record the moderator decision in
+D1 (status `approved`) and you can backfill PRs later — no data loss.
 
 ## License
 

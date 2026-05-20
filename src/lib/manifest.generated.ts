@@ -3,22 +3,22 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
   "_build-style-B-YMMjus.css": {
     "file": "assets/build-style-B-YMMjus.css"
   },
-  "_build-style-CJh5ogkk.js": {
-    "file": "assets/build-style-CJh5ogkk.js",
+  "_build-style-DLfuX571.js": {
+    "file": "assets/build-style-DLfuX571.js",
     "css": [
       "assets/build-style-B-YMMjus.css"
     ]
   },
   "src/client/app.entry.ts": {
-    "file": "assets/app-BOkJPMhR.js",
+    "file": "assets/app-ByNWdol3.js",
     "css": [
-      "assets/app-BrcWKrXe.css"
+      "assets/app-Crh0x5VK.css"
     ]
   },
   "src/client/map.entry.ts": {
-    "file": "assets/map-BLQ4QCiH.js"
+    "file": "assets/map-VZnWxI43.js"
   },
   "src/client/pick.entry.ts": {
-    "file": "assets/pick-XHkdPonl.js"
+    "file": "assets/pick-CrLNOHsN.js"
   }
 };

@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
-import { hasGithubAppCreds, openIssue } from "../lib/github-app";
 
 export const apiSubmissions = new Hono<{ Bindings: Env }>();
 
@@ -67,42 +66,10 @@ apiSubmissions.post("/add", async (c) => {
     .bind(id, user.id, JSON.stringify(feature), now, now)
     .run();
 
-  if (hasGithubAppCreds(c.env)) {
-    c.executionCtx.waitUntil(
-      (async () => {
-        const issue = await openIssue(c.env, {
-          title: `[submission] ${name} (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
-          body: renderSubmissionIssueBody({ feature, submissionId: id }),
-          labels: ["submission"],
-        });
-        if (issue) {
-          await c.env.DB
-            .prepare(`UPDATE submissions SET pr_url = ?, status = 'pr_opened' WHERE id = ?`)
-            .bind(issue.html_url, id)
-            .run();
-        }
-      })(),
-    );
-  }
-
+  // Submissions sit in D1 with status='pending' until a moderator approves
+  // on /moderate. Approval is what opens the PR — see lib/moderation.ts.
   return c.redirect("/me?submitted=ok");
 });
-
-function renderSubmissionIssueBody(args: {
-  feature: unknown;
-  submissionId: string;
-}): string {
-  return [
-    `**Submission ID**: \`${args.submissionId}\``,
-    "",
-    "**Proposed Feature** — copy into the relevant `data/**.geojson` after review:",
-    "```json",
-    JSON.stringify(args.feature, null, 2),
-    "```",
-    "",
-    "_Filed via trinkhallen.app._",
-  ].join("\n");
-}
 
 function trim(v: FormDataEntryValue | null): string {
   return v ? v.toString().trim() : "";
