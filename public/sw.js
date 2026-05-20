@@ -1,0 +1,137 @@
+/* trinkhallen.app — service worker
+ *
+ * Three caches, each with its own strategy:
+ *
+ *   tk-static-vN
+ *     Hashed JS/CSS bundles from /assets, plus the small static art in
+ *     /public. Cache-first, immutable. Versioning is via the filename
+ *     hash; the SW just stores whatever it's asked for.
+ *
+ *   tk-tiles-vN
+ *     The PMTiles file (tiles.trinkhallen.app/de.pmtiles, range requests)
+ *     and Protomaps' sprite + glyph fetches. Cache-first; the filenames
+ *     don't change between rebuilds — when we rebuild we ship a new
+ *     filename, see tiles-available.ts.
+ *
+ *   tk-runtime-vN
+ *     SSR pages and /api/kiosks. Stale-while-revalidate so the user
+ *     gets last-known content instantly on repeat visits while we fetch
+ *     the fresh version in the background.
+ *
+ * Bump VERSION below to invalidate everything.
+ */
+
+const VERSION = "v1";
+const STATIC_CACHE = `tk-static-${VERSION}`;
+const TILES_CACHE = `tk-tiles-${VERSION}`;
+const RUNTIME_CACHE = `tk-runtime-${VERSION}`;
+
+const TILES_HOSTS = new Set([
+  "tiles.trinkhallen.app",
+  "protomaps.github.io",
+]);
+const STATIC_PATH_PREFIXES = ["/assets/", "/favicon.svg", "/apple-touch-icon.svg", "/marker-kiosk.svg", "/style-night.json"];
+
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
+  // Pre-warm the app shell so the first offline visit lands on something.
+  event.waitUntil(
+    caches.open(RUNTIME_CACHE).then((cache) =>
+      cache.addAll(["/", "/about", "/list", "/me"]).catch(() => {
+        // best-effort; offline-during-install is fine
+      }),
+    ),
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((k) => k.startsWith("tk-") && ![STATIC_CACHE, TILES_CACHE, RUNTIME_CACHE].includes(k))
+          .map((k) => caches.delete(k)),
+      );
+      await self.clients.claim();
+    })(),
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+
+  // Tiles + Protomaps assets: cache-first, long-term.
+  if (TILES_HOSTS.has(url.hostname)) {
+    event.respondWith(cacheFirst(req, TILES_CACHE));
+    return;
+  }
+
+  // Same-origin static art + hashed bundles: cache-first.
+  if (url.origin === self.location.origin && STATIC_PATH_PREFIXES.some((p) => url.pathname.startsWith(p))) {
+    event.respondWith(cacheFirst(req, STATIC_CACHE));
+    return;
+  }
+
+  // Google Fonts CSS + glyphs.
+  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
+    event.respondWith(cacheFirst(req, STATIC_CACHE));
+    return;
+  }
+
+  // /api/kiosks: stale-while-revalidate keyed by the exact request URL
+  // (which already includes bbox + filter signature).
+  if (url.origin === self.location.origin && url.pathname.startsWith("/api/kiosks")) {
+    event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
+    return;
+  }
+
+  // Navigation requests: prefer the network so freshly-deployed SSR HTML
+  // lands quickly. Falls back to cache when offline.
+  if (req.mode === "navigate") {
+    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    return;
+  }
+
+  // Everything else: pass through.
+});
+
+async function cacheFirst(req, cacheName) {
+  const cache = await caches.open(cacheName);
+  const hit = await cache.match(req, { ignoreVary: true });
+  if (hit) return hit;
+  const resp = await fetch(req);
+  // Cache full + opaque responses, ignore HTTP errors.
+  if (resp.ok || resp.type === "opaque") {
+    cache.put(req, resp.clone()).catch(() => {});
+  }
+  return resp;
+}
+
+async function staleWhileRevalidate(req, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(req, { ignoreVary: true });
+  const fresh = fetch(req)
+    .then((resp) => {
+      if (resp.ok) cache.put(req, resp.clone()).catch(() => {});
+      return resp;
+    })
+    .catch(() => null);
+  return cached ?? (await fresh) ?? Response.error();
+}
+
+async function networkFirst(req, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const resp = await fetch(req);
+    if (resp.ok) cache.put(req, resp.clone()).catch(() => {});
+    return resp;
+  } catch {
+    const cached = await cache.match(req, { ignoreVary: true });
+    if (cached) return cached;
+    throw new Error("offline + nothing cached");
+  }
+}

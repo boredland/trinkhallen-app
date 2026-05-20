@@ -1,0 +1,27 @@
+{
+  "name": "trinkhallen.app",
+  "short_name": "trinkhallen",
+  "description": "Trinkhallen, Wasserhäuschen und Spätis in Deutschland — offen, durchsuchbar, nicht-kommerziell.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "categories": ["maps", "lifestyle", "food"],
+  "lang": "de",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

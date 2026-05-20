@@ -151,6 +151,17 @@ window.addEventListener("tk:bbox-changed", (e) => {
 // present in the DOM.
 installKioskSheet();
 
+// Service worker — caches assets + tile bytes for fast repeat visits
+// and basic offline (last map view + last viewed pages stay accessible).
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  // Defer until after first paint to not contend with critical bundles.
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .catch((err) => console.warn("SW registration failed:", err));
+  });
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).Alpine = Alpine;
 Alpine.start();
