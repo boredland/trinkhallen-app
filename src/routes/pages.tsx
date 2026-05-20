@@ -49,20 +49,24 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             data-pmtiles-url={tilesMode === "pmtiles" ? PMTILES_URL : undefined}
             data-filter-state={url.search}
           />
+          {/* Backdrop has to live OUTSIDE the sheet element: the sheet uses
+              `transform` for slide animation, and a transformed ancestor
+              becomes the containing block for `position: fixed` descendants.
+              If the backdrop is nested, `inset-0` resolves to the sheet's
+              own bounding box and clicks above the sheet never reach it. */}
+          <div
+            id="kiosk-sheet-backdrop"
+            class="pointer-events-none fixed inset-0 z-20 bg-bg/60 opacity-0 transition-opacity duration-200 data-[open=true]:pointer-events-auto data-[open=true]:opacity-100"
+            data-open="false"
+          />
           {/* Sheet container — populated by client/sheet.ts when a marker
-              or list item is clicked. Lives at fixed position so it can slide
-              over both the map and the sidebar. */}
+              or list item is clicked. Slides over both map and sidebar. */}
           <div
             id="kiosk-sheet"
             class="pointer-events-none fixed inset-x-0 bottom-0 z-30 translate-y-full transition-transform duration-200 ease-out data-[open=true]:pointer-events-auto data-[open=true]:translate-y-0 sm:inset-y-0 sm:bottom-auto sm:right-0 sm:max-h-none sm:w-full sm:max-w-md sm:translate-x-full sm:translate-y-0 sm:data-[open=true]:translate-x-0"
             data-open="false"
             aria-hidden="true"
           >
-            <div
-              id="kiosk-sheet-backdrop"
-              class="pointer-events-none fixed inset-0 -z-10 bg-bg/60 opacity-0 transition-opacity duration-200 data-[open=true]:pointer-events-auto data-[open=true]:opacity-100"
-              data-open="false"
-            />
             <div class="relative flex h-full max-h-[90dvh] flex-col bg-surface border-t-2 border-border sm:max-h-none sm:border-l-2 sm:border-t-0">
               <button
                 type="button"

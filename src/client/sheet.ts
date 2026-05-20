@@ -162,8 +162,9 @@ function installDragToDismiss(): void {
   let lastDy = 0;
   let dragging = false;
 
-  // The sheet panel that we translate during the drag (excludes backdrop).
-  const panel = sheet.querySelector<HTMLElement>(":scope > div:not([id*='backdrop'])");
+  // The sheet panel we translate during the drag — now the only direct
+  // child since the backdrop moved out to be a sibling of #kiosk-sheet.
+  const panel = sheet.querySelector<HTMLElement>(":scope > div");
   if (!panel) return;
 
   const onPointerDown = (e: PointerEvent) => {
