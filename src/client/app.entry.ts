@@ -6,11 +6,24 @@ const root = document.documentElement;
 const stored = localStorage.getItem("tk-theme");
 if (stored === "light" || stored === "dark") root.dataset.theme = stored;
 
+// Glyph reflects the mode you'd switch TO (sun when currently dark, moon when
+// currently light). Updated on initial paint and on every toggle.
+const SUN = "☀";
+const MOON = "☾";
+function paintThemeIcons(): void {
+  const glyph = root.dataset["theme"] === "light" ? MOON : SUN;
+  document.querySelectorAll<HTMLElement>("[data-theme-icon]").forEach((el) => {
+    el.textContent = glyph;
+  });
+}
+paintThemeIcons();
+
 document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]").forEach((btn) => {
   btn.addEventListener("click", () => {
     const next = root.dataset.theme === "light" ? "dark" : "light";
     root.dataset.theme = next;
     localStorage.setItem("tk-theme", next);
+    paintThemeIcons();
     // Map islands listen and reload their style to match.
     window.dispatchEvent(new CustomEvent("tk:theme-changed", { detail: next }));
   });

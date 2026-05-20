@@ -104,10 +104,13 @@ const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | und
         <button
           type="button"
           aria-label="Theme wechseln"
-          class="text-fg-muted transition-colors hover:text-fg-neon-amber"
+          class="cursor-pointer text-fg-muted transition-colors hover:text-neon-amber"
           data-theme-toggle
         >
-          ☾
+          {/* Glyph reflects the mode you'd switch TO; flipped on click. SSR
+              starts with the moon (dark→click→light); app.entry.ts swaps to
+              the sun once it sees [data-theme="dark"] on the html element. */}
+          <span data-theme-icon>☾</span>
         </button>
         {user ? (
           <a
