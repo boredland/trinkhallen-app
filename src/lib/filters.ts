@@ -4,6 +4,7 @@
  * and (b) at our scale (< 10k rows nationally) the JS pass is microseconds.
  */
 
+import Fuse from "fuse.js";
 import type { KioskRecord } from "./db";
 import { computeStatus } from "./opening-hours";
 
@@ -56,6 +57,21 @@ export function parseFilterFromQuery(qs: URLSearchParams): KioskFilter {
   return f;
 }
 
+/**
+ * Normalise common German variants — German users often type ASCII versions
+ * (oe/ue/ae/ss) of umlaut/eszett. Apply on both sides of the comparison so
+ * "wirtshausl" can match "Würtshausl", "applewoi" can match "Äppler", etc.
+ */
+function normalizeDe(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[`'']/g, "");
+}
+
 /** Apply filters in JS to a candidate set fetched from D1. */
 export function applyFilters(records: KioskRecord[], f: KioskFilter, now = new Date()): KioskRecord[] {
   if (
@@ -69,13 +85,28 @@ export function applyFilters(records: KioskRecord[], f: KioskFilter, now = new D
     return records;
   }
 
-  const q = f.q?.toLowerCase();
+  let candidates = records;
 
-  return records.filter((r) => {
-    if (q) {
-      const haystack = `${r.name} ${r.description ?? ""} ${r.address["street"] ?? ""} ${r.address["district"] ?? ""}`.toLowerCase();
-      if (!haystack.includes(q)) return false;
-    }
+  // Apply fuzzy text search first so it shapes the candidate set the cheaper
+  // structured filters then prune further.
+  if (f.q) {
+    const fuse = new Fuse(records, {
+      keys: [
+        { name: "name", weight: 0.5, getFn: (r) => normalizeDe(r.name) },
+        { name: "description", weight: 0.15, getFn: (r) => normalizeDe(r.description ?? "") },
+        { name: "street",   weight: 0.15, getFn: (r) => normalizeDe(r.address["street"] ?? "") },
+        { name: "city",     weight: 0.05, getFn: (r) => normalizeDe(r.address["city"] ?? "") },
+        { name: "district", weight: 0.10, getFn: (r) => normalizeDe(r.address["district"] ?? "") },
+        { name: "tags",     weight: 0.05, getFn: (r) => r.tags.map(normalizeDe).join(" ") },
+      ],
+      threshold: 0.35,       // 0 = exact, 1 = match anything
+      ignoreLocation: true,  // don't favour matches near the start
+      minMatchCharLength: 2,
+    });
+    candidates = fuse.search(normalizeDe(f.q)).map((res) => res.item);
+  }
+
+  return candidates.filter((r) => {
     if (f.tags.length) {
       const set = new Set(r.tags);
       for (const t of f.tags) if (!set.has(t)) return false;
@@ -89,4 +120,16 @@ export function applyFilters(records: KioskRecord[], f: KioskFilter, now = new D
     }
     return true;
   });
+}
+
+/** True iff the filter has any active constraint. Drives the UI's reset CTA. */
+export function isFilterActive(f: KioskFilter): boolean {
+  return (
+    f.tags.length > 0 ||
+    !!f.payment.cards ||
+    !!f.payment.contactless ||
+    !!f.payment.cash ||
+    f.openNow ||
+    !!f.q
+  );
 }

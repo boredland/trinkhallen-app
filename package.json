@@ -24,6 +24,7 @@
     "@hono/oauth-providers": "^0.6.0",
     "@protomaps/basemaps": "^5.7.2",
     "alpinejs": "^3.14.9",
+    "fuse.js": "^7.3.0",
     "hono": "^4.9.0",
     "htmx.org": "^2.0.4",
     "maplibre-gl": "^5.0.0",

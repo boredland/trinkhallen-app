@@ -5,7 +5,7 @@ import { KioskDetail } from "../components/KioskDetail";
 import { KioskList } from "../components/KioskList";
 import { Layout } from "../components/Layout";
 import { countKiosks, getKioskById, queryKiosksAll, queryKiosksInBbox } from "../lib/db";
-import { applyFilters, parseFilterFromQuery } from "../lib/filters";
+import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
 import { getAggregate, getOwnRating } from "../lib/ratings";
 import { PMTILES_URL, pmtilesAvailable } from "../lib/tiles-available";
@@ -31,6 +31,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           kiosks={filtered.slice(0, 100)}
           totalInBbox={all.length}
           filteredCount={filtered.length}
+          filterActive={isFilterActive(filter)}
+          resetHref="/"
           userAgent={c.req.header("user-agent") ?? null}
         />
       );
@@ -105,6 +107,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             totalInBbox={total}
             filteredCount={filtered.length}
             variant="page"
+            filterActive={isFilterActive(filter)}
+            resetHref="/list"
             userAgent={c.req.header("user-agent") ?? null}
           />
         </section>

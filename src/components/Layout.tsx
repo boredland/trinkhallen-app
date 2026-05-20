@@ -107,7 +107,7 @@ const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | und
         <button
           type="button"
           aria-label="Theme wechseln"
-          class="cursor-pointer text-fg-muted transition-colors hover:text-neon-amber"
+          class="cursor-pointer text-fg-muted transition-colors hover:text-neon-pink"
           data-theme-toggle
         >
           {/* Glyph reflects the mode you'd switch TO; flipped on click. SSR

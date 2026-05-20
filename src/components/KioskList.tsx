@@ -17,6 +17,10 @@ export interface KioskListProps {
   origin?: { lat: number; lng: number } | undefined;
   /** Wraps the list — defaults to a vertical scroll. The /list page uses block. */
   variant?: "panel" | "page";
+  /** When true, render a "× Filter zurücksetzen" link in the count row. */
+  filterActive?: boolean;
+  /** Where the reset link points; usually the host page sans query. */
+  resetHref?: string;
   userAgent: string | null;
 }
 
@@ -25,8 +29,16 @@ export const KioskList: FC<KioskListProps> = ({
   totalInBbox,
   filteredCount,
   variant = "panel",
+  filterActive = false,
+  resetHref,
   userAgent,
 }) => {
+  const isFiltered = filteredCount !== totalInBbox || filterActive;
+  const countLabel =
+    filteredCount === totalInBbox
+      ? `${filteredCount} Trinkhalle${filteredCount === 1 ? "" : "n"}`
+      : `${filteredCount} / ${totalInBbox} (gefiltert)`;
+
   if (kiosks.length === 0) {
     return (
       <div class="p-6 text-fg-muted">
@@ -34,21 +46,39 @@ export const KioskList: FC<KioskListProps> = ({
         <p class="mt-2 text-sm">
           Keine Trinkhallen in diesem Bereich – zoom raus oder lockere die Filter.
         </p>
+        {isFiltered && resetHref && (
+          <a
+            href={resetHref}
+            class="mt-3 inline-block text-sm text-neon-cyan underline-offset-2 hover:underline"
+          >
+            × Filter zurücksetzen
+          </a>
+        )}
       </div>
     );
   }
 
   return (
-    <div class={variant === "panel" ? "flex h-full flex-col" : "block"}>
-      <p class="border-b-2 border-border px-4 py-2 text-xs uppercase tracking-wider text-fg-dim">
-        {filteredCount === totalInBbox
-          ? `${filteredCount} Trinkhalle${filteredCount === 1 ? "" : "n"}`
-          : `${filteredCount} / ${totalInBbox} (gefiltert)`}
-      </p>
+    // min-h-0 on the outer flex container is required so the inner overflow-y-auto
+    // ul can actually scroll inside a flex parent; without it flex children default
+    // to min-height: auto (content-size) and the list grows past the viewport.
+    <div class={variant === "panel" ? "flex h-full min-h-0 flex-col" : "block"}>
+      <div class="flex items-center justify-between border-b-2 border-border px-4 py-2 text-xs uppercase tracking-wider">
+        <span class={isFiltered ? "text-neon-pink" : "text-fg-dim"}>{countLabel}</span>
+        {isFiltered && resetHref && (
+          <a
+            href={resetHref}
+            class="text-fg-muted hover:text-neon-pink"
+            aria-label="Filter zurücksetzen"
+          >
+            × Reset
+          </a>
+        )}
+      </div>
       <ul
         class={
           variant === "panel"
-            ? "flex-1 divide-y-2 divide-border overflow-y-auto"
+            ? "min-h-0 flex-1 divide-y-2 divide-border overflow-y-auto overscroll-contain"
             : "divide-y-2 divide-border"
         }
       >
