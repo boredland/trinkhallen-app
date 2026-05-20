@@ -71,20 +71,20 @@ if (mount instanceof HTMLElement) {
     fitBoundsOptions: { animate: false },
   });
   geolocate.on("geolocate", (e: { coords: GeolocationCoordinates }) => {
-    // fitBoundsOptions.maxZoom is a CAP on zoom-in, not a floor on zoom-out,
-    // so it can't help with low-accuracy positions. We re-center + ease to
-    // street level (or deeper if the user was already zoomed past 15).
-    map.easeTo({
-      center: [e.coords.longitude, e.coords.latitude],
-      zoom: Math.max(map.getZoom(), 15),
-      duration: 700,
-      essential: true,
-    });
+    const userLng = e.coords.longitude;
+    const userLat = e.coords.latitude;
+
     window.dispatchEvent(
       new CustomEvent("tk:origin-changed", {
-        detail: { lat: e.coords.latitude, lng: e.coords.longitude },
+        detail: { lat: userLat, lng: userLng },
       }),
     );
+
+    // Try to fit the view to user + nearest kiosk so the zoom-in is as
+    // close as possible while keeping the nearest marker visible. Falls
+    // back to a plain ease-to z15 if the API is slow / errors / there's
+    // no data.
+    void fitToUserAndNearest(map, userLat, userLng);
   });
   map.addControl(geolocate, "top-right");
 
@@ -290,6 +290,43 @@ if (mount instanceof HTMLElement) {
   map.on("style.load", () => {
     void addKioskLayers().then(() => refresh(map));
   });
+}
+
+async function fitToUserAndNearest(map: MlMap, lat: number, lng: number): Promise<void> {
+  const fallback = () =>
+    map.easeTo({
+      center: [lng, lat],
+      zoom: Math.max(map.getZoom(), 15),
+      duration: 700,
+      essential: true,
+    });
+
+  try {
+    const resp = await fetch(`/api/kiosks/nearest?origin=${lat},${lng}`, {
+      headers: { accept: "application/json" },
+    });
+    if (!resp.ok) return void fallback();
+    const nearest = (await resp.json()) as { lng: number; lat: number; distance: number };
+
+    // 0.1m means the user is essentially on a kiosk; just zoom in.
+    if (nearest.distance < 0.1) return void fallback();
+
+    const bounds = new maplibregl.LngLatBounds()
+      .extend([lng, lat])
+      .extend([nearest.lng, nearest.lat]);
+    map.fitBounds(bounds, {
+      // Padding so both pins sit comfortably inside the visible area
+      // (and account for the sidebar on desktop).
+      padding: window.matchMedia("(min-width: 640px)").matches
+        ? { top: 80, right: 80, bottom: 80, left: 400 }
+        : { top: 80, right: 80, bottom: 80, left: 80 },
+      maxZoom: 17, // never zoom in past z17 even if the kiosk is on top of us
+      duration: 700,
+      essential: true,
+    });
+  } catch {
+    fallback();
+  }
 }
 
 async function refresh(map: MlMap): Promise<void> {

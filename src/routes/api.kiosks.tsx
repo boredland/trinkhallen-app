@@ -83,6 +83,38 @@ apiKiosks.get("/api/kiosks/panel", async (c) => {
   );
 });
 
+/**
+ * GET /api/kiosks/nearest?origin=lat,lng
+ *
+ * Returns the closest kiosk to the given point, with distance in meters.
+ * Used by the geolocate flow on the map page to fitBounds the user + their
+ * nearest kiosk so the zoom-in lands as close as possible while still
+ * keeping the nearest marker visible.
+ *
+ * O(n) scan — for ~2k rows it's microseconds. If the dataset grows past
+ * the 10k mark we should add a spatial pre-filter (e.g. R-tree) or
+ * SQLite's `R*Tree` virtual table.
+ */
+apiKiosks.get("/api/kiosks/nearest", async (c) => {
+  const origin = parseLatLng(c.req.query("origin"));
+  if (!origin) return c.json({ error: "origin lat,lng required" }, 400);
+
+  const { results } = await c.env.DB
+    .prepare("SELECT id, name, lng, lat FROM kiosks")
+    .all<{ id: string; name: string; lng: number; lat: number }>();
+
+  let best: { id: string; name: string; lng: number; lat: number; distance: number } | null = null;
+  for (const r of results) {
+    const d = haversineMeters(origin, { lat: r.lat, lng: r.lng });
+    if (best === null || d < best.distance) best = { ...r, distance: d };
+  }
+  if (!best) return c.json({ error: "no kiosks in dataset" }, 404);
+
+  return c.json(best, 200, {
+    "cache-control": "public, max-age=30, s-maxage=30",
+  });
+});
+
 apiKiosks.get("/api/kiosks/:id", async (c) => {
   const id = c.req.param("id");
   const record = await getKioskById(c.env.DB, id);
