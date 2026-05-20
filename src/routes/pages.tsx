@@ -49,6 +49,41 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             data-pmtiles-url={tilesMode === "pmtiles" ? PMTILES_URL : undefined}
             data-filter-state={url.search}
           />
+          {/* Sheet container — populated by client/sheet.ts when a marker
+              or list item is clicked. Lives at fixed position so it can slide
+              over both the map and the sidebar. */}
+          <div
+            id="kiosk-sheet"
+            class="pointer-events-none fixed inset-x-0 bottom-0 z-30 translate-y-full transition-transform duration-200 ease-out data-[open=true]:pointer-events-auto data-[open=true]:translate-y-0 sm:inset-y-0 sm:bottom-auto sm:right-0 sm:max-h-none sm:w-full sm:max-w-md sm:translate-x-full sm:translate-y-0 sm:data-[open=true]:translate-x-0"
+            data-open="false"
+            aria-hidden="true"
+          >
+            <div
+              id="kiosk-sheet-backdrop"
+              class="pointer-events-none fixed inset-0 -z-10 bg-bg/60 opacity-0 transition-opacity duration-200 data-[open=true]:pointer-events-auto data-[open=true]:opacity-100"
+              data-open="false"
+            />
+            <div class="relative flex h-full max-h-[90dvh] flex-col bg-surface border-t-2 border-border sm:max-h-none sm:border-l-2 sm:border-t-0">
+              <button
+                type="button"
+                aria-label="Sheet schließen — nach unten ziehen"
+                data-sheet-handle
+                class="flex w-full cursor-grab touch-none items-center justify-center py-2 sm:hidden"
+              >
+                <span class="block h-1 w-10 rounded-full bg-border-hi" />
+              </button>
+              <button
+                type="button"
+                aria-label="Schließen"
+                data-sheet-close
+                class="absolute right-4 top-4 z-10 hidden h-8 w-8 cursor-pointer items-center justify-center border-2 border-border-hi font-display text-fg-muted hover:border-neon-pink hover:text-neon-pink sm:flex"
+              >
+                ×
+              </button>
+              <div id="kiosk-sheet-body" class="flex-1 overflow-y-auto overscroll-contain" />
+            </div>
+          </div>
+
           <aside class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[60dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur sm:inset-y-0 sm:bottom-auto sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0">
             <div class="border-b-2 border-border p-3">
               <FilterChips filter={filter} formAction="/" />
@@ -240,8 +275,10 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/k/:id", async (c) => {
     const id = c.req.param("id");
     const user = c.get("user");
+    const partial = c.req.query("partial") === "1";
     const kiosk = await getKioskById(c.env.DB, id);
     if (!kiosk) {
+      if (partial) return c.text("not found", 404);
       return c.html(
         <Layout title="Nicht gefunden" nav="map" user={user}>
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Kiosk nicht gefunden</h1>
@@ -259,15 +296,20 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       getAggregate(c.env, kiosk.id),
       user ? getOwnRating(c.env, kiosk.id, user.id) : Promise.resolve(null),
     ]);
+    const detail = (
+      <KioskDetail
+        kiosk={kiosk}
+        userAgent={c.req.header("user-agent") ?? null}
+        aggregate={aggregate}
+        ownRating={ownRating}
+        isLoggedIn={!!user}
+      />
+    );
+    // ?partial=1 → bare HTML for sheet injection on the map page.
+    if (partial) return c.html(detail);
     return c.html(
       <Layout title={kiosk.name} nav="map" user={user}>
-        <KioskDetail
-          kiosk={kiosk}
-          userAgent={c.req.header("user-agent") ?? null}
-          aggregate={aggregate}
-          ownRating={ownRating}
-          isLoggedIn={!!user}
-        />
+        {detail}
       </Layout>,
     );
   });

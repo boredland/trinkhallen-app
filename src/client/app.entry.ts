@@ -1,11 +1,7 @@
 import Alpine from "alpinejs";
 import "./app.css";
-// Bundled into the main app stylesheet so the map's controls + attribution
-// have the styles MapLibre relies on (absolute positioning of `.ctrl-*-*`
-// corner containers, button sizing, default cursor). Loading it from
-// map.entry.ts splits it into a chunk our asset manifest reader doesn't
-// pick up transitively, so controls render as zero-height boxes.
 import "maplibre-gl/dist/maplibre-gl.css";
+import { installKioskSheet } from "./sheet";
 
 // ── Theme toggle ────────────────────────────────────────────────────────────
 const root = document.documentElement;
@@ -150,6 +146,10 @@ window.addEventListener("tk:bbox-changed", (e) => {
   panel.dataset["panelUrl"] = u.pathname + u.search;
   void refreshPanel(new URLSearchParams(location.search));
 });
+
+// Kiosk detail sheet — only attaches if the map-page sheet container is
+// present in the DOM.
+installKioskSheet();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).Alpine = Alpine;

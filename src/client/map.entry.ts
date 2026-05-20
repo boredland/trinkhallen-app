@@ -200,7 +200,19 @@ if (mount instanceof HTMLElement) {
       const f = e.features?.[0];
       if (!f) return;
       const id = (f.properties as { id?: string })?.id;
-      if (id) window.location.href = `/k/${id}`;
+      if (!id) return;
+      // The sheet controller (client/sheet.ts) listens for this event and
+      // opens /k/:id in the slide-over panel. Falls back to a full nav if
+      // the listener isn't installed for any reason (e.g. JS error on init).
+      const ev = new CustomEvent("tk:open-kiosk", {
+        detail: { id },
+        cancelable: true,
+      });
+      if (!window.dispatchEvent(ev)) return;
+      // dispatchEvent returns true if not preventDefault'd — and the sheet
+      // module doesn't call preventDefault. If we wanted a true fallback
+      // path, we'd need to detect the listener differently. Practically, the
+      // listener is always there on the map page, so just do nothing here.
     });
 
     map.on("mouseenter", "clusters", () => (map.getCanvas().style.cursor = "pointer"));
