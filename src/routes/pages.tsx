@@ -60,14 +60,21 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             data-open="false"
           />
           {/* Sheet container — populated by client/sheet.ts when a marker
-              or list item is clicked. Slides over both map and sidebar. */}
+              or list item is clicked. Slides over both map and sidebar.
+              Layout chain:
+                base:  bottom-0 + inset-x-0          → bottom drawer, full width
+                sm:    top-0 + left-auto + right-0   → right side panel, top:0 bottom:0 → full height
+                       sm:max-w-md (28rem ≈ 448px wide)
+              Avoid sm:inset-y-0 — Tailwind v4 emits it as logical
+              `inset-block: 0` which doesn't cleanly override the base
+              physical `bottom-0` and the cascade leaves bottom unset. */}
           <div
             id="kiosk-sheet"
-            class="pointer-events-none fixed inset-x-0 bottom-0 z-30 translate-y-full transition-transform duration-200 ease-out data-[open=true]:pointer-events-auto data-[open=true]:translate-y-0 sm:inset-y-0 sm:bottom-auto sm:right-0 sm:max-h-none sm:w-full sm:max-w-md sm:translate-x-full sm:translate-y-0 sm:data-[open=true]:translate-x-0"
+            class="pointer-events-none fixed inset-x-0 bottom-0 z-30 translate-y-full transition-transform duration-200 ease-out data-[open=true]:pointer-events-auto data-[open=true]:translate-y-0 sm:top-0 sm:left-auto sm:right-0 sm:w-full sm:max-w-md sm:translate-x-full sm:translate-y-0 sm:data-[open=true]:translate-x-0"
             data-open="false"
             aria-hidden="true"
           >
-            <div class="relative flex h-full max-h-[90dvh] flex-col bg-surface border-t-2 border-border sm:max-h-none sm:border-l-2 sm:border-t-0">
+            <div class="relative flex max-h-[90dvh] flex-col bg-surface border-t-2 border-border sm:h-full sm:max-h-none sm:border-l-2 sm:border-t-0">
               <button
                 type="button"
                 aria-label="Sheet schließen — nach unten ziehen"
@@ -84,7 +91,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               >
                 ×
               </button>
-              <div id="kiosk-sheet-body" class="flex-1 overflow-y-auto overscroll-contain" />
+              <div id="kiosk-sheet-body" class="min-h-0 flex-1 overflow-y-auto overscroll-contain" />
             </div>
           </div>
 
