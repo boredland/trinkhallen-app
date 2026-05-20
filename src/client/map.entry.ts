@@ -249,6 +249,21 @@ if (mount instanceof HTMLElement) {
 
   window.addEventListener("tk:filters-changed", () => void refresh(map));
 
+  // List-item click → fly to the kiosk. Padding keeps the focused point in
+  // the visible map area: on desktop the sheet covers the right ~448px;
+  // on mobile it covers the bottom ~90% so we leave the marker near the top.
+  window.addEventListener("tk:focus-kiosk", (ev) => {
+    const { lng, lat } = (ev as CustomEvent<{ lng: number; lat: number }>).detail;
+    const desktop = window.matchMedia("(min-width: 640px)").matches;
+    map.flyTo({
+      center: [lng, lat],
+      zoom: Math.max(map.getZoom(), 15),
+      padding: desktop ? { right: 448 } : { bottom: Math.round(window.innerHeight * 0.55) },
+      duration: 600,
+      essential: true,
+    });
+  });
+
   // Theme toggle in app.entry.ts dispatches this; rebuild the style with the
   // matching flavor + sprite, then re-add our kiosk source/layers on the new
   // style. setStyle's `diff: false` ensures a clean swap; we own the markers.

@@ -106,7 +106,12 @@ const KioskRow: FC<{ kiosk: KioskRecord; userAgent: string | null }> = ({ kiosk,
   return (
     <li>
       <div class="flex items-center justify-between gap-2 px-4 py-3 transition-colors hover:bg-surface-2">
-        <a href={`/k/${kiosk.id}`} class="flex-1 min-w-0">
+        <a
+          href={`/k/${kiosk.id}`}
+          data-lng={kiosk.lng}
+          data-lat={kiosk.lat}
+          class="flex-1 min-w-0"
+        >
           <p class="truncate font-display text-base tracking-wide text-fg">{kiosk.name}</p>
           {addr && <p class="truncate text-sm text-fg-muted">{addr}</p>}
           <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs">

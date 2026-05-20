@@ -98,7 +98,9 @@ export function installKioskSheet(): void {
   if (!isMapPage()) return;
   if (!el(SHEET_ID)) return;
 
-  // Delegated click handler: any <a href="/k/...">.
+  // Delegated click handler: any <a href="/k/...">. Also focuses the map on
+  // the kiosk when the anchor carries data-lng / data-lat (list items have
+  // them; map-marker clicks bypass this path via tk:open-kiosk directly).
   document.addEventListener("click", (ev) => {
     const target = (ev.target as HTMLElement | null)?.closest("a[href^='/k/']") as
       | HTMLAnchorElement
@@ -109,6 +111,13 @@ export function installKioskSheet(): void {
     const href = target.getAttribute("href");
     if (!href) return;
     ev.preventDefault();
+    const lng = parseFloat(target.dataset["lng"] ?? "");
+    const lat = parseFloat(target.dataset["lat"] ?? "");
+    if (Number.isFinite(lng) && Number.isFinite(lat)) {
+      window.dispatchEvent(
+        new CustomEvent("tk:focus-kiosk", { detail: { lng, lat } }),
+      );
+    }
     void openSheet(href, true);
   });
 
