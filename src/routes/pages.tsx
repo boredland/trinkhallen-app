@@ -102,7 +102,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <aside
             data-sidebar
             data-collapsed="false"
-            class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[60dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out data-[collapsed=true]:translate-y-full sm:inset-y-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
+            class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[60dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out data-[collapsed=true]:translate-y-full sm:top-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
           >
             <div class="relative border-b-2 border-border p-3 pr-12">
               <FilterChips filter={filter} formAction="/" />
