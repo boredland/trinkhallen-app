@@ -88,9 +88,32 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             </div>
           </div>
 
-          <aside class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[60dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur sm:inset-y-0 sm:bottom-auto sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0">
-            <div class="border-b-2 border-border p-3">
+          {/* FAB to re-open the sidebar after it's collapsed. JS toggles
+              data-show; hidden by default. */}
+          <button
+            type="button"
+            data-sidebar-expand
+            aria-label="Filter einblenden"
+            class="pointer-events-auto absolute bottom-3 left-3 z-20 hidden cursor-pointer items-center gap-1.5 border-2 border-border bg-surface px-3 py-2 font-display text-sm tracking-wider uppercase text-fg hover:border-neon-pink hover:text-neon-pink data-[show=true]:flex sm:top-3 sm:bottom-auto"
+            data-show="false"
+          >
+            ☰ Filter
+          </button>
+          <aside
+            data-sidebar
+            data-collapsed="false"
+            class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[60dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out data-[collapsed=true]:translate-y-full sm:inset-y-0 sm:bottom-auto sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
+          >
+            <div class="relative border-b-2 border-border p-3 pr-12">
               <FilterChips filter={filter} formAction="/" />
+              <button
+                type="button"
+                data-sidebar-collapse
+                aria-label="Filter ausblenden"
+                class="absolute right-2 top-2 cursor-pointer border-2 border-border-hi bg-surface px-2 py-1 font-display text-sm leading-none text-fg-muted hover:border-neon-pink hover:text-neon-pink"
+              >
+                ×
+              </button>
             </div>
             <a
               href="/add"

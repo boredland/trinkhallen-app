@@ -63,9 +63,14 @@ if (mount instanceof HTMLElement) {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
   map.addControl(
     new maplibregl.GeolocateControl({
-      positionOptions: { enableHighAccuracy: true },
+      positionOptions: { enableHighAccuracy: true, timeout: 8000 },
       trackUserLocation: false,
-      showAccuracyCircle: true,
+      // Without this, low-accuracy positions (desktop wifi-triangulation
+      // returns radii of 10-50 km) cause fitBounds to zoom way out. Cap at
+      // z15 (~street level) and hide the big accuracy ring that looks
+      // alarming when accuracy is poor.
+      fitBoundsOptions: { maxZoom: 15 },
+      showAccuracyCircle: false,
     }),
     "top-right",
   );

@@ -108,6 +108,26 @@ function attachFilterForm(form: HTMLFormElement): void {
 
 document.querySelectorAll<HTMLFormElement>("[data-filter-form]").forEach(attachFilterForm);
 
+// ── Sidebar collapse/expand ─────────────────────────────────────────────────
+// Persists across page loads so a user who prefers map-only stays in
+// map-only mode. The map page renders both control elements; they're
+// no-ops on other routes (querySelectorAll returns empty).
+(function setupSidebar() {
+  const sidebar = document.querySelector<HTMLElement>("[data-sidebar]");
+  const expandBtn = document.querySelector<HTMLElement>("[data-sidebar-expand]");
+  if (!sidebar || !expandBtn) return;
+  const setCollapsed = (collapsed: boolean) => {
+    sidebar.dataset["collapsed"] = collapsed ? "true" : "false";
+    expandBtn.dataset["show"] = collapsed ? "true" : "false";
+    localStorage.setItem("tk-sidebar-collapsed", collapsed ? "1" : "0");
+  };
+  if (localStorage.getItem("tk-sidebar-collapsed") === "1") setCollapsed(true);
+  document.querySelectorAll<HTMLButtonElement>("[data-sidebar-collapse]").forEach((b) =>
+    b.addEventListener("click", () => setCollapsed(true)),
+  );
+  expandBtn.addEventListener("click", () => setCollapsed(false));
+})();
+
 // ── data-back links: prefer history.back() when we came from same-origin ────
 // Lets the back link on /k/:id pop us back to the exact map viewport the
 // user was looking at, instead of resetting to the home default.

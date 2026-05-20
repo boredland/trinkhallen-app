@@ -36,9 +36,10 @@ if (mount instanceof HTMLElement) {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
   map.addControl(
     new maplibregl.GeolocateControl({
-      positionOptions: { enableHighAccuracy: true },
+      positionOptions: { enableHighAccuracy: true, timeout: 8000 },
       trackUserLocation: false,
       showAccuracyCircle: false,
+      fitBoundsOptions: { maxZoom: 16 },
     }),
     "top-right",
   );
