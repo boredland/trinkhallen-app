@@ -83,7 +83,9 @@ if (mount instanceof HTMLElement) {
       filter: ["has", "point_count"],
       layout: {
         "text-field": ["get", "point_count_abbreviated"],
-        "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+        // Protomaps' glyph host ships Noto Sans Regular/Medium/Italic.
+        // Default MapLibre fonts (Open Sans, Arial Unicode) 404 here.
+        "text-font": ["Noto Sans Medium"],
         "text-size": 12,
       },
       paint: {
