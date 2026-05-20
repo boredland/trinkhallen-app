@@ -111,29 +111,124 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     );
   });
 
-  app.get("/about", (c) =>
-    c.html(
+  app.get("/about", async (c) => {
+    const total = await countKiosks(c.env.DB);
+    return c.html(
       <Layout title="Über" nav="about" user={c.get("user")}>
-        <h1 class="font-display text-4xl tracking-wide text-fg">Über trinkhallen.app</h1>
-        <div class="mt-6 space-y-4 text-fg-muted">
-          <p>
-            trinkhallen.app ist ein nicht-kommerzielles Projekt, das Trinkhallen, Wasserhäuschen und Spätis in
-            Deutschland sichtbar macht. Die Daten liegen offen auf GitHub und werden von der Community gepflegt.
-          </p>
-          <p>
-            <span class="text-fg">Quellen:</span>{" "}
-            <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://app.hopfenstop.de/">
-              HopfenStop
-            </a>{" "}
-            (Frankfurt-Seed, CC BY-NC 4.0) · OpenStreetMap (ODbL) · Beiträge der Nutzer:innen.
-          </p>
-          <p>
-            <span class="text-fg">Lizenz:</span> CC BY-NC 4.0 für die Daten, AGPL-3.0 für den Code.
-          </p>
-        </div>
+        <article class="space-y-10">
+          <header>
+            <h1 class="font-display text-4xl tracking-wide text-fg sm:text-6xl">
+              trinkhallen<span class="text-neon-pink">.</span>app
+            </h1>
+            <p class="mt-3 text-lg text-fg-muted">
+              {total.toLocaleString("de-DE")} Trinkhallen, Wasserhäuschen und Spätis in einer Karte. Offen,
+              durchsuchbar, von der Community gepflegt — nicht-kommerziell.
+            </p>
+          </header>
+
+          <section>
+            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Was ist das?</h2>
+            <p class="mt-3 text-fg-muted">
+              Du suchst einen Späti mit Kartenzahlung, der gerade offen hat, und willst direkt hin
+              navigieren? Genau dafür ist trinkhallen.app gebaut. Das Projekt ist von{" "}
+              <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://app.hopfenstop.de/">
+                HopfenStop
+              </a>{" "}
+              inspiriert und erweitert dessen Frankfurter Datensatz um eine offene Beitrags-Pipeline und Daten
+              für ganz Deutschland aus OpenStreetMap.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Daten</h2>
+            <p class="mt-3 text-fg-muted">
+              Alle Kiosk-Metadaten liegen offen auf GitHub als GeoJSON, mit pro-Eintrag Quellenangabe
+              (<code class="font-mono">sources[]</code>):
+            </p>
+            <ul class="mt-3 space-y-2 text-fg-muted">
+              <li>
+                <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-data">
+                  boredland/trinkhallen-data
+                </a>{" "}
+                — der Datensatz. PRs willkommen.
+              </li>
+              <li>
+                <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-app">
+                  boredland/trinkhallen-app
+                </a>{" "}
+                — Code (Cloudflare Workers + Hono).
+              </li>
+            </ul>
+            <p class="mt-3 text-sm text-fg-dim">
+              <strong>Quellen:</strong> HopfenStop (Frankfurt-Seed,{" "}
+              <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://creativecommons.org/licenses/by-nc/4.0/">
+                CC BY-NC 4.0
+              </a>
+              ) · OpenStreetMap (
+              <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://www.openstreetmap.org/copyright">
+                ODbL
+              </a>
+              ) · Beiträge der Nutzer:innen.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Mitmachen</h2>
+            <ul class="mt-3 space-y-3 text-fg-muted">
+              <li>
+                <span class="font-display text-fg">Bewerten:</span> 1–5 Sterne + optionaler Kommentar auf jeder
+                Detailseite (Login nötig).
+              </li>
+              <li>
+                <span class="font-display text-fg">Korrigieren:</span> „Daten falsch?"-Knopf auf der Detailseite
+                → öffnet ein GitHub-Issue zur Moderation.
+              </li>
+              <li>
+                <span class="font-display text-fg">Vorschlagen:</span>{" "}
+                <a class="text-neon-cyan underline-offset-2 hover:underline" href="/add">
+                  /add
+                </a>{" "}
+                → Späti auf der Karte anklicken, Adresse + Öffnungszeiten + Zahlung eintragen.
+              </li>
+              <li>
+                <span class="font-display text-fg">Direkt PR auf GitHub:</span> Wer mag, kann den Datensatz auch
+                direkt forken und PRs gegen{" "}
+                <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-data">
+                  trinkhallen-data
+                </a>{" "}
+                öffnen — der Datensatz ist primary, die App nur die UI obendrauf.
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Stack</h2>
+            <ul class="mt-3 space-y-1.5 text-sm text-fg-muted">
+              <li>Cloudflare Workers · Hono · TypeScript · D1 (SQLite)</li>
+              <li>MapLibre GL JS · OSM-Raster (PMTiles folgt)</li>
+              <li>Tailwind CSS v4 · Anton / Inter · keine Tracker</li>
+              <li>Auth: Magic-Link via Cloudflare Email Sending, Google SSO</li>
+              <li>Weekly OSM-Ingest via GitHub Actions + Overpass API</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Lizenz</h2>
+            <p class="mt-3 text-sm text-fg-muted">
+              <strong class="text-fg">Daten:</strong> CC BY-NC 4.0 — frei zum Teilen und Anpassen, mit
+              Attribution, nicht-kommerziell.
+              <br />
+              <strong class="text-fg">Code:</strong> AGPL-3.0-or-later.
+            </p>
+          </section>
+
+          <footer class="pt-4 text-xs text-fg-dim">
+            Bugs &amp; Wünsche → <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-app/issues">GitHub Issues</a>.
+          </footer>
+        </article>
       </Layout>,
-    ),
-  );
+    );
+  });
 
   app.get("/k/:id", async (c) => {
     const id = c.req.param("id");
@@ -434,7 +529,7 @@ async function renderProfile(
   const reportedFlag = c.req.query("reported");
   const submittedFlag = c.req.query("submitted");
 
-  const [reportsRes, submissionsRes] = await Promise.all([
+  const [reportsRes, submissionsRes, ratingsCountRow] = await Promise.all([
     c.env.DB
       .prepare(
         `SELECT r.id, r.kiosk_id, k.name AS kiosk_name, r.kind, r.status, r.pr_url, r.created_at
@@ -450,10 +545,15 @@ async function renderProfile(
       )
       .bind(user.id)
       .all<SubmissionListRow>(),
+    c.env.DB
+      .prepare(`SELECT COUNT(*) AS n FROM ratings WHERE user_id = ?`)
+      .bind(user.id)
+      .first<{ n: number }>(),
   ]);
 
   const reports = reportsRes.results;
   const submissions = submissionsRes.results;
+  const ratingsCount = ratingsCountRow?.n ?? 0;
   const fmtDate = (s: number) => new Date(s * 1000).toLocaleDateString("de-DE");
 
   return c.html(
@@ -484,6 +584,11 @@ async function renderProfile(
             </p>
           </div>
         </div>
+        <dl class="mt-6 grid grid-cols-3 gap-3 text-center">
+          <Stat n={ratingsCount} label="Bewertungen" />
+          <Stat n={reports.length} label="Korrekturen" />
+          <Stat n={submissions.length} label="Vorschläge" />
+        </dl>
         <form action="/auth/logout" method="post" class="mt-6">
           <button type="submit" class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg-muted transition-colors hover:border-neon-pink hover:text-neon-pink">
             Abmelden
@@ -590,6 +695,15 @@ const KIND_LABEL_DE: Record<string, string> = {
 };
 function kindLabel(k: string): string {
   return KIND_LABEL_DE[k] ?? k;
+}
+
+function Stat({ n, label }: { n: number; label: string }) {
+  return (
+    <div class="border-2 border-border bg-surface-2 py-3">
+      <div class="font-display text-3xl text-neon-amber tabular-nums">{n}</div>
+      <div class="text-xs uppercase tracking-wider text-fg-dim">{label}</div>
+    </div>
+  );
 }
 
 function StatusPill({ status }: { status: string }) {
