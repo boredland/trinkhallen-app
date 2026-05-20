@@ -1,14 +1,14 @@
 import { Hono } from "hono";
 import { Layout } from "../components/Layout";
 import type { Env } from "../env";
-import { tagLabel } from "../lib/tags";
+import { getKioskById } from "../lib/asset-kiosks";
 import {
   approveReport,
   approveSubmission,
   rejectReport,
   rejectSubmission,
 } from "../lib/moderation";
-import { getKioskById } from "../lib/asset-kiosks";
+import { tagLabel } from "../lib/tags";
 
 export const moderate = new Hono<{ Bindings: Env }>();
 
@@ -20,7 +20,7 @@ moderate.use("/api/moderate/*", requireModerator);
 async function requireModerator(
   c: import("hono").Context<{ Bindings: Env }>,
   next: () => Promise<void>,
-): Promise<Response | void> {
+): Promise<Response | undefined> {
   const user = c.get("user");
   if (!user) return c.redirect("/me?after=moderate");
   if (user.role !== "moderator" && user.role !== "admin") {
@@ -60,21 +60,17 @@ moderate.get("/moderate", async (c) => {
   const tab = (c.req.query("tab") ?? "submissions") as "submissions" | "reports";
 
   const [subs, reports] = await Promise.all([
-    c.env.DB
-      .prepare(
-        `SELECT s.*, u.display_name AS user_display_name, u.email AS user_email
+    c.env.DB.prepare(
+      `SELECT s.*, u.display_name AS user_display_name, u.email AS user_email
          FROM submissions s LEFT JOIN users u ON u.id = s.user_id
          WHERE s.status = 'pending' ORDER BY s.created_at ASC LIMIT 100`,
-      )
-      .all<PendingSubmissionRow>(),
-    c.env.DB
-      .prepare(
-        `SELECT r.*, u.display_name AS user_display_name, u.email AS user_email
+    ).all<PendingSubmissionRow>(),
+    c.env.DB.prepare(
+      `SELECT r.*, u.display_name AS user_display_name, u.email AS user_email
          FROM reports r
          LEFT JOIN users u ON u.id = r.user_id
          WHERE r.status = 'open' ORDER BY r.created_at ASC LIMIT 100`,
-      )
-      .all<Omit<PendingReportRow, "kiosk_name">>(),
+    ).all<Omit<PendingReportRow, "kiosk_name">>(),
   ]);
 
   const reportKioskNames = new Map<string, string>();
@@ -97,8 +93,16 @@ moderate.get("/moderate", async (c) => {
       </header>
 
       <nav class="mb-6 flex gap-2 border-b-2 border-border">
-        <TabLink href="/moderate?tab=submissions" active={tab === "submissions"} label={`Vorschläge (${subs.results.length})`} />
-        <TabLink href="/moderate?tab=reports" active={tab === "reports"} label={`Korrekturen (${reportRows.length})`} />
+        <TabLink
+          href="/moderate?tab=submissions"
+          active={tab === "submissions"}
+          label={`Vorschläge (${subs.results.length})`}
+        />
+        <TabLink
+          href="/moderate?tab=reports"
+          active={tab === "reports"}
+          label={`Korrekturen (${reportRows.length})`}
+        />
       </nav>
 
       {tab === "submissions" ? (
@@ -125,11 +129,7 @@ function TabLink({ href, active, label }: { href: string; active: boolean; label
   );
 }
 
-function ApproveRejectForm({
-  endpoint,
-}: {
-  endpoint: string;
-}) {
+function ApproveRejectForm({ endpoint }: { endpoint: string }) {
   return (
     <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
       <form action={`${endpoint}/approve`} method="post">
@@ -190,8 +190,17 @@ function SubmissionQueue({ rows }: { rows: PendingSubmissionRow[] }) {
             </p>
             {p.address && (
               <p class="mt-2 text-sm text-fg-muted">
-                {[p.address["street"], p.address["number"], p.address["postalcode"], p.address["city"]].filter(Boolean).join(" ")}
-                {p.address["district"] && <span class="text-fg-dim"> · {p.address["district"]}</span>}
+                {[
+                  p.address["street"],
+                  p.address["number"],
+                  p.address["postalcode"],
+                  p.address["city"],
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                {p.address["district"] && (
+                  <span class="text-fg-dim"> · {p.address["district"]}</span>
+                )}
               </p>
             )}
             {p.description && <p class="mt-2 text-fg-muted">{p.description}</p>}
@@ -199,13 +208,17 @@ function SubmissionQueue({ rows }: { rows: PendingSubmissionRow[] }) {
             {p.tags && p.tags.length > 0 && (
               <ul class="mt-2 flex flex-wrap gap-1.5">
                 {p.tags.map((t) => (
-                  <li class="border-2 border-border-hi px-2 py-0.5 text-xs text-fg-muted">{tagLabel(t)}</li>
+                  <li class="border-2 border-border-hi px-2 py-0.5 text-xs text-fg-muted">
+                    {tagLabel(t)}
+                  </li>
                 ))}
               </ul>
             )}
             <details class="mt-3 text-xs">
               <summary class="cursor-pointer text-fg-dim hover:text-fg">JSON</summary>
-              <pre class="mt-2 overflow-x-auto bg-surface-2 p-3 font-mono text-xs text-fg-muted">{JSON.stringify(feature, null, 2)}</pre>
+              <pre class="mt-2 overflow-x-auto bg-surface-2 p-3 font-mono text-xs text-fg-muted">
+                {JSON.stringify(feature, null, 2)}
+              </pre>
             </details>
             <div class="mt-4">
               <ApproveRejectForm endpoint={`/api/moderate/submissions/${s.id}`} />
@@ -241,7 +254,9 @@ function ReportQueue({ rows }: { rows: PendingReportRow[] }) {
                 {r.kind}
               </span>
             </p>
-            <pre class="mt-3 overflow-x-auto bg-surface-2 p-3 font-mono text-xs text-fg-muted">{JSON.stringify(payload, null, 2)}</pre>
+            <pre class="mt-3 overflow-x-auto bg-surface-2 p-3 font-mono text-xs text-fg-muted">
+              {JSON.stringify(payload, null, 2)}
+            </pre>
             <div class="mt-4">
               <ApproveRejectForm endpoint={`/api/moderate/reports/${r.id}`} />
             </div>
@@ -266,8 +281,9 @@ function EmptyQueue({ label }: { label: string }) {
 moderate.post("/api/moderate/submissions/:id/approve", async (c) => {
   const id = c.req.param("id");
   const moderator = c.get("user")!;
-  const row = await c.env.DB
-    .prepare(`SELECT * FROM submissions WHERE id = ? AND status = 'pending'`)
+  const row = await c.env.DB.prepare(
+    `SELECT * FROM submissions WHERE id = ? AND status = 'pending'`,
+  )
     .bind(id)
     .first<{
       id: string;
@@ -285,9 +301,10 @@ moderate.post("/api/moderate/submissions/:id/approve", async (c) => {
 moderate.post("/api/moderate/submissions/:id/reject", async (c) => {
   const id = c.req.param("id");
   const moderator = c.get("user")!;
-  const note = (((await c.req.formData()).get("note") ?? "").toString().trim() || null);
-  const row = await c.env.DB
-    .prepare(`SELECT * FROM submissions WHERE id = ? AND status = 'pending'`)
+  const note = ((await c.req.formData()).get("note") ?? "").toString().trim() || null;
+  const row = await c.env.DB.prepare(
+    `SELECT * FROM submissions WHERE id = ? AND status = 'pending'`,
+  )
     .bind(id)
     .first<{
       id: string;
@@ -305,10 +322,7 @@ moderate.post("/api/moderate/submissions/:id/reject", async (c) => {
 moderate.post("/api/moderate/reports/:id/approve", async (c) => {
   const id = c.req.param("id");
   const moderator = c.get("user")!;
-  const row = await c.env.DB
-    .prepare(
-      `SELECT * FROM reports WHERE id = ? AND status = 'open'`,
-    )
+  const row = await c.env.DB.prepare(`SELECT * FROM reports WHERE id = ? AND status = 'open'`)
     .bind(id)
     .first<{
       id: string;
@@ -344,9 +358,8 @@ moderate.post("/api/moderate/reports/:id/approve", async (c) => {
 moderate.post("/api/moderate/reports/:id/reject", async (c) => {
   const id = c.req.param("id");
   const moderator = c.get("user")!;
-  const note = (((await c.req.formData()).get("note") ?? "").toString().trim() || null);
-  const row = await c.env.DB
-    .prepare(`SELECT * FROM reports WHERE id = ? AND status = 'open'`)
+  const note = ((await c.req.formData()).get("note") ?? "").toString().trim() || null;
+  const row = await c.env.DB.prepare(`SELECT * FROM reports WHERE id = ? AND status = 'open'`)
     .bind(id)
     .first<{
       id: string;

@@ -38,8 +38,12 @@ export function parseLatLng(raw: string | null | undefined): LatLng | null {
   if (!raw) return null;
   const [lat, lng] = raw.split(",").map((s) => parseFloat(s));
   if (
-    !Number.isFinite(lat) || !Number.isFinite(lng) ||
-    lat! < -90 || lat! > 90 || lng! < -180 || lng! > 180
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat! < -90 ||
+    lat! > 90 ||
+    lng! < -180 ||
+    lng! > 180
   ) {
     return null;
   }
@@ -66,4 +70,3 @@ export function quantizeBbox(b: Bbox, step = 0.01): Bbox {
     north: round(b.north),
   };
 }
-

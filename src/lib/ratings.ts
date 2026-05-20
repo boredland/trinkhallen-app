@@ -17,7 +17,7 @@ export interface RatingRow {
 }
 
 export interface Aggregate {
-  avg: number;       // 0 if count == 0
+  avg: number; // 0 if count == 0
   count: number;
   histogram: [number, number, number, number, number]; // index 0 = 1-star count
 }
@@ -27,17 +27,15 @@ export async function getOwnRating(
   kioskId: string,
   userId: string,
 ): Promise<RatingRow | null> {
-  return env.DB
-    .prepare(`SELECT * FROM ratings WHERE kiosk_id = ? AND user_id = ?`)
+  return env.DB.prepare(`SELECT * FROM ratings WHERE kiosk_id = ? AND user_id = ?`)
     .bind(kioskId, userId)
     .first<RatingRow>();
 }
 
 export async function getAggregate(env: Env, kioskId: string): Promise<Aggregate> {
-  const { results } = await env.DB
-    .prepare(
-      `SELECT stars, COUNT(*) AS n FROM ratings WHERE kiosk_id = ? GROUP BY stars`,
-    )
+  const { results } = await env.DB.prepare(
+    `SELECT stars, COUNT(*) AS n FROM ratings WHERE kiosk_id = ? GROUP BY stars`,
+  )
     .bind(kioskId)
     .all<{ stars: number; n: number }>();
   const hist: [number, number, number, number, number] = [0, 0, 0, 0, 0];
@@ -66,22 +64,20 @@ export async function upsertRating(
     throw new Error("stars must be 1..5");
   }
   const now = Math.floor(Date.now() / 1000);
-  await env.DB
-    .prepare(
-      `INSERT INTO ratings (kiosk_id, user_id, stars, comment, created_at, updated_at)
+  await env.DB.prepare(
+    `INSERT INTO ratings (kiosk_id, user_id, stars, comment, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(kiosk_id, user_id) DO UPDATE SET
          stars = excluded.stars,
          comment = excluded.comment,
          updated_at = excluded.updated_at`,
-    )
+  )
     .bind(args.kioskId, args.userId, args.stars, args.comment, now, now)
     .run();
 }
 
 export async function deleteRating(env: Env, kioskId: string, userId: string): Promise<void> {
-  await env.DB
-    .prepare(`DELETE FROM ratings WHERE kiosk_id = ? AND user_id = ?`)
+  await env.DB.prepare(`DELETE FROM ratings WHERE kiosk_id = ? AND user_id = ?`)
     .bind(kioskId, userId)
     .run();
 }

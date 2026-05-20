@@ -13,7 +13,7 @@
 
 import type { Env } from "../env";
 import { hasGithubAppCreds } from "./github-app";
-import { openIssueViaPr, proposeChange, type CreatedPr } from "./github-pr";
+import { openIssueViaPr, proposeChange } from "./github-pr";
 import { resolveRegionByCoords, resolveRegionByPath } from "./regions";
 
 const APP_ORIGIN = "https://trinkhallen.app";
@@ -107,7 +107,10 @@ export async function approveSubmission(
       status: "approved",
       moderatorId: moderator.id,
     });
-    return { status: "approved", note: "approved in D1; PR not opened (GitHub App not configured)" };
+    return {
+      status: "approved",
+      note: "approved in D1; PR not opened (GitHub App not configured)",
+    };
   }
 
   const pr = await proposeChange(env, {
@@ -160,9 +163,8 @@ async function markSubmission(
   patch: { status: string; moderatorId: string; prUrl?: string; note?: string | null },
 ): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
-  await env.DB
-    .prepare(
-      `UPDATE submissions SET
+  await env.DB.prepare(
+    `UPDATE submissions SET
          status = ?,
          pr_url = COALESCE(?, pr_url),
          approved_by = ?,
@@ -170,16 +172,8 @@ async function markSubmission(
          moderator_note = ?,
          updated_at = ?
        WHERE id = ?`,
-    )
-    .bind(
-      patch.status,
-      patch.prUrl ?? null,
-      patch.moderatorId,
-      now,
-      patch.note ?? null,
-      now,
-      id,
-    )
+  )
+    .bind(patch.status, patch.prUrl ?? null, patch.moderatorId, now, patch.note ?? null, now, id)
     .run();
 }
 
@@ -189,7 +183,7 @@ function appendFeatureToCollection(text: string, feature: unknown): string {
     throw new Error("target file is not a GeoJSON FeatureCollection");
   }
   doc.features.push(feature);
-  return JSON.stringify(doc, null, 2) + "\n";
+  return `${JSON.stringify(doc, null, 2)}\n`;
 }
 
 function renderSubmissionPrBody(args: {
@@ -251,9 +245,7 @@ export async function approveReport(
   // Map the kiosk's stored region back to a Region entry. The stored region
   // string carries the file's `data/<...>` path (set in seed/sync).
   const region =
-    resolveRegionByPath(`${kiosk.region}.geojson`) ??
-    resolveRegionByPath(kiosk.region) ??
-    null;
+    resolveRegionByPath(`${kiosk.region}.geojson`) ?? resolveRegionByPath(kiosk.region) ?? null;
   if (!region) {
     return openReportAsIssue(env, report, kiosk, moderator, payload);
   }
@@ -263,7 +255,10 @@ export async function approveReport(
       status: "approved",
       moderatorId: moderator.id,
     });
-    return { status: "approved", note: "approved in D1; PR not opened (GitHub App not configured)" };
+    return {
+      status: "approved",
+      note: "approved in D1; PR not opened (GitHub App not configured)",
+    };
   }
 
   const branch = `fix/${report.id.replace(/-/g, "").slice(0, 8)}`;
@@ -348,9 +343,8 @@ async function markReport(
   patch: { status: string; moderatorId: string; prUrl?: string; note?: string | null },
 ): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
-  await env.DB
-    .prepare(
-      `UPDATE reports SET
+  await env.DB.prepare(
+    `UPDATE reports SET
          status = ?,
          pr_url = COALESCE(?, pr_url),
          approved_by = ?,
@@ -358,16 +352,8 @@ async function markReport(
          moderator_note = ?,
          updated_at = ?
        WHERE id = ?`,
-    )
-    .bind(
-      patch.status,
-      patch.prUrl ?? null,
-      patch.moderatorId,
-      now,
-      patch.note ?? null,
-      now,
-      id,
-    )
+  )
+    .bind(patch.status, patch.prUrl ?? null, patch.moderatorId, now, patch.note ?? null, now, id)
     .run();
 }
 
@@ -384,16 +370,18 @@ function applyReportPatch(
   if (doc.type !== "FeatureCollection" || !Array.isArray(doc.features)) {
     throw new Error("target file is not a GeoJSON FeatureCollection");
   }
-  const idx = doc.features.findIndex(
-    (f) => (f.properties as { id?: string }).id === kioskId,
-  );
+  const idx = doc.features.findIndex((f) => (f.properties as { id?: string }).id === kioskId);
   if (idx < 0) throw new Error(`feature ${kioskId} not found in file`);
   const f = doc.features[idx]!;
   const today = new Date().toISOString().slice(0, 10);
 
   if (kind === "wrong_hours" && typeof payload["new_hours"] === "string") {
     f.properties["hours"] = { raw: payload["new_hours"] as string };
-  } else if (kind === "wrong_address" && payload["new_address"] && typeof payload["new_address"] === "object") {
+  } else if (
+    kind === "wrong_address" &&
+    payload["new_address"] &&
+    typeof payload["new_address"] === "object"
+  ) {
     const current = (f.properties["address"] as Record<string, string>) ?? {};
     f.properties["address"] = { ...current, ...(payload["new_address"] as Record<string, string>) };
   } else if (kind === "closed") {
@@ -402,15 +390,19 @@ function applyReportPatch(
     throw new Error(`applyReportPatch: unsupported kind ${kind}`);
   }
   f.properties["updated"] = today;
-  return JSON.stringify(doc, null, 2) + "\n";
+  return `${JSON.stringify(doc, null, 2)}\n`;
 }
 
 function commitMessageForReport(kind: string, name: string): string {
   switch (kind) {
-    case "wrong_hours":  return `Fix opening hours for ${name}`;
-    case "wrong_address":return `Fix address for ${name}`;
-    case "closed":       return `Mark ${name} as closed`;
-    default:             return `Update ${name} (${kind})`;
+    case "wrong_hours":
+      return `Fix opening hours for ${name}`;
+    case "wrong_address":
+      return `Fix address for ${name}`;
+    case "closed":
+      return `Mark ${name} as closed`;
+    default:
+      return `Update ${name} (${kind})`;
   }
 }
 function prTitleForReport(kind: string, name: string): string {

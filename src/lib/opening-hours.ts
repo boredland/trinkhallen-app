@@ -19,9 +19,7 @@ export function computeStatus(raw: string | null | undefined, now = new Date()):
     const oh = new OpeningHours(raw);
     const open = oh.getState(now);
     const next = oh.getNextChange(now);
-    return open
-      ? { kind: "open", until: next ?? null }
-      : { kind: "closed", until: next ?? null };
+    return open ? { kind: "open", until: next ?? null } : { kind: "closed", until: next ?? null };
   } catch {
     return { kind: "unknown" };
   }

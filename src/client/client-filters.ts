@@ -34,11 +34,20 @@ interface FeatureProps {
 
 export function parseFilterFromQuery(qs: URLSearchParams): ClientFilter {
   const splitCsv = (raw: string | null): string[] =>
-    raw ? raw.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    raw
+      ? raw
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
   const pay = new Set(splitCsv(qs.get("pay")));
   const f: ClientFilter = {
     tags: splitCsv(qs.get("tags")).map((t) => t.toLowerCase()),
-    payment: { cards: pay.has("cards"), contactless: pay.has("contactless"), cash: pay.has("cash") },
+    payment: {
+      cards: pay.has("cards"),
+      contactless: pay.has("contactless"),
+      cash: pay.has("cash"),
+    },
     openNow: qs.get("open_now") === "1" || qs.get("open_now") === "true",
   };
   const q = qs.get("q")?.trim();
@@ -60,7 +69,10 @@ export function isFilterActive(f: ClientFilter): boolean {
 function normalizeDe(s: string): string {
   return s
     .toLowerCase()
-    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
     .replace(/[`'']/g, "");
 }
 
@@ -75,12 +87,39 @@ export function applyFilters(
   if (f.q) {
     const fuse = new Fuse(features, {
       keys: [
-        { name: "name",        weight: 0.5,  getFn: (x) => normalizeDe((x.properties as unknown as FeatureProps).name ?? "") },
-        { name: "description", weight: 0.15, getFn: (x) => normalizeDe((x.properties as unknown as FeatureProps).description ?? "") },
-        { name: "street",      weight: 0.15, getFn: (x) => normalizeDe((x.properties as unknown as FeatureProps).address?.street ?? "") },
-        { name: "city",        weight: 0.05, getFn: (x) => normalizeDe((x.properties as unknown as FeatureProps).address?.city ?? "") },
-        { name: "district",    weight: 0.10, getFn: (x) => normalizeDe((x.properties as unknown as FeatureProps).address?.district ?? "") },
-        { name: "tags",        weight: 0.05, getFn: (x) => ((x.properties as unknown as FeatureProps).tags ?? []).map(normalizeDe).join(" ") },
+        {
+          name: "name",
+          weight: 0.5,
+          getFn: (x) => normalizeDe((x.properties as unknown as FeatureProps).name ?? ""),
+        },
+        {
+          name: "description",
+          weight: 0.15,
+          getFn: (x) => normalizeDe((x.properties as unknown as FeatureProps).description ?? ""),
+        },
+        {
+          name: "street",
+          weight: 0.15,
+          getFn: (x) =>
+            normalizeDe((x.properties as unknown as FeatureProps).address?.street ?? ""),
+        },
+        {
+          name: "city",
+          weight: 0.05,
+          getFn: (x) => normalizeDe((x.properties as unknown as FeatureProps).address?.city ?? ""),
+        },
+        {
+          name: "district",
+          weight: 0.1,
+          getFn: (x) =>
+            normalizeDe((x.properties as unknown as FeatureProps).address?.district ?? ""),
+        },
+        {
+          name: "tags",
+          weight: 0.05,
+          getFn: (x) =>
+            ((x.properties as unknown as FeatureProps).tags ?? []).map(normalizeDe).join(" "),
+        },
       ],
       threshold: 0.35,
       ignoreLocation: true,

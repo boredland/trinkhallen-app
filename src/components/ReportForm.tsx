@@ -53,24 +53,51 @@ export const ReportForm: FC<ReportFormProps> = ({ kioskId, isLoggedIn, currentHo
         </label>
 
         <fieldset class="hidden space-y-2" data-kind="wrong_hours">
-          <legend class="block text-xs uppercase tracking-wider text-fg-dim">Richtige Zeiten</legend>
+          <legend class="block text-xs uppercase tracking-wider text-fg-dim">
+            Richtige Zeiten
+          </legend>
           <input
             type="text"
             name="new_hours"
             placeholder={currentHoursRaw ?? "z. B. Mo-Fr 09:00-22:00; Sa 10:00-20:00"}
             class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 font-mono text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
           />
-          <p class="text-xs text-fg-dim">OSM <code>opening_hours</code>-Format.</p>
+          <p class="text-xs text-fg-dim">
+            OSM <code>opening_hours</code>-Format.
+          </p>
         </fieldset>
 
         <fieldset class="hidden space-y-2" data-kind="wrong_address">
-          <legend class="block text-xs uppercase tracking-wider text-fg-dim">Korrekte Adresse</legend>
-          <input type="text" name="new_street" placeholder="Straße" class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none" />
+          <legend class="block text-xs uppercase tracking-wider text-fg-dim">
+            Korrekte Adresse
+          </legend>
+          <input
+            type="text"
+            name="new_street"
+            placeholder="Straße"
+            class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
+          />
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" name="new_number" placeholder="Nr" class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none" />
-            <input type="text" name="new_postalcode" placeholder="PLZ" maxLength={5} class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none" />
+            <input
+              type="text"
+              name="new_number"
+              placeholder="Nr"
+              class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
+            />
+            <input
+              type="text"
+              name="new_postalcode"
+              placeholder="PLZ"
+              maxLength={5}
+              class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
+            />
           </div>
-          <input type="text" name="new_city" placeholder="Stadt" class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none" />
+          <input
+            type="text"
+            name="new_city"
+            placeholder="Stadt"
+            class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
+          />
         </fieldset>
 
         <label class="block">
@@ -89,7 +116,10 @@ export const ReportForm: FC<ReportFormProps> = ({ kioskId, isLoggedIn, currentHo
         </button>
         <p class="text-xs text-fg-dim">
           Wird auf{" "}
-          <a class="underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-data">
+          <a
+            class="underline-offset-2 hover:underline"
+            href="https://github.com/boredland/trinkhallen-data"
+          >
             GitHub
           </a>{" "}
           von Moderator:innen geprüft.

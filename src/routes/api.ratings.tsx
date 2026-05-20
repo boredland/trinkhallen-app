@@ -13,7 +13,7 @@ apiRatings.post("/api/ratings", async (c) => {
   const form = await c.req.formData();
   const kioskId = (form.get("kiosk_id") ?? "").toString();
   const starsRaw = parseInt((form.get("stars") ?? "").toString(), 10);
-  const comment = ((form.get("comment") ?? "").toString().trim() || null);
+  const comment = (form.get("comment") ?? "").toString().trim() || null;
 
   if (!kioskId) return c.text("kiosk_id missing", 400);
   if (!Number.isInteger(starsRaw) || starsRaw < 1 || starsRaw > 5) {

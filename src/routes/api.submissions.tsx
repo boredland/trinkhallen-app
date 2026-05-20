@@ -40,7 +40,10 @@ apiSubmissions.post("/add", async (c) => {
   if (hours) properties["hours"] = { raw: hours.slice(0, 200) };
 
   // Multi-select tags arrive as repeated `tags` keys
-  const tags = form.getAll("tags").map((v) => v.toString()).filter(Boolean);
+  const tags = form
+    .getAll("tags")
+    .map((v) => v.toString())
+    .filter(Boolean);
   if (tags.length) properties["tags"] = tags.slice(0, 30);
 
   const payment: Record<string, "yes" | "no" | "unknown"> = {};
@@ -58,11 +61,10 @@ apiSubmissions.post("/add", async (c) => {
 
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
-  await c.env.DB
-    .prepare(
-      `INSERT INTO submissions (id, user_id, payload, status, created_at, updated_at)
+  await c.env.DB.prepare(
+    `INSERT INTO submissions (id, user_id, payload, status, created_at, updated_at)
        VALUES (?, ?, ?, 'pending', ?, ?)`,
-    )
+  )
     .bind(id, user.id, JSON.stringify(feature), now, now)
     .run();
 
@@ -80,5 +82,7 @@ function postalcode(s: string): string | undefined {
 }
 
 function stripUndefined<T extends object>(obj: T): T {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== "")) as T;
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined && v !== ""),
+  ) as T;
 }

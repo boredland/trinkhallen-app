@@ -26,11 +26,14 @@ const STATIC_CACHE = `tk-static-${VERSION}`;
 const TILES_CACHE = `tk-tiles-${VERSION}`;
 const RUNTIME_CACHE = `tk-runtime-${VERSION}`;
 
-const TILES_HOSTS = new Set([
-  "tiles.trinkhallen.app",
-  "protomaps.github.io",
-]);
-const STATIC_PATH_PREFIXES = ["/assets/", "/favicon.svg", "/apple-touch-icon.svg", "/marker-kiosk.svg", "/style-night.json"];
+const TILES_HOSTS = new Set(["tiles.trinkhallen.app", "protomaps.github.io"]);
+const STATIC_PATH_PREFIXES = [
+  "/assets/",
+  "/favicon.svg",
+  "/apple-touch-icon.svg",
+  "/marker-kiosk.svg",
+  "/style-night.json",
+];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -50,7 +53,9 @@ self.addEventListener("activate", (event) => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((k) => k.startsWith("tk-") && ![STATIC_CACHE, TILES_CACHE, RUNTIME_CACHE].includes(k))
+          .filter(
+            (k) => k.startsWith("tk-") && ![STATIC_CACHE, TILES_CACHE, RUNTIME_CACHE].includes(k),
+          )
           .map((k) => caches.delete(k)),
       );
       await self.clients.claim();
@@ -71,7 +76,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Same-origin static art + hashed bundles: cache-first.
-  if (url.origin === self.location.origin && STATIC_PATH_PREFIXES.some((p) => url.pathname.startsWith(p))) {
+  if (
+    url.origin === self.location.origin &&
+    STATIC_PATH_PREFIXES.some((p) => url.pathname.startsWith(p))
+  ) {
     event.respondWith(cacheFirst(req, STATIC_CACHE));
     return;
   }

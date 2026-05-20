@@ -41,7 +41,11 @@ const EMPTY_COLLECTION: FeatureCollection = { type: "FeatureCollection", feature
 
 export function loadManifest(): Promise<{ regions: ManifestEntry[] }> {
   manifestPromise ??= fetch("/data/_manifest.json", { headers: { accept: "application/json" } })
-    .then((r) => (r.ok ? r.json() as Promise<{ regions: ManifestEntry[] }> : Promise.reject(new Error(`manifest ${r.status}`))))
+    .then((r) =>
+      r.ok
+        ? (r.json() as Promise<{ regions: ManifestEntry[] }>)
+        : Promise.reject(new Error(`manifest ${r.status}`)),
+    )
     .catch((err) => {
       manifestPromise = null;
       throw err;
@@ -50,8 +54,14 @@ export function loadManifest(): Promise<{ regions: ManifestEntry[] }> {
 }
 
 export function loadSummary(): Promise<FeatureCollection> {
-  summaryPromise ??= fetch("/data/_summary.geojson", { headers: { accept: "application/geo+json" } })
-    .then((r) => (r.ok ? r.json() as Promise<FeatureCollection> : Promise.reject(new Error(`summary ${r.status}`))))
+  summaryPromise ??= fetch("/data/_summary.geojson", {
+    headers: { accept: "application/geo+json" },
+  })
+    .then((r) =>
+      r.ok
+        ? (r.json() as Promise<FeatureCollection>)
+        : Promise.reject(new Error(`summary ${r.status}`)),
+    )
     .catch((err) => {
       summaryPromise = null;
       throw err;
@@ -63,7 +73,11 @@ export function loadRegion(slug: string): Promise<FeatureCollection> {
   let p = regionPromises.get(slug);
   if (!p) {
     p = fetch(`/data/${slug}.geojson`, { headers: { accept: "application/geo+json" } })
-      .then((r) => (r.ok ? r.json() as Promise<FeatureCollection> : Promise.reject(new Error(`region ${slug} ${r.status}`))))
+      .then((r) =>
+        r.ok
+          ? (r.json() as Promise<FeatureCollection>)
+          : Promise.reject(new Error(`region ${slug} ${r.status}`)),
+      )
       .catch((err) => {
         regionPromises.delete(slug);
         throw err;

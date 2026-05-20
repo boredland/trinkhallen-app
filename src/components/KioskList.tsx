@@ -107,18 +107,17 @@ const KioskRow: FC<{
   const street = kiosk.address["street"];
   const number = kiosk.address["number"];
   const district = kiosk.address["district"];
-  const addr = [street && number ? `${street} ${number}` : street, district].filter(Boolean).join(" · ");
-  const distLabel = origin ? formatDistance(haversineMeters(origin, { lat: kiosk.lat, lng: kiosk.lng })) : null;
+  const addr = [street && number ? `${street} ${number}` : street, district]
+    .filter(Boolean)
+    .join(" · ");
+  const distLabel = origin
+    ? formatDistance(haversineMeters(origin, { lat: kiosk.lat, lng: kiosk.lng }))
+    : null;
 
   return (
     <li>
       <div class="flex items-center justify-between gap-2 px-4 py-3 transition-colors hover:bg-surface-2">
-        <a
-          href={`/k/${kiosk.id}`}
-          data-lng={kiosk.lng}
-          data-lat={kiosk.lat}
-          class="flex-1 min-w-0"
-        >
+        <a href={`/k/${kiosk.id}`} data-lng={kiosk.lng} data-lat={kiosk.lat} class="flex-1 min-w-0">
           <p class="truncate font-display text-base tracking-wide text-fg">{kiosk.name}</p>
           {addr && <p class="truncate text-sm text-fg-muted">{addr}</p>}
           <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
@@ -141,11 +140,13 @@ const KioskRow: FC<{
             )}
             {kiosk.payment && (
               <span class="flex items-center gap-1 text-fg-dim">
-                {PAY_ICONS.filter(({ key }) => kiosk.payment?.[key] === "yes").map(({ icon, label }) => (
-                  <span aria-label={label} title={label}>
-                    {icon}
-                  </span>
-                ))}
+                {PAY_ICONS.filter(({ key }) => kiosk.payment?.[key] === "yes").map(
+                  ({ icon, label }) => (
+                    <span aria-label={label} title={label}>
+                      {icon}
+                    </span>
+                  ),
+                )}
               </span>
             )}
           </div>

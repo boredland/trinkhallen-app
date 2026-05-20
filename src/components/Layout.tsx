@@ -78,7 +78,13 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
       </head>
       <body class={fullBleed ? "h-dvh overflow-hidden" : "min-h-dvh"}>
         <Header nav={nav} user={user} />
-        <main class={fullBleed ? "absolute inset-0 top-[var(--header-h)]" : "mx-auto w-full max-w-5xl px-4 py-8"}>
+        <main
+          class={
+            fullBleed
+              ? "absolute inset-0 top-[var(--header-h)]"
+              : "mx-auto w-full max-w-5xl px-4 py-8"
+          }
+        >
           {children}
         </main>
         {!fullBleed && <Footer />}
@@ -184,7 +190,10 @@ const Footer: FC = () => (
       </p>
       <p>
         Inspiriert von{" "}
-        <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="https://app.hopfenstop.de/">
+        <a
+          class="underline-offset-2 hover:text-neon-cyan hover:underline"
+          href="https://app.hopfenstop.de/"
+        >
           HopfenStop
         </a>
         · OSM &amp; Mitwirkende

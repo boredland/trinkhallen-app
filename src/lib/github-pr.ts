@@ -107,20 +107,16 @@ async function openPr(args: {
   title: string;
   body: string;
 }): Promise<CreatedPr> {
-  const resp = await authedFetch(
-    args.token,
-    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/pulls`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        title: args.title,
-        body: args.body,
-        head: args.branch,
-        base: DEFAULT_BRANCH,
-        draft: false,
-      }),
-    },
-  );
+  const resp = await authedFetch(args.token, `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/pulls`, {
+    method: "POST",
+    body: JSON.stringify({
+      title: args.title,
+      body: args.body,
+      head: args.branch,
+      base: DEFAULT_BRANCH,
+      draft: false,
+    }),
+  });
   if (!resp.ok) {
     const txt = await resp.text().catch(() => "");
     throw new Error(`openPr: HTTP ${resp.status}: ${txt.slice(0, 200)}`);
@@ -135,18 +131,14 @@ export async function openIssueViaPr(
 ): Promise<CreatedPr | null> {
   if (!hasGithubAppCreds(env)) return null;
   const token = await getInstallationToken(env);
-  const resp = await authedFetch(
-    token,
-    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/issues`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        title: args.title,
-        body: args.body,
-        ...(args.labels?.length ? { labels: args.labels } : {}),
-      }),
-    },
-  );
+  const resp = await authedFetch(token, `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/issues`, {
+    method: "POST",
+    body: JSON.stringify({
+      title: args.title,
+      body: args.body,
+      ...(args.labels?.length ? { labels: args.labels } : {}),
+    }),
+  });
   if (!resp.ok) {
     console.error(`openIssueViaPr failed ${resp.status}`);
     return null;

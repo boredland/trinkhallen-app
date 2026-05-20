@@ -29,11 +29,10 @@ export async function mintMagicLink(
   const now = Math.floor(Date.now() / 1000);
 
   // Cheap rate-limit: pending unconsumed tokens for this email.
-  const pending = await env.DB
-    .prepare(
-      `SELECT COUNT(*) AS n FROM magic_links
+  const pending = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM magic_links
        WHERE email = ? AND consumed_at IS NULL AND expires_at > ?`,
-    )
+  )
     .bind(email, now)
     .first<{ n: number }>();
   if ((pending?.n ?? 0) >= MAX_OUTSTANDING_PER_EMAIL) return null;
@@ -43,11 +42,10 @@ export async function mintMagicLink(
   const tokenHash = await sha256Hex(token);
   const expiresAt = now + MAGIC_TTL_SEC;
 
-  await env.DB
-    .prepare(
-      `INSERT INTO magic_links (id, token_hash, email, expires_at, created_at, user_agent, ip)
+  await env.DB.prepare(
+    `INSERT INTO magic_links (id, token_hash, email, expires_at, created_at, user_agent, ip)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    )
+  )
     .bind(id, tokenHash, email, expiresAt, now, meta.userAgent ?? null, meta.ip ?? null)
     .run();
 
@@ -58,20 +56,16 @@ export interface RedeemedLink {
   email: string;
 }
 
-export async function redeemMagicLink(
-  env: Env,
-  rawToken: string,
-): Promise<RedeemedLink | null> {
+export async function redeemMagicLink(env: Env, rawToken: string): Promise<RedeemedLink | null> {
   const dot = rawToken.indexOf(".");
   if (dot <= 0) return null;
   const id = rawToken.slice(0, dot);
   const token = rawToken.slice(dot + 1);
   if (!id || !token) return null;
 
-  const row = await env.DB
-    .prepare(
-      `SELECT email, token_hash, expires_at, consumed_at FROM magic_links WHERE id = ?`,
-    )
+  const row = await env.DB.prepare(
+    `SELECT email, token_hash, expires_at, consumed_at FROM magic_links WHERE id = ?`,
+  )
     .bind(id)
     .first<{ email: string; token_hash: string; expires_at: number; consumed_at: number | null }>();
   if (!row) return null;
@@ -82,10 +76,7 @@ export async function redeemMagicLink(
   const candidate = await sha256Hex(token);
   if (!timingSafeEqual(candidate, row.token_hash)) return null;
 
-  await env.DB
-    .prepare(`UPDATE magic_links SET consumed_at = ? WHERE id = ?`)
-    .bind(now, id)
-    .run();
+  await env.DB.prepare(`UPDATE magic_links SET consumed_at = ? WHERE id = ?`).bind(now, id).run();
   return { email: row.email };
 }
 

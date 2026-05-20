@@ -26,7 +26,9 @@ async function main(): Promise<void> {
 
   const errors: string[] = [];
   page.on("pageerror", (err) => errors.push(err.message));
-  page.on("console", (msg) => { if (msg.type() === "error") errors.push(`[console] ${msg.text()}`); });
+  page.on("console", (msg) => {
+    if (msg.type() === "error") errors.push(`[console] ${msg.text()}`);
+  });
 
   console.log(`\nLoading ${BASE}/ (Frankfurt default centre)…`);
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });

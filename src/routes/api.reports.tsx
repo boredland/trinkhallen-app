@@ -38,11 +38,10 @@ apiReports.post("/api/reports", async (c) => {
 
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
-  await c.env.DB
-    .prepare(
-      `INSERT INTO reports (id, kiosk_id, user_id, kind, payload, status, created_at, updated_at)
+  await c.env.DB.prepare(
+    `INSERT INTO reports (id, kiosk_id, user_id, kind, payload, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, 'open', ?, ?)`,
-    )
+  )
     .bind(id, kioskId, user.id, kind, JSON.stringify(payload), now, now)
     .run();
 

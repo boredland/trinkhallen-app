@@ -34,13 +34,7 @@ export const FilterChips: FC<FilterChipsProps> = ({ filter, formAction, preserve
         v !== undefined ? <input type="hidden" name={k} value={v} /> : null,
       )}
 
-      <Chip
-        name="open_now"
-        value="1"
-        checked={filter.openNow}
-        icon="▶▶▶"
-        label="Offen jetzt"
-      />
+      <Chip name="open_now" value="1" checked={filter.openNow} icon="▶▶▶" label="Offen jetzt" />
       <PaymentChip current={payCsv} value="cards" label="Karte" icon="💳" />
       <PaymentChip current={payCsv} value="contactless" label="Kontaktlos" icon="📲" />
       <PaymentChip current={payCsv} value="cash" label="Bar" icon="💶" />
@@ -84,13 +78,7 @@ const Chip: FC<{
         : "border-border text-fg-muted hover:border-border-hi hover:text-fg"
     }`}
   >
-    <input
-      type="checkbox"
-      name={name}
-      value={value}
-      checked={checked}
-      class="sr-only"
-    />
+    <input type="checkbox" name={name} value={value} checked={checked} class="sr-only" />
     {icon && <span aria-hidden="true">{icon}</span>}
     <span>{label}</span>
   </label>
@@ -104,15 +92,7 @@ const PaymentChip: FC<{ current: string; value: string; label: string; icon: str
   icon,
 }) => {
   const has = current.split(",").includes(value);
-  return (
-    <Chip
-      name={`pay_${value}`}
-      value="1"
-      checked={has}
-      icon={icon}
-      label={label}
-    />
-  );
+  return <Chip name={`pay_${value}`} value="1" checked={has} icon={icon} label={label} />;
 };
 
 const TagChip: FC<{ tags: string[]; value: string; label: string }> = ({ tags, value, label }) => (

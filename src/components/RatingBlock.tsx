@@ -16,17 +16,15 @@ export interface RatingBlockProps {
 export const RatingBlock: FC<RatingBlockProps> = ({ kioskId, aggregate, own, isLoggedIn }) => {
   return (
     <div id="rating-block" class="space-y-5">
-      <Aggregate aggregate={aggregate} />
+      <AggregateView aggregate={aggregate} />
       {isLoggedIn ? <OwnRatingForm kioskId={kioskId} own={own} /> : <LoggedOutCta />}
     </div>
   );
 };
 
-const Aggregate: FC<{ aggregate: Aggregate }> = ({ aggregate }) => {
+const AggregateView: FC<{ aggregate: Aggregate }> = ({ aggregate }) => {
   if (aggregate.count === 0) {
-    return (
-      <p class="text-fg-muted">Noch keine Bewertungen — sei die erste Person.</p>
-    );
+    return <p class="text-fg-muted">Noch keine Bewertungen — sei die erste Person.</p>;
   }
   return (
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -45,10 +43,7 @@ const Aggregate: FC<{ aggregate: Aggregate }> = ({ aggregate }) => {
             <li class="flex items-center gap-2 text-xs text-fg-dim">
               <span class="w-3 text-fg-muted">{star}</span>
               <span class="relative h-2 flex-1 overflow-hidden border border-border bg-bg">
-                <span
-                  class="absolute inset-y-0 left-0 bg-neon-amber"
-                  style={`width: ${pct}%`}
-                />
+                <span class="absolute inset-y-0 left-0 bg-neon-amber" style={`width: ${pct}%`} />
               </span>
               <span class="w-8 text-right tabular-nums">{n}</span>
             </li>
@@ -84,10 +79,7 @@ const OwnRatingForm: FC<{ kioskId: string; own: RatingRow | null }> = ({ kioskId
       </textarea>
     </label>
     <div class="flex flex-wrap gap-2">
-      <button
-        type="submit"
-        class="btn-neon"
-      >
+      <button type="submit" class="btn-neon">
         ▶ {own ? "Aktualisieren" : "Abgeben"}
       </button>
       {own && (

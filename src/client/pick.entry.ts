@@ -7,11 +7,7 @@
  * between the two entries.
  */
 
-import maplibregl, {
-  type GeoJSONSource,
-  type Map as MlMap,
-  type MapMouseEvent,
-} from "maplibre-gl";
+import maplibregl, { type GeoJSONSource, type MapMouseEvent, type Map as MlMap } from "maplibre-gl";
 // maplibre-gl.css is imported from app.entry.ts; see comment there.
 import { resolveStyle } from "./build-style";
 
@@ -43,7 +39,6 @@ if (mount instanceof HTMLElement) {
     }),
     "top-right",
   );
-
 
   // Theme swap — rebuild style + re-add the pin source on style.load.
   window.addEventListener("tk:theme-changed", () => {
@@ -95,6 +90,8 @@ function pinFeature(coords: [number, number] | null): GeoJSON.FeatureCollection 
   if (!coords) return { type: "FeatureCollection", features: [] };
   return {
     type: "FeatureCollection",
-    features: [{ type: "Feature", geometry: { type: "Point", coordinates: coords }, properties: {} }],
+    features: [
+      { type: "Feature", geometry: { type: "Point", coordinates: coords }, properties: {} },
+    ],
   };
 }

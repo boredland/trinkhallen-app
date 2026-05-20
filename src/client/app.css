@@ -66,7 +66,7 @@
   /* Darker amber (~5:1 contrast on the warm-white background) + the
      cyan-link gets bumped to a saturated teal for contrast as well. */
   --color-status-open: #8b6914;
-  --color-link-soft:   #006c75;
+  --color-link-soft: #006c75;
 }
 
 @layer base {
@@ -124,7 +124,9 @@
     text-transform: uppercase;
     border: none;
     cursor: pointer;
-    transition: box-shadow 150ms ease-out, transform 150ms ease-out;
+    transition:
+      box-shadow 150ms ease-out,
+      transform 150ms ease-out;
   }
   .btn-neon:hover,
   .btn-neon:focus-visible {

@@ -3,7 +3,12 @@ import { KioskList } from "../components/KioskList";
 import type { Env } from "../env";
 import { findNearestKiosk, getKioskById, queryKiosksInBbox } from "../lib/asset-kiosks";
 import type { KioskRecord } from "../lib/db";
-import { applyFilters, filterSignature, isFilterActive, parseFilterFromQuery } from "../lib/filters";
+import {
+  applyFilters,
+  filterSignature,
+  isFilterActive,
+  parseFilterFromQuery,
+} from "../lib/filters";
 import { haversineMeters, parseBbox, parseLatLng, quantizeBbox } from "../lib/geo";
 
 export const apiKiosks = new Hono<{ Bindings: Env }>();
@@ -58,7 +63,8 @@ apiKiosks.get("/api/kiosks/panel", async (c) => {
   const url = new URL(c.req.url);
   const bbox = parseBbox(url.searchParams.get("bbox"));
   const origin = parseLatLng(url.searchParams.get("origin"));
-  if (!bbox) return c.html(<KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />);
+  if (!bbox)
+    return c.html(<KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />);
   const filter = parseFilterFromQuery(url.searchParams);
   const all = await queryKiosksInBbox(c.env, bbox, 5000);
   const filtered = applyFilters(all, filter);
@@ -104,7 +110,13 @@ apiKiosks.get("/api/kiosks/nearest", async (c) => {
   if (!hit) return c.json({ error: "no kiosks in dataset" }, 404);
 
   return c.json(
-    { id: hit.record.id, name: hit.record.name, lng: hit.record.lng, lat: hit.record.lat, distance: hit.distance },
+    {
+      id: hit.record.id,
+      name: hit.record.name,
+      lng: hit.record.lng,
+      lat: hit.record.lat,
+      distance: hit.distance,
+    },
     200,
     { "cache-control": "public, max-age=30, s-maxage=30" },
   );

@@ -13,8 +13,8 @@
 
 import maplibregl, {
   type GeoJSONSource,
-  type Map as MlMap,
   type MapLayerMouseEvent,
+  type Map as MlMap,
 } from "maplibre-gl";
 // maplibre-gl.css is imported from app.entry.ts (always loaded) so its
 // styles always reach the page; importing here splits into a chunk our
@@ -22,11 +22,11 @@ import maplibregl, {
 import { resolveStyle } from "./build-style";
 import { applyFilters, parseFilterFromQuery } from "./client-filters";
 import {
+  type BBox,
   DETAIL_ZOOM,
   detailFeaturesForView,
-  loadSummary,
-  type BBox,
   type FeatureCollection,
+  loadSummary,
 } from "./region-store";
 
 const mount = document.getElementById("map");
@@ -46,7 +46,14 @@ if (mount instanceof HTMLElement) {
     const c = params.get("c");
     if (!c) return [8.6821, 50.1109] as [number, number];
     const [lat, lng] = c.split(",").map(Number);
-    if (Number.isFinite(lat) && Number.isFinite(lng) && lat! >= -90 && lat! <= 90 && lng! >= -180 && lng! <= 180) {
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat! >= -90 &&
+      lat! <= 90 &&
+      lng! >= -180 &&
+      lng! <= 180
+    ) {
       return [lng!, lat!] as [number, number];
     }
     return [8.6821, 50.1109] as [number, number];
@@ -163,11 +170,17 @@ if (mount instanceof HTMLElement) {
         "circle-stroke-color": "#FFD93D",
         "circle-stroke-width": 1.5,
         "circle-radius": [
-          "interpolate", ["linear"], ["get", "count"],
-          10, 14,
-          100, 20,
-          500, 26,
-          2000, 32,
+          "interpolate",
+          ["linear"],
+          ["get", "count"],
+          10,
+          14,
+          100,
+          20,
+          500,
+          26,
+          2000,
+          32,
         ],
         "circle-opacity": 0.92,
       },
@@ -264,7 +277,10 @@ if (mount instanceof HTMLElement) {
       const bbox = (f.properties as { bbox?: number[] }).bbox;
       if (bbox && bbox.length === 4) {
         map.fitBounds(
-          [[bbox[0]!, bbox[1]!], [bbox[2]!, bbox[3]!]],
+          [
+            [bbox[0]!, bbox[1]!],
+            [bbox[2]!, bbox[3]!],
+          ],
           { duration: 600, padding: 40, essential: true },
         );
       } else {
@@ -401,10 +417,12 @@ async function fitToUserAndNearest(map: MlMap, lat: number, lng: number): Promis
 }
 
 async function refresh(map: MlMap): Promise<void> {
-  const summaryPromise = loadSummary().then((c) => {
-    const s = map.getSource("kiosks-summary") as GeoJSONSource | undefined;
-    s?.setData(c);
-  }).catch(() => {});
+  const summaryPromise = loadSummary()
+    .then((c) => {
+      const s = map.getSource("kiosks-summary") as GeoJSONSource | undefined;
+      s?.setData(c);
+    })
+    .catch(() => {});
 
   const b = map.getBounds();
   const view: BBox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];

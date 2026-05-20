@@ -73,7 +73,11 @@ function normalizeDe(s: string): string {
 }
 
 /** Apply filters in JS to a candidate set fetched from D1. */
-export function applyFilters(records: KioskRecord[], f: KioskFilter, now = new Date()): KioskRecord[] {
+export function applyFilters(
+  records: KioskRecord[],
+  f: KioskFilter,
+  now = new Date(),
+): KioskRecord[] {
   if (
     f.tags.length === 0 &&
     !f.payment.cards &&
@@ -94,13 +98,13 @@ export function applyFilters(records: KioskRecord[], f: KioskFilter, now = new D
       keys: [
         { name: "name", weight: 0.5, getFn: (r) => normalizeDe(r.name) },
         { name: "description", weight: 0.15, getFn: (r) => normalizeDe(r.description ?? "") },
-        { name: "street",   weight: 0.15, getFn: (r) => normalizeDe(r.address["street"] ?? "") },
-        { name: "city",     weight: 0.05, getFn: (r) => normalizeDe(r.address["city"] ?? "") },
-        { name: "district", weight: 0.10, getFn: (r) => normalizeDe(r.address["district"] ?? "") },
-        { name: "tags",     weight: 0.05, getFn: (r) => r.tags.map(normalizeDe).join(" ") },
+        { name: "street", weight: 0.15, getFn: (r) => normalizeDe(r.address["street"] ?? "") },
+        { name: "city", weight: 0.05, getFn: (r) => normalizeDe(r.address["city"] ?? "") },
+        { name: "district", weight: 0.1, getFn: (r) => normalizeDe(r.address["district"] ?? "") },
+        { name: "tags", weight: 0.05, getFn: (r) => r.tags.map(normalizeDe).join(" ") },
       ],
-      threshold: 0.35,       // 0 = exact, 1 = match anything
-      ignoreLocation: true,  // don't favour matches near the start
+      threshold: 0.35, // 0 = exact, 1 = match anything
+      ignoreLocation: true, // don't favour matches near the start
       minMatchCharLength: 2,
     });
     candidates = fuse.search(normalizeDe(f.q)).map((res) => res.item);

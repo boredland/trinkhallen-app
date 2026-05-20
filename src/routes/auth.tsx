@@ -30,7 +30,7 @@ export const auth = new Hono<{ Bindings: Env }>();
 /** Returns the URL Google should redirect to after consent. */
 function callbackUrl(c: { env: Env }, requestUrl: string): string {
   const fromEnv = c.env.PUBLIC_ORIGIN;
-  if (fromEnv && fromEnv.startsWith("http")) return `${fromEnv}/auth/google/callback`;
+  if (fromEnv?.startsWith("http")) return `${fromEnv}/auth/google/callback`;
   return new URL("/auth/google/callback", requestUrl).toString();
 }
 
@@ -180,7 +180,10 @@ export async function attachUser(
 
 async function upsertUserByEmail(db: D1Database, email: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const existing = await db.prepare(`SELECT id FROM users WHERE email = ?`).bind(email).first<{ id: string }>();
+  const existing = await db
+    .prepare(`SELECT id FROM users WHERE email = ?`)
+    .bind(email)
+    .first<{ id: string }>();
   if (existing) return existing.id;
   const id = crypto.randomUUID();
   // For magic-link signups we use the email as a synthetic google_sub so the

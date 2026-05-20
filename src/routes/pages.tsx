@@ -1,11 +1,11 @@
 import type { Hono } from "hono";
-import type { Env } from "../env";
 import { FilterChips } from "../components/FilterChips";
 import { KioskDetail } from "../components/KioskDetail";
 import { KioskList } from "../components/KioskList";
 import { Layout } from "../components/Layout";
-import type { KioskRecord } from "../lib/db";
+import type { Env } from "../env";
 import { countKiosks, getKioskById, queryKiosksInBbox } from "../lib/asset-kiosks";
+import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
 import { getAggregate, getOwnRating } from "../lib/ratings";
@@ -173,8 +173,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               trinkhallen<span class="text-neon-pink">.</span>app
             </h1>
             <p class="mt-3 text-lg text-fg-muted">
-              {total.toLocaleString("de-DE")} Trinkhallen, Wasserhäuschen und Spätis in einer Karte. Offen,
-              durchsuchbar, von der Community gepflegt — nicht-kommerziell.
+              {total.toLocaleString("de-DE")} Trinkhallen, Wasserhäuschen und Spätis in einer Karte.
+              Offen, durchsuchbar, von der Community gepflegt — nicht-kommerziell.
             </p>
           </header>
 
@@ -183,29 +183,38 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             <p class="mt-3 text-fg-muted">
               Du suchst einen Späti mit Kartenzahlung, der gerade offen hat, und willst direkt hin
               navigieren? Genau dafür ist trinkhallen.app gebaut. Das Projekt ist von{" "}
-              <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://app.hopfenstop.de/">
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://app.hopfenstop.de/"
+              >
                 HopfenStop
               </a>{" "}
-              inspiriert und erweitert dessen Frankfurter Datensatz um eine offene Beitrags-Pipeline und Daten
-              für ganz Deutschland aus OpenStreetMap.
+              inspiriert und erweitert dessen Frankfurter Datensatz um eine offene Beitrags-Pipeline
+              und Daten für ganz Deutschland aus OpenStreetMap.
             </p>
           </section>
 
           <section>
             <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Daten</h2>
             <p class="mt-3 text-fg-muted">
-              Alle Kiosk-Metadaten liegen offen auf GitHub als GeoJSON, mit pro-Eintrag Quellenangabe
-              (<code class="font-mono">sources[]</code>):
+              Alle Kiosk-Metadaten liegen offen auf GitHub als GeoJSON, mit pro-Eintrag
+              Quellenangabe (<code class="font-mono">sources[]</code>):
             </p>
             <ul class="mt-3 space-y-2 text-fg-muted">
               <li>
-                <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-data">
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://github.com/boredland/trinkhallen-data"
+                >
                   boredland/trinkhallen-data
                 </a>{" "}
                 — der Datensatz. PRs willkommen.
               </li>
               <li>
-                <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-app">
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://github.com/boredland/trinkhallen-app"
+                >
                   boredland/trinkhallen-app
                 </a>{" "}
                 — Code (Cloudflare Workers + Hono).
@@ -213,11 +222,17 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             </ul>
             <p class="mt-3 text-sm text-fg-dim">
               <strong>Quellen:</strong> HopfenStop (Frankfurt-Seed,{" "}
-              <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://creativecommons.org/licenses/by-nc/4.0/">
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://creativecommons.org/licenses/by-nc/4.0/"
+              >
                 CC BY-NC 4.0
               </a>
               ) · OpenStreetMap (
-              <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://www.openstreetmap.org/copyright">
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://www.openstreetmap.org/copyright"
+              >
                 ODbL
               </a>
               ) · Beiträge der Nutzer:innen.
@@ -228,12 +243,12 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Mitmachen</h2>
             <ul class="mt-3 space-y-3 text-fg-muted">
               <li>
-                <span class="font-display text-fg">Bewerten:</span> 1–5 Sterne + optionaler Kommentar auf jeder
-                Detailseite (Login nötig).
+                <span class="font-display text-fg">Bewerten:</span> 1–5 Sterne + optionaler
+                Kommentar auf jeder Detailseite (Login nötig).
               </li>
               <li>
-                <span class="font-display text-fg">Korrigieren:</span> „Daten falsch?"-Knopf auf der Detailseite
-                → öffnet ein GitHub-Issue zur Moderation.
+                <span class="font-display text-fg">Korrigieren:</span> „Daten falsch?"-Knopf auf der
+                Detailseite → öffnet ein GitHub-Issue zur Moderation.
               </li>
               <li>
                 <span class="font-display text-fg">Vorschlagen:</span>{" "}
@@ -243,9 +258,12 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 → Späti auf der Karte anklicken, Adresse + Öffnungszeiten + Zahlung eintragen.
               </li>
               <li>
-                <span class="font-display text-fg">Direkt PR auf GitHub:</span> Wer mag, kann den Datensatz auch
-                direkt forken und PRs gegen{" "}
-                <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-data">
+                <span class="font-display text-fg">Direkt PR auf GitHub:</span> Wer mag, kann den
+                Datensatz auch direkt forken und PRs gegen{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://github.com/boredland/trinkhallen-data"
+                >
                   trinkhallen-data
                 </a>{" "}
                 öffnen — der Datensatz ist primary, die App nur die UI obendrauf.
@@ -267,15 +285,22 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <section>
             <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Lizenz</h2>
             <p class="mt-3 text-sm text-fg-muted">
-              <strong class="text-fg">Daten:</strong> CC BY-NC 4.0 — frei zum Teilen und Anpassen, mit
-              Attribution, nicht-kommerziell.
+              <strong class="text-fg">Daten:</strong> CC BY-NC 4.0 — frei zum Teilen und Anpassen,
+              mit Attribution, nicht-kommerziell.
               <br />
               <strong class="text-fg">Code:</strong> AGPL-3.0-or-later.
             </p>
           </section>
 
           <footer class="pt-4 text-xs text-fg-dim">
-            Bugs &amp; Wünsche → <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-app/issues">GitHub Issues</a>.
+            Bugs &amp; Wünsche →{" "}
+            <a
+              class="text-neon-cyan underline-offset-2 hover:underline"
+              href="https://github.com/boredland/trinkhallen-app/issues"
+            >
+              GitHub Issues
+            </a>
+            .
           </footer>
         </article>
       </Layout>,
@@ -337,7 +362,10 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <h1 class="font-display text-4xl tracking-wide text-fg">Späti vorschlagen</h1>
           <p class="mt-2 text-fg-muted">
             Dein Vorschlag landet als Pull Request auf{" "}
-            <a class="text-neon-cyan underline-offset-2 hover:underline" href="https://github.com/boredland/trinkhallen-data">
+            <a
+              class="text-neon-cyan underline-offset-2 hover:underline"
+              href="https://github.com/boredland/trinkhallen-data"
+            >
               GitHub
             </a>{" "}
             und wird von Moderator:innen geprüft.
@@ -366,7 +394,9 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             </p>
             <div class="grid grid-cols-2 gap-3">
               <label>
-                <span class="block text-xs uppercase tracking-wider text-fg-dim">Breitengrad (lat)</span>
+                <span class="block text-xs uppercase tracking-wider text-fg-dim">
+                  Breitengrad (lat)
+                </span>
                 <input
                   type="number"
                   step="any"
@@ -378,7 +408,9 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 />
               </label>
               <label>
-                <span class="block text-xs uppercase tracking-wider text-fg-dim">Längengrad (lng)</span>
+                <span class="block text-xs uppercase tracking-wider text-fg-dim">
+                  Längengrad (lng)
+                </span>
                 <input
                   type="number"
                   step="any"
@@ -393,7 +425,9 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </fieldset>
 
           <fieldset class="space-y-3">
-            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">Name &amp; Adresse</legend>
+            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
+              Name &amp; Adresse
+            </legend>
             <label>
               <span class="block text-xs uppercase tracking-wider text-fg-dim">Name *</span>
               <input
@@ -405,17 +439,45 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 class="mt-1 w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
               />
             </label>
-            <input type="text" name="street" placeholder="Straße" class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none" />
+            <input
+              type="text"
+              name="street"
+              placeholder="Straße"
+              class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
+            />
             <div class="grid grid-cols-3 gap-3">
-              <input type="text" name="number" placeholder="Nr" class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none" />
-              <input type="text" name="postalcode" placeholder="PLZ" maxLength={5} class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none" />
-              <input type="text" name="city" placeholder="Stadt" class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none" />
+              <input
+                type="text"
+                name="number"
+                placeholder="Nr"
+                class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
+              />
+              <input
+                type="text"
+                name="postalcode"
+                placeholder="PLZ"
+                maxLength={5}
+                class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
+              />
+              <input
+                type="text"
+                name="city"
+                placeholder="Stadt"
+                class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
+              />
             </div>
-            <input type="text" name="district" placeholder="Stadtteil" class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none" />
+            <input
+              type="text"
+              name="district"
+              placeholder="Stadtteil"
+              class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
+            />
           </fieldset>
 
           <fieldset class="space-y-2">
-            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">Beschreibung</legend>
+            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
+              Beschreibung
+            </legend>
             <textarea
               name="description"
               rows={3}
@@ -426,7 +488,9 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </fieldset>
 
           <fieldset class="space-y-2">
-            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">Öffnungszeiten</legend>
+            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
+              Öffnungszeiten
+            </legend>
             <input
               type="text"
               name="hours_raw"
@@ -439,15 +503,14 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </fieldset>
 
           <fieldset class="space-y-2">
-            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">Zahlung</legend>
+            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
+              Zahlung
+            </legend>
             <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {(["cash", "cards", "contactless", "girocard", "mobile"] as const).map((key) => (
                 <label class="flex items-center gap-2 border-2 border-border bg-surface-2 px-2 py-1.5 text-sm">
                   <span class="flex-1 capitalize text-fg-muted">{key}</span>
-                  <select
-                    name={`pay_${key}`}
-                    class="bg-transparent text-fg focus:outline-none"
-                  >
+                  <select name={`pay_${key}`} class="bg-transparent text-fg focus:outline-none">
                     <option value="">?</option>
                     <option value="yes">Ja</option>
                     <option value="no">Nein</option>
@@ -459,7 +522,9 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </fieldset>
 
           <fieldset class="space-y-2">
-            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">Tags</legend>
+            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
+              Tags
+            </legend>
             <div class="flex flex-wrap gap-2">
               {[
                 ["snacks", "Snacks"],
@@ -500,8 +565,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <section class="border-2 border-border bg-surface p-8">
             <h1 class="font-display text-3xl tracking-wide text-fg sm:text-4xl">Anmelden</h1>
             <p class="mt-3 text-fg-muted">
-              Anmelden, um Spätis zu bewerten und Korrekturen einzureichen. Anonyme
-              Nutzung der Karte bleibt jederzeit möglich.
+              Anmelden, um Spätis zu bewerten und Korrekturen einzureichen. Anonyme Nutzung der
+              Karte bleibt jederzeit möglich.
             </p>
 
             {magic === "sent" && (
@@ -520,7 +585,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               </div>
             )}
 
-            <form action="/auth/magic" method="post" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+            <form
+              action="/auth/magic"
+              method="post"
+              class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-stretch"
+            >
               <label class="flex-1">
                 <span class="sr-only">E-Mail-Adresse</span>
                 <input
@@ -580,23 +649,20 @@ async function renderProfile(
   const submittedFlag = c.req.query("submitted");
 
   const [reportsRes, submissionsRes, ratingsCountRow] = await Promise.all([
-    c.env.DB
-      .prepare(
-        `SELECT r.id, r.kiosk_id, r.kind, r.status, r.pr_url, r.created_at
+    c.env.DB.prepare(
+      `SELECT r.id, r.kiosk_id, r.kind, r.status, r.pr_url, r.created_at
          FROM reports r
          WHERE r.user_id = ? ORDER BY r.created_at DESC LIMIT 50`,
-      )
+    )
       .bind(user.id)
       .all<Omit<ReportListRow, "kiosk_name">>(),
-    c.env.DB
-      .prepare(
-        `SELECT id, payload, status, pr_url, created_at FROM submissions
+    c.env.DB.prepare(
+      `SELECT id, payload, status, pr_url, created_at FROM submissions
          WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
-      )
+    )
       .bind(user.id)
       .all<SubmissionListRow>(),
-    c.env.DB
-      .prepare(`SELECT COUNT(*) AS n FROM ratings WHERE user_id = ?`)
+    c.env.DB.prepare(`SELECT COUNT(*) AS n FROM ratings WHERE user_id = ?`)
       .bind(user.id)
       .first<{ n: number }>(),
   ]);
@@ -640,9 +706,7 @@ async function renderProfile(
               {user.displayName ?? user.email}
             </h1>
             <p class="text-fg-muted">{user.email}</p>
-            <p class="mt-1 text-xs uppercase tracking-wider text-fg-dim">
-              Rolle: {user.role}
-            </p>
+            <p class="mt-1 text-xs uppercase tracking-wider text-fg-dim">Rolle: {user.role}</p>
           </div>
         </div>
         <dl class="mt-6 grid grid-cols-3 gap-3 text-center">
@@ -651,7 +715,10 @@ async function renderProfile(
           <Stat n={submissions.length} label="Vorschläge" />
         </dl>
         <form action="/auth/logout" method="post" class="mt-6">
-          <button type="submit" class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg-muted transition-colors hover:border-neon-pink hover:text-neon-pink">
+          <button
+            type="submit"
+            class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg-muted transition-colors hover:border-neon-pink hover:text-neon-pink"
+          >
             Abmelden
           </button>
         </form>
@@ -671,7 +738,10 @@ async function renderProfile(
       <section class="mt-6 border-2 border-border bg-surface">
         <header class="flex items-center justify-between border-b-2 border-border px-4 py-3">
           <h2 class="font-display text-xl tracking-wide text-fg">Vorschläge</h2>
-          <a href="/add" class="border-2 border-border-hi px-2 py-1 font-display text-xs tracking-wider uppercase text-fg-muted hover:border-neon-pink hover:text-neon-pink">
+          <a
+            href="/add"
+            class="border-2 border-border-hi px-2 py-1 font-display text-xs tracking-wider uppercase text-fg-muted hover:border-neon-pink hover:text-neon-pink"
+          >
             + Späti vorschlagen
           </a>
         </header>
@@ -778,4 +848,3 @@ function StatusPill({ status }: { status: string }) {
   const cfg = map[status] ?? { de: status, cls: "border-border text-fg-dim" };
   return <span class={`border-2 px-2 py-0.5 ${cfg.cls}`}>{cfg.de}</span>;
 }
-

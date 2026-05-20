@@ -10,8 +10,8 @@
  */
 
 import type { Env } from "../env";
-import { haversineMeters, type Bbox } from "./geo";
 import type { KioskRecord } from "./db";
+import { type Bbox, haversineMeters } from "./geo";
 
 interface ManifestEntry {
   slug: string;
@@ -110,7 +110,7 @@ function parsePrefix(id: string): string | null {
   // tk_<prefix>_<rest> — the prefix is the segment between the first two
   // underscores. User submissions and OSM rows both follow this layout.
   const m = id.match(/^tk_([a-z0-9]+)_/i);
-  return m && m[1] ? m[1] : null;
+  return m?.[1] ? m[1] : null;
 }
 
 function bboxesOverlap(
@@ -136,9 +136,7 @@ export async function queryKiosksInBbox(
   limit = 5000,
 ): Promise<KioskRecord[]> {
   const manifest = await loadManifest(env);
-  const slugs = manifest.regions
-    .filter((r) => bboxesOverlap(r.bbox, bbox))
-    .map((r) => r.slug);
+  const slugs = manifest.regions.filter((r) => bboxesOverlap(r.bbox, bbox)).map((r) => r.slug);
 
   const collections = await Promise.all(slugs.map((s) => recordsForRegion(env, s)));
   const out: KioskRecord[] = [];
@@ -174,7 +172,10 @@ export async function findNearestKiosk(
   for (const records of all) {
     for (const r of records) {
       const d = haversineMeters(origin, { lat: r.lat, lng: r.lng });
-      if (d < bestDist) { bestDist = d; best = r; }
+      if (d < bestDist) {
+        bestDist = d;
+        best = r;
+      }
     }
   }
   return best ? { record: best, distance: bestDist } : null;

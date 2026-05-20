@@ -8,8 +8,8 @@
  * style object once at page-load is a few KB of compute, then MapLibre owns it.
  */
 
-import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import { layers, namedFlavor } from "@protomaps/basemaps";
+import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import { Protocol } from "pmtiles";
 
 const NEON_PINK = "#FF2D6F";

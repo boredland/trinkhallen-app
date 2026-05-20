@@ -53,14 +53,18 @@ function resolveSourceDir(): string {
   if (override) {
     const abs = resolve(override);
     if (!existsSync(`${abs}/regions.yml`)) {
-      throw new Error(`TRINKHALLEN_DATA_PATH=${abs} is not a trinkhallen-data checkout (no regions.yml)`);
+      throw new Error(
+        `TRINKHALLEN_DATA_PATH=${abs} is not a trinkhallen-data checkout (no regions.yml)`,
+      );
     }
     return abs;
   }
   mkdirSync(resolve(".tmp"), { recursive: true });
   if (existsSync(`${TMP_DIR}/.git`)) {
     console.log(`  refreshing existing clone at ${TMP_DIR}`);
-    execFileSync("git", ["-C", TMP_DIR, "fetch", "--depth=1", "origin", "main"], { stdio: "inherit" });
+    execFileSync("git", ["-C", TMP_DIR, "fetch", "--depth=1", "origin", "main"], {
+      stdio: "inherit",
+    });
     execFileSync("git", ["-C", TMP_DIR, "reset", "--hard", "origin/main"], { stdio: "inherit" });
   } else {
     if (existsSync(TMP_DIR)) rmSync(TMP_DIR, { recursive: true, force: true });
@@ -96,7 +100,12 @@ function main(): void {
     const collection = JSON.parse(readFileSync(inputPath, "utf8")) as FeatureCollection;
     const features = collection.features ?? [];
     writeFileSync(`${OUT_DIR}/${region.slug}.geojson`, JSON.stringify(collection));
-    manifest.push({ slug: region.slug, prefix: region.prefix, bbox: region.bbox, count: features.length });
+    manifest.push({
+      slug: region.slug,
+      prefix: region.prefix,
+      bbox: region.bbox,
+      count: features.length,
+    });
 
     const [w, s, e, n] = region.bbox;
     summaryFeatures.push({

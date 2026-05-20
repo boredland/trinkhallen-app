@@ -122,9 +122,9 @@ document.querySelectorAll<HTMLFormElement>("[data-filter-form]").forEach(attachF
     localStorage.setItem("tk-sidebar-collapsed", collapsed ? "1" : "0");
   };
   if (localStorage.getItem("tk-sidebar-collapsed") === "1") setCollapsed(true);
-  document.querySelectorAll<HTMLButtonElement>("[data-sidebar-collapse]").forEach((b) =>
-    b.addEventListener("click", () => setCollapsed(true)),
-  );
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-sidebar-collapse]")
+    .forEach((b) => b.addEventListener("click", () => setCollapsed(true)));
   expandBtn.addEventListener("click", () => setCollapsed(false));
 })();
 
@@ -196,6 +196,6 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: Alpine attaches itself to window with no shipped type
 (window as any).Alpine = Alpine;
 Alpine.start();

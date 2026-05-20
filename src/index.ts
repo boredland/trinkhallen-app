@@ -6,8 +6,8 @@ import { apiKiosks } from "./routes/api.kiosks.tsx";
 import { apiRatings } from "./routes/api.ratings.tsx";
 import { apiReports } from "./routes/api.reports.tsx";
 import { apiSubmissions } from "./routes/api.submissions.tsx";
+import { attachUser, auth } from "./routes/auth.tsx";
 import { moderate } from "./routes/moderate.tsx";
-import { auth, attachUser } from "./routes/auth.tsx";
 import { registerPageRoutes } from "./routes/pages";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -22,7 +22,13 @@ app.use(
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://protomaps.github.io"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       // Avatars + Protomaps basemap sprite (PNG + JSON metadata)
-      imgSrc: ["'self'", "data:", "blob:", "https://lh3.googleusercontent.com", "https://protomaps.github.io"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://lh3.googleusercontent.com",
+        "https://protomaps.github.io",
+      ],
       scriptSrc: ["'self'", "'unsafe-inline'"],
       workerSrc: ["'self'", "blob:"],
       // tiles.trinkhallen.app: PMTiles range fetches.

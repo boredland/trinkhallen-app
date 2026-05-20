@@ -57,21 +57,18 @@ export async function createSession(
   return sid;
 }
 
-export async function loadSession(
-  c: Context<{ Bindings: Env }>,
-): Promise<SessionUser | null> {
+export async function loadSession(c: Context<{ Bindings: Env }>): Promise<SessionUser | null> {
   const raw = getCookie(c, SESSION_COOKIE);
   if (!raw) return null;
   const sid = await verify(raw, c.env.SESSION_SECRET);
   if (!sid) return null;
 
-  const row = await c.env.DB
-    .prepare(
-      `SELECT s.id AS sid, s.expires_at AS expires_at,
+  const row = await c.env.DB.prepare(
+    `SELECT s.id AS sid, s.expires_at AS expires_at,
               u.id AS user_id, u.email, u.display_name, u.avatar_url, u.role
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.id = ?`,
-    )
+  )
     .bind(sid)
     .first<{
       sid: string;

@@ -10,8 +10,8 @@
  * Usage: pnpm tsx scripts/debug-map.ts <url>
  */
 
-import { chromium, type ConsoleMessage, type Request } from "playwright";
 import { mkdir } from "node:fs/promises";
+import { type ConsoleMessage, chromium, type Request } from "playwright";
 
 const url = process.argv[2] ?? "https://trinkhallen.app/";
 const OUT = ".tmp/debug";
@@ -24,7 +24,7 @@ const page = await ctx.newPage();
 
 const consoleMsgs: Array<{ type: string; text: string; location?: string }> = [];
 const requestFailures: Array<{ url: string; failure: string }> = [];
-const cspViolations: string[] = [];
+const _cspViolations: string[] = [];
 
 page.on("console", (m: ConsoleMessage) => {
   consoleMsgs.push({

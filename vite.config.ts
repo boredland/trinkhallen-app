@@ -17,9 +17,9 @@ export default defineConfig(({ mode }) => {
         emptyOutDir: false,
         rollupOptions: {
           input: {
-            "app": "/src/client/app.entry.ts",
-            "map": "/src/client/map.entry.ts",
-            "pick": "/src/client/pick.entry.ts",
+            app: "/src/client/app.entry.ts",
+            map: "/src/client/map.entry.ts",
+            pick: "/src/client/pick.entry.ts",
           },
           output: {
             entryFileNames: "assets/[name]-[hash].js",

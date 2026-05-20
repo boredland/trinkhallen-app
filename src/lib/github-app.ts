@@ -17,11 +17,7 @@ const DATA_REPO_OWNER = "boredland";
 const DATA_REPO_NAME = "trinkhallen-data";
 
 export function hasGithubAppCreds(env: Env): boolean {
-  return !!(
-    env.GITHUB_APP_ID &&
-    env.GITHUB_APP_PRIVATE_KEY &&
-    env.GITHUB_APP_INSTALLATION_ID
-  );
+  return !!(env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY && env.GITHUB_APP_INSTALLATION_ID);
 }
 
 export interface CreatedIssue {
@@ -36,24 +32,21 @@ export async function openIssue(
   if (!hasGithubAppCreds(env)) return null;
 
   const token = await getInstallationToken(env);
-  const resp = await fetch(
-    `${GITHUB_API}/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/issues`,
-    {
-      method: "POST",
-      headers: {
-        accept: "application/vnd.github+json",
-        authorization: `Bearer ${token}`,
-        "user-agent": USER_AGENT,
-        "content-type": "application/json",
-        "x-github-api-version": "2022-11-28",
-      },
-      body: JSON.stringify({
-        title: args.title,
-        body: args.body,
-        ...(args.labels?.length ? { labels: args.labels } : {}),
-      }),
+  const resp = await fetch(`${GITHUB_API}/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/issues`, {
+    method: "POST",
+    headers: {
+      accept: "application/vnd.github+json",
+      authorization: `Bearer ${token}`,
+      "user-agent": USER_AGENT,
+      "content-type": "application/json",
+      "x-github-api-version": "2022-11-28",
     },
-  );
+    body: JSON.stringify({
+      title: args.title,
+      body: args.body,
+      ...(args.labels?.length ? { labels: args.labels } : {}),
+    }),
+  });
   if (!resp.ok) {
     const txt = await resp.text().catch(() => "");
     console.error(`GitHub openIssue failed ${resp.status}: ${txt}`);

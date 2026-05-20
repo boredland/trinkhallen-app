@@ -72,11 +72,7 @@ export const KioskDetail: FC<{
       </header>
 
       <section class="border-b-2 border-border p-6">
-        <a
-          href={nav.primary.href}
-          class="btn-neon w-full sm:w-auto"
-          data-navigate-primary
-        >
+        <a href={nav.primary.href} class="btn-neon w-full sm:w-auto" data-navigate-primary>
           ▶ Hin navigieren
         </a>
         <details class="mt-3 text-sm text-fg-muted">
@@ -108,9 +104,7 @@ export const KioskDetail: FC<{
 
       {kiosk.payment && (
         <section class="border-b-2 border-border p-6">
-          <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
-            Zahlung
-          </h2>
+          <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">Zahlung</h2>
           <ul class="flex flex-wrap gap-2">
             {PAYMENT_ORDER.map((key) => {
               const value = kiosk.payment?.[key] as TriState | undefined;
@@ -174,17 +168,12 @@ export const KioskDetail: FC<{
         <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
           Daten falsch?
         </h2>
-        <ReportForm
-          kioskId={kiosk.id}
-          isLoggedIn={isLoggedIn}
-          currentHoursRaw={kiosk.hours?.raw}
-        />
+        <ReportForm kioskId={kiosk.id} isLoggedIn={isLoggedIn} currentHoursRaw={kiosk.hours?.raw} />
       </section>
 
       <footer class="flex flex-col gap-2 p-6 text-sm text-fg-dim sm:flex-row sm:items-center sm:justify-between">
         <p>
-          <span class="text-fg-muted">ID:</span>{" "}
-          <code class="font-mono">{kiosk.id}</code>
+          <span class="text-fg-muted">ID:</span> <code class="font-mono">{kiosk.id}</code>
           {hopfenstopSource && (
             <>
               {" · "}

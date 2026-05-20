@@ -28,8 +28,7 @@ export const REGIONS: Region[] = [
 export function resolveRegionByCoords(lng: number, lat: number): Region | null {
   return (
     REGIONS.find(
-      (r) =>
-        lng >= r.bbox[0] && lng <= r.bbox[2] && lat >= r.bbox[1] && lat <= r.bbox[3],
+      (r) => lng >= r.bbox[0] && lng <= r.bbox[2] && lat >= r.bbox[1] && lat <= r.bbox[3],
     ) ?? null
   );
 }

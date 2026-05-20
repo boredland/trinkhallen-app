@@ -15,7 +15,7 @@ export async function verifyWebhookSignature(
   signatureHeader: string | null,
   secret: string,
 ): Promise<boolean> {
-  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
+  if (!signatureHeader?.startsWith("sha256=")) return false;
   const provided = signatureHeader.slice("sha256=".length);
 
   const key = await crypto.subtle.importKey(
