@@ -78,7 +78,7 @@ export function resolveStyle(mount: HTMLElement): StyleSpecification | string {
   const mode = mount.dataset["tiles"] ?? "raster";
   if (mode === "pmtiles") {
     ensurePmtilesProtocol();
-    const url = mount.dataset["pmtilesUrl"] ?? `${location.origin}/tiles/de.pmtiles`;
+    const url = mount.dataset["pmtilesUrl"] ?? "https://tiles.trinkhallen.app/de.pmtiles";
     return buildVectorStyle(url);
   }
   return RASTER_FALLBACK_STYLE;

@@ -26,4 +26,6 @@ export async function pmtilesAvailable(env: Env, ctx: ExecutionContext): Promise
   return available;
 }
 
-export const PMTILES_URL_PATH = `/tiles/${TILE_FILENAME}`;
+/** Public absolute URL served directly from the R2 custom domain.
+ *  Bypasses the Worker, so range requests don't pay the Worker CPU. */
+export const PMTILES_URL = `https://tiles.trinkhallen.app/${TILE_FILENAME}`;

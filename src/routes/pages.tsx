@@ -8,7 +8,7 @@ import { countKiosks, getKioskById, queryKiosksAll, queryKiosksInBbox } from "..
 import { applyFilters, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
 import { getAggregate, getOwnRating } from "../lib/ratings";
-import { PMTILES_URL_PATH, pmtilesAvailable } from "../lib/tiles-available";
+import { PMTILES_URL, pmtilesAvailable } from "../lib/tiles-available";
 
 export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/", async (c) => {
@@ -44,7 +44,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             class="h-full w-full bg-surface"
             data-bbox="5.87,47.27,15.04,55.06"
             data-tiles={tilesMode}
-            data-pmtiles-url={tilesMode === "pmtiles" ? `${url.origin}${PMTILES_URL_PATH}` : undefined}
+            data-pmtiles-url={tilesMode === "pmtiles" ? PMTILES_URL : undefined}
             data-filter-state={url.search}
           />
           <aside class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[60dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur sm:inset-y-0 sm:bottom-auto sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0">
@@ -303,7 +303,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               id="pick-map"
               class="h-72 w-full border-2 border-border-hi bg-bg sm:h-96"
               data-tiles={pickTilesMode}
-              data-pmtiles-url={pickTilesMode === "pmtiles" ? `${url.origin}${PMTILES_URL_PATH}` : undefined}
+              data-pmtiles-url={pickTilesMode === "pmtiles" ? PMTILES_URL : undefined}
             />
             <p class="text-xs text-fg-dim">
               ▶ Klick auf die Karte, um die genaue Position zu setzen. Geolokalisierung

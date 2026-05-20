@@ -7,7 +7,6 @@ import { apiRatings } from "./routes/api.ratings.tsx";
 import { apiReports } from "./routes/api.reports.tsx";
 import { apiSubmissions } from "./routes/api.submissions.tsx";
 import { apiSync } from "./routes/api.sync";
-import { tiles } from "./routes/tiles";
 import { auth, attachUser } from "./routes/auth.tsx";
 import { registerPageRoutes } from "./routes/pages";
 
@@ -26,7 +25,7 @@ app.use(
       // MapLibre uses workers + wasm; Alpine + HTMX are bundled local
       scriptSrc: ["'self'", "'unsafe-inline'"],
       workerSrc: ["'self'", "blob:"],
-      connectSrc: ["'self'", "https://api.protomaps.com"],
+      connectSrc: ["'self'", "https://tiles.trinkhallen.app", "https://api.protomaps.com"],
       frameAncestors: ["'none'"],
     },
   }),
@@ -39,7 +38,6 @@ app.route("/", apiRatings);
 app.route("/", apiReports);
 app.route("/", apiSubmissions);
 app.route("/", apiSync);
-app.route("/", tiles);
 registerPageRoutes(app);
 
 app.notFound((c) => c.text("404 — Hier gibt's nix.", 404));
