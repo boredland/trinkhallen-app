@@ -132,7 +132,7 @@ const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | und
           </a>
         ) : (
           <a
-            href="/auth/google"
+            href="/me"
             class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg transition-colors hover:border-neon-pink hover:text-neon-pink"
           >
             Login
