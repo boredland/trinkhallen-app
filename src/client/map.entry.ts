@@ -33,10 +33,18 @@ interface FeatureCollection {
 
 const mount = document.getElementById("map");
 if (mount instanceof HTMLElement) {
-  // ?c=lat,lng&z=zoom — restore the previously-saved viewport, e.g. when
-  // returning from /k/:id or following a shared link. Defaults to Frankfurt.
+  // Priority for initial centre:
+  //   1. data-focus-lng/lat (SSR-injected when /k/:id is the URL — we centre
+  //      on the focused kiosk so direct deep links land on the right place)
+  //   2. ?c=lat,lng&z=zoom (user-driven, persisted on moveend)
+  //   3. Frankfurt default
   const params = new URL(location.href).searchParams;
+  const focusLng = parseFloat(mount.dataset["focusLng"] ?? "");
+  const focusLat = parseFloat(mount.dataset["focusLat"] ?? "");
   const initialCenter = (() => {
+    if (Number.isFinite(focusLng) && Number.isFinite(focusLat)) {
+      return [focusLng, focusLat] as [number, number];
+    }
     const c = params.get("c");
     if (!c) return [8.6821, 50.1109] as [number, number];
     const [lat, lng] = c.split(",").map(Number);
@@ -46,6 +54,7 @@ if (mount instanceof HTMLElement) {
     return [8.6821, 50.1109] as [number, number];
   })();
   const initialZoom = (() => {
+    if (Number.isFinite(focusLng) && Number.isFinite(focusLat)) return 15;
     const z = parseFloat(params.get("z") ?? "");
     return Number.isFinite(z) && z >= 5 && z <= 19 ? z : 12;
   })();

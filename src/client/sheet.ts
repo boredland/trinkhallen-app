@@ -13,13 +13,18 @@ const BACKDROP_ID = "kiosk-sheet-backdrop";
 const BODY_ID = "kiosk-sheet-body";
 
 let openUrl: string | null = null; // /k/<id> while open; null when closed
+// True when the user landed directly on /k/:id (initial SSR opens the sheet
+// for us, no pushState yet). On close we then push "/" to update the URL.
+let pushedHistory = false;
 
 function el(id: string): HTMLElement | null {
   return document.getElementById(id);
 }
 
 function isMapPage(): boolean {
-  return location.pathname === "/" || location.pathname === "";
+  // Both `/` and `/k/:id` render the same map UI (the latter with the sheet
+  // pre-opened). The sheet behaviour should activate on both.
+  return location.pathname === "/" || location.pathname === "" || location.pathname.startsWith("/k/");
 }
 
 async function fetchPartial(href: string): Promise<string | null> {
@@ -60,6 +65,7 @@ async function openSheet(href: string, push: boolean): Promise<void> {
   if (push) {
     const u = new URL(href, location.origin);
     history.pushState({ sheet: href }, "", u.pathname + u.search);
+    pushedHistory = true;
   }
   setOpen(true);
 }
@@ -76,7 +82,16 @@ function closeSheet(viaPop = false): void {
       if (openUrl === null) body.innerHTML = "";
     }, 220);
   }
-  if (!viaPop) history.back();
+  if (viaPop) return;
+  // history.back() works when we got here via pushState. If the user landed
+  // directly on /k/:id, history.back would leave the origin entirely; in
+  // that case rewrite the URL to "/" without navigating.
+  if (pushedHistory) {
+    history.back();
+    pushedHistory = false;
+  } else if (location.pathname.startsWith("/k/")) {
+    history.replaceState(null, "", "/");
+  }
 }
 
 function attachInBody(): void {
@@ -96,7 +111,17 @@ function attachInBody(): void {
 
 export function installKioskSheet(): void {
   if (!isMapPage()) return;
-  if (!el(SHEET_ID)) return;
+  const sheetEl = el(SHEET_ID);
+  if (!sheetEl) return;
+
+  // SSR may have pre-opened the sheet (direct landing on /k/:id). Pick up
+  // that state without re-fetching the body — it's already in the DOM.
+  if (sheetEl.dataset["open"] === "true") {
+    openUrl = sheetEl.dataset["initialHref"] ?? location.pathname;
+    pushedHistory = false;
+    attachInBody();
+    document.body.style.overflow = "hidden";
+  }
 
   // Delegated click handler: any <a href="/k/...">. Also focuses the map on
   // the kiosk when the anchor carries data-lng / data-lat (list items have

@@ -13,7 +13,7 @@ export interface LayoutProps {
   title?: string;
   description?: string;
   /** Page identifier used to highlight the active nav link. */
-  nav?: "map" | "list" | "about" | "me" | "moderate";
+  nav?: "map" | "about" | "me" | "moderate";
   /** Pre-bundled client entry points to load on this page. */
   clientEntries?: ClientEntry[];
   /** Set to true on the map page so the body becomes full-bleed. */
@@ -98,7 +98,6 @@ const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | und
       </a>
       <nav class="hidden flex-1 items-center gap-4 sm:flex">
         <NavLink href="/" active={nav === "map"} label="Karte" />
-        <NavLink href="/list" active={nav === "list"} label="Liste" />
         <NavLink href="/about" active={nav === "about"} label="Über" />
         {user && (user.role === "moderator" || user.role === "admin") && (
           <NavLink href="/moderate" active={nav === "moderate"} label="Mod" />

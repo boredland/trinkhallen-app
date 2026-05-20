@@ -4,188 +4,163 @@ import { FilterChips } from "../components/FilterChips";
 import { KioskDetail } from "../components/KioskDetail";
 import { KioskList } from "../components/KioskList";
 import { Layout } from "../components/Layout";
-import { countKiosks, getKioskById, queryKiosksAll, queryKiosksInBbox } from "../lib/db";
+import { countKiosks, getKioskById, queryKiosksInBbox, type KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
 import { getAggregate, getOwnRating } from "../lib/ratings";
 import { PMTILES_URL, pmtilesAvailable } from "../lib/tiles-available";
 
-export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
-  app.get("/", async (c) => {
-    const url = new URL(c.req.url);
-    const filter = parseFilterFromQuery(url.searchParams);
-    const tilesMode = (await pmtilesAvailable(c.env, c.executionCtx)) ? "pmtiles" : "raster";
-    // Initial render: hard-code Frankfurt-ish bbox so the side panel isn't empty
-    // on first paint. The map's moveend handler will swap this with the actual
-    // viewport via HTMX once it loads.
-    const initialBbox = parseBbox(url.searchParams.get("bbox") ?? "8.4,50.0,8.9,50.3");
-    let initialPanel = (
-      <KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />
-    );
-    if (initialBbox) {
-      const all = await queryKiosksInBbox(c.env.DB, initialBbox, 5000);
-      const filtered = applyFilters(all, filter);
-      filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
-      initialPanel = (
-        <KioskList
-          kiosks={filtered.slice(0, 100)}
-          totalInBbox={all.length}
-          filteredCount={filtered.length}
-          filterActive={isFilterActive(filter)}
-          resetHref="/"
-          userAgent={c.req.header("user-agent") ?? null}
-        />
-      );
-    }
+/**
+ * Render the map page, optionally with the kiosk detail sheet pre-opened.
+ *
+ * /  → focused = null, sheet closed
+ * /k/:id → focused = {kiosk, inner}, sheet open with `inner` content + map
+ *          centered on the kiosk. The client sheet.ts reads data-open and
+ *          syncs its internal state without re-fetching.
+ */
+async function renderMapPage(
+  c: import("hono").Context<{ Bindings: Env }>,
+  focused?: { kiosk: KioskRecord; inner: unknown; href: string },
+): Promise<Response> {
+  const url = new URL(c.req.url);
+  const filter = parseFilterFromQuery(url.searchParams);
+  const tilesMode = (await pmtilesAvailable(c.env, c.executionCtx)) ? "pmtiles" : "raster";
 
-    return c.html(
-      <Layout title="Karte" nav="map" clientEntries={["app", "map"]} fullBleed user={c.get("user")}>
-        <div class="relative h-full w-full">
-          <div
-            id="map"
-            class="h-full w-full bg-surface"
-            data-bbox="5.87,47.27,15.04,55.06"
-            data-tiles={tilesMode}
-            data-pmtiles-url={tilesMode === "pmtiles" ? PMTILES_URL : undefined}
-            data-filter-state={url.search}
-          />
-          {/* Backdrop has to live OUTSIDE the sheet element: the sheet uses
-              `transform` for slide animation, and a transformed ancestor
-              becomes the containing block for `position: fixed` descendants.
-              If the backdrop is nested, `inset-0` resolves to the sheet's
-              own bounding box and clicks above the sheet never reach it. */}
-          <div
-            id="kiosk-sheet-backdrop"
-            class="pointer-events-none fixed inset-0 z-20 bg-bg/60 opacity-0 transition-opacity duration-200 data-[open=true]:pointer-events-auto data-[open=true]:opacity-100"
-            data-open="false"
-          />
-          {/* Sheet container — populated by client/sheet.ts when a marker
-              or list item is clicked. Slides over both map and sidebar.
-              Layout chain:
-                base:  bottom-0 + inset-x-0          → bottom drawer, full width
-                sm:    top-0 + left-auto + right-0   → right side panel, top:0 bottom:0 → full height
-                       sm:max-w-md (28rem ≈ 448px wide)
-              Avoid sm:inset-y-0 — Tailwind v4 emits it as logical
-              `inset-block: 0` which doesn't cleanly override the base
-              physical `bottom-0` and the cascade leaves bottom unset. */}
-          <div
-            id="kiosk-sheet"
-            class="pointer-events-none fixed inset-x-0 bottom-0 z-30 translate-y-full transition-transform duration-200 ease-out data-[open=true]:pointer-events-auto data-[open=true]:translate-y-0 sm:top-0 sm:left-auto sm:right-0 sm:w-full sm:max-w-md sm:translate-x-full sm:translate-y-0 sm:data-[open=true]:translate-x-0"
-            data-open="false"
-            aria-hidden="true"
-          >
-            <div class="relative flex max-h-[90dvh] flex-col bg-surface border-t-2 border-border sm:h-full sm:max-h-none sm:border-l-2 sm:border-t-0">
-              <button
-                type="button"
-                aria-label="Sheet schließen — nach unten ziehen"
-                data-sheet-handle
-                class="flex w-full cursor-grab touch-none items-center justify-center py-2 sm:hidden"
-              >
-                <span class="block h-1 w-10 rounded-full bg-border-hi" />
-              </button>
-              <button
-                type="button"
-                aria-label="Schließen"
-                data-sheet-close
-                class="absolute right-4 top-4 z-10 hidden h-8 w-8 cursor-pointer items-center justify-center border-2 border-border-hi font-display text-fg-muted hover:border-neon-pink hover:text-neon-pink sm:flex"
-              >
-                ×
-              </button>
-              <div id="kiosk-sheet-body" class="min-h-0 flex-1 overflow-y-auto overscroll-contain" />
-            </div>
-          </div>
+  // For a focused kiosk we centre the map on it; otherwise the URL ?c=lat,lng
+  // or default Frankfurt centre takes over (handled in map.entry.ts).
+  const focusLng = focused?.kiosk.lng;
+  const focusLat = focused?.kiosk.lat;
 
-          {/* FAB to re-open the sidebar after it's collapsed. JS toggles
-              data-show; hidden by default. */}
-          <button
-            type="button"
-            data-sidebar-expand
-            aria-label="Filter einblenden"
-            class="pointer-events-auto absolute bottom-3 left-3 z-20 hidden cursor-pointer items-center gap-1.5 border-2 border-border bg-surface px-3 py-2 font-display text-sm tracking-wider uppercase text-fg hover:border-neon-pink hover:text-neon-pink data-[show=true]:flex sm:top-3 sm:bottom-auto"
-            data-show="false"
-          >
-            ☰ Filter
-          </button>
-          <aside
-            data-sidebar
-            data-collapsed="false"
-            class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[60dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out data-[collapsed=true]:translate-y-full sm:top-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
-          >
-            <div class="relative border-b-2 border-border p-3 pr-12">
-              <FilterChips filter={filter} formAction="/" />
-              <button
-                type="button"
-                data-sidebar-collapse
-                aria-label="Filter ausblenden"
-                class="absolute right-2 top-2 cursor-pointer border-2 border-border-hi bg-surface px-2 py-1 font-display text-sm leading-none text-fg-muted hover:border-neon-pink hover:text-neon-pink"
-              >
-                ×
-              </button>
-            </div>
-            <a
-              href="/add"
-              class="flex items-center justify-center gap-2 border-b-2 border-border bg-surface-2 px-3 py-2 font-display text-sm tracking-wider uppercase text-fg-muted transition-colors hover:text-neon-pink"
-            >
-              <span class="text-neon-pink">+</span> Späti vorschlagen
-            </a>
-            <div
-              id="kiosk-panel"
-              class="min-h-0 flex-1 overflow-hidden"
-              data-panel-url={`/api/kiosks/panel${initialBbox ? `?bbox=${initialBbox.west},${initialBbox.south},${initialBbox.east},${initialBbox.north}` : ""}`}
-            >
-              {initialPanel}
-            </div>
-          </aside>
-        </div>
-      </Layout>,
-    );
-  });
+  // Side-panel bbox: when focused on a kiosk that's outside Frankfurt, use a
+  // box around it so the panel isn't empty on first paint.
+  const initialBbox = focused
+    ? {
+        west: focused.kiosk.lng - 0.05,
+        south: focused.kiosk.lat - 0.04,
+        east: focused.kiosk.lng + 0.05,
+        north: focused.kiosk.lat + 0.04,
+      }
+    : parseBbox(url.searchParams.get("bbox") ?? "8.4,50.0,8.9,50.3");
 
-  app.get("/list", async (c) => {
-    const url = new URL(c.req.url);
-    const filter = parseFilterFromQuery(url.searchParams);
-    const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
-    const PER_PAGE = 50;
-
-    const [all, total] = await Promise.all([
-      queryKiosksAll(c.env.DB, 5000),
-      countKiosks(c.env.DB),
-    ]);
+  let initialPanel = <KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />;
+  if (initialBbox) {
+    const all = await queryKiosksInBbox(c.env.DB, initialBbox, 5000);
     const filtered = applyFilters(all, filter);
-    const start = (page - 1) * PER_PAGE;
-    const slice = filtered.slice(start, start + PER_PAGE);
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-
-    return c.html(
-      <Layout title="Liste" nav="list" user={c.get("user")}>
-        <header class="mb-6">
-          <h1 class="font-display text-4xl tracking-wide text-fg">Liste</h1>
-          <p class="mt-1 text-sm text-fg-muted">
-            {filtered.length === total
-              ? `${total.toLocaleString("de-DE")} Trinkhallen insgesamt`
-              : `${filtered.length.toLocaleString("de-DE")} von ${total.toLocaleString("de-DE")} (gefiltert)`}
-          </p>
-          <div class="mt-4 border-2 border-border bg-surface p-3">
-            <FilterChips filter={filter} formAction="/list" />
-          </div>
-        </header>
-
-        <section class="border-2 border-border bg-surface">
-          <KioskList
-            kiosks={slice}
-            totalInBbox={total}
-            filteredCount={filtered.length}
-            variant="page"
-            filterActive={isFilterActive(filter)}
-            resetHref="/list"
-            userAgent={c.req.header("user-agent") ?? null}
-          />
-        </section>
-
-        {totalPages > 1 && <Paginator page={page} totalPages={totalPages} baseUrl={url} />}
-      </Layout>,
+    filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
+    initialPanel = (
+      <KioskList
+        kiosks={filtered.slice(0, 100)}
+        totalInBbox={all.length}
+        filteredCount={filtered.length}
+        filterActive={isFilterActive(filter)}
+        resetHref="/"
+        userAgent={c.req.header("user-agent") ?? null}
+      />
     );
-  });
+  }
+
+  const sheetOpen = !!focused;
+  const title = focused ? focused.kiosk.name : "Karte";
+
+  return c.html(
+    <Layout title={title} nav="map" clientEntries={["app", "map"]} fullBleed user={c.get("user")}>
+      <div class="relative h-full w-full">
+        <div
+          id="map"
+          class="h-full w-full bg-surface"
+          data-bbox="5.87,47.27,15.04,55.06"
+          data-tiles={tilesMode}
+          data-pmtiles-url={tilesMode === "pmtiles" ? PMTILES_URL : undefined}
+          data-filter-state={url.search}
+          data-focus-lng={focusLng !== undefined ? String(focusLng) : undefined}
+          data-focus-lat={focusLat !== undefined ? String(focusLat) : undefined}
+        />
+        {/* Backdrop is a sibling of the sheet (transform ancestor would make
+            position: fixed resolve to its bounds, not the viewport). */}
+        <div
+          id="kiosk-sheet-backdrop"
+          class="pointer-events-none fixed inset-0 z-20 bg-bg/60 opacity-0 transition-opacity duration-200 data-[open=true]:pointer-events-auto data-[open=true]:opacity-100"
+          data-open={sheetOpen ? "true" : "false"}
+        />
+        <div
+          id="kiosk-sheet"
+          class="pointer-events-none fixed inset-x-0 bottom-0 z-30 translate-y-full transition-transform duration-200 ease-out data-[open=true]:pointer-events-auto data-[open=true]:translate-y-0 sm:top-0 sm:left-auto sm:right-0 sm:w-full sm:max-w-md sm:translate-x-full sm:translate-y-0 sm:data-[open=true]:translate-x-0"
+          data-open={sheetOpen ? "true" : "false"}
+          data-initial-href={focused?.href}
+          aria-hidden={sheetOpen ? "false" : "true"}
+        >
+          <div class="relative flex max-h-[90dvh] flex-col bg-surface border-t-2 border-border sm:h-full sm:max-h-none sm:border-l-2 sm:border-t-0">
+            <button
+              type="button"
+              aria-label="Sheet schließen — nach unten ziehen"
+              data-sheet-handle
+              class="flex w-full cursor-grab touch-none items-center justify-center py-2 sm:hidden"
+            >
+              <span class="block h-1 w-10 rounded-full bg-border-hi" />
+            </button>
+            <button
+              type="button"
+              aria-label="Schließen"
+              data-sheet-close
+              class="absolute right-4 top-4 z-10 hidden h-8 w-8 cursor-pointer items-center justify-center border-2 border-border-hi font-display text-fg-muted hover:border-neon-pink hover:text-neon-pink sm:flex"
+            >
+              ×
+            </button>
+            <div id="kiosk-sheet-body" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              {focused?.inner}
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          data-sidebar-expand
+          aria-label="Filter einblenden"
+          class="pointer-events-auto absolute bottom-3 left-3 z-20 hidden cursor-pointer items-center gap-1.5 border-2 border-border bg-surface px-3 py-2 font-display text-sm tracking-wider uppercase text-fg hover:border-neon-pink hover:text-neon-pink data-[show=true]:flex sm:top-3 sm:bottom-auto"
+          data-show="false"
+        >
+          ☰ Filter
+        </button>
+        <aside
+          data-sidebar
+          data-collapsed="false"
+          class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[60dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out data-[collapsed=true]:translate-y-full sm:top-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
+        >
+          <div class="relative border-b-2 border-border p-3 pr-12">
+            <FilterChips filter={filter} formAction="/" />
+            <button
+              type="button"
+              data-sidebar-collapse
+              aria-label="Filter ausblenden"
+              class="absolute right-2 top-2 cursor-pointer border-2 border-border-hi bg-surface px-2 py-1 font-display text-sm leading-none text-fg-muted hover:border-neon-pink hover:text-neon-pink"
+            >
+              ×
+            </button>
+          </div>
+          <a
+            href="/add"
+            class="flex items-center justify-center gap-2 border-b-2 border-border bg-surface-2 px-3 py-2 font-display text-sm tracking-wider uppercase text-fg-muted transition-colors hover:text-neon-pink"
+          >
+            <span class="text-neon-pink">+</span> Späti vorschlagen
+          </a>
+          <div
+            id="kiosk-panel"
+            class="min-h-0 flex-1 overflow-hidden"
+            data-panel-url={`/api/kiosks/panel${initialBbox ? `?bbox=${initialBbox.west},${initialBbox.south},${initialBbox.east},${initialBbox.north}` : ""}`}
+          >
+            {initialPanel}
+          </div>
+        </aside>
+      </div>
+    </Layout>,
+  );
+}
+
+export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
+  app.get("/", async (c) => renderMapPage(c));
+
+  // Legacy redirect — /list was unified into the map sidebar.
+  app.get("/list", (c) => c.redirect("/", 301));
 
   app.get("/about", async (c) => {
     const total = await countKiosks(c.env.DB);
@@ -339,13 +314,12 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         isLoggedIn={!!user}
       />
     );
-    // ?partial=1 → bare HTML for sheet injection on the map page.
+    // ?partial=1 → bare HTML the client sheet fetches when navigating
+    // in-app. The full /k/:id page below now renders the map experience
+    // with the sheet pre-opened, so direct deep links land in the same
+    // UI as in-app clicks.
     if (partial) return c.html(detail);
-    return c.html(
-      <Layout title={kiosk.name} nav="map" user={user}>
-        {detail}
-      </Layout>,
-    );
+    return renderMapPage(c, { kiosk, inner: detail, href: `/k/${kiosk.id}` });
   });
 
   app.get("/add", async (c) => {
@@ -793,32 +767,3 @@ function StatusPill({ status }: { status: string }) {
   return <span class={`border-2 px-2 py-0.5 ${cfg.cls}`}>{cfg.de}</span>;
 }
 
-function Paginator({ page, totalPages, baseUrl }: { page: number; totalPages: number; baseUrl: URL }) {
-  const linkFor = (p: number): string => {
-    const u = new URL(baseUrl);
-    if (p === 1) u.searchParams.delete("page");
-    else u.searchParams.set("page", String(p));
-    return `${u.pathname}${u.search}`;
-  };
-  return (
-    <nav class="mt-6 flex items-center justify-between gap-3 text-sm">
-      {page > 1 ? (
-        <a class="border-2 border-border-hi px-3 py-1.5 font-display tracking-wide text-fg hover:border-neon-pink hover:text-neon-pink" href={linkFor(page - 1)}>
-          ← Zurück
-        </a>
-      ) : (
-        <span class="border-2 border-border px-3 py-1.5 font-display tracking-wide text-fg-dim">← Zurück</span>
-      )}
-      <span class="text-fg-muted">
-        Seite {page} / {totalPages}
-      </span>
-      {page < totalPages ? (
-        <a class="border-2 border-border-hi px-3 py-1.5 font-display tracking-wide text-fg hover:border-neon-pink hover:text-neon-pink" href={linkFor(page + 1)}>
-          Weiter →
-        </a>
-      ) : (
-        <span class="border-2 border-border px-3 py-1.5 font-display tracking-wide text-fg-dim">Weiter →</span>
-      )}
-    </nav>
-  );
-}
