@@ -64,16 +64,22 @@ if (mount instanceof HTMLElement) {
   const geolocate = new maplibregl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true, timeout: 8000 },
     trackUserLocation: false,
-    // Without this, low-accuracy positions (desktop wifi-triangulation
-    // returns radii of 10-50 km) cause fitBounds to zoom way out. Cap at
-    // z15 (~street level) and hide the big accuracy ring that looks
-    // alarming when accuracy is poor.
-    fitBoundsOptions: { maxZoom: 15 },
     showAccuracyCircle: false,
+    // animate:false keeps the control's default fitBounds from showing a
+    // wide intermediate view (e.g. continent-scale when accuracy ≥ 10 km).
+    // We override with easeTo immediately below.
+    fitBoundsOptions: { animate: false },
   });
-  // When the user clicks the geolocate button and we get coords back,
-  // broadcast so the sidebar can re-fetch with origin= and sort by distance.
   geolocate.on("geolocate", (e: { coords: GeolocationCoordinates }) => {
+    // fitBoundsOptions.maxZoom is a CAP on zoom-in, not a floor on zoom-out,
+    // so it can't help with low-accuracy positions. We re-center + ease to
+    // street level (or deeper if the user was already zoomed past 15).
+    map.easeTo({
+      center: [e.coords.longitude, e.coords.latitude],
+      zoom: Math.max(map.getZoom(), 15),
+      duration: 700,
+      essential: true,
+    });
     window.dispatchEvent(
       new CustomEvent("tk:origin-changed", {
         detail: { lat: e.coords.latitude, lng: e.coords.longitude },
