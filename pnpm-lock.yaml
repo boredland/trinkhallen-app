@@ -47,7 +47,7 @@ importers:
         version: 0.20.1(hono@4.12.21)(miniflare@4.20260518.0)(wrangler@4.93.0(@cloudflare/workers-types@4.20260519.1))
       '@tailwindcss/vite':
         specifier: ^4.1.0
-        version: 4.3.0(vite@6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3))
+        version: 4.3.0(vite@6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
       '@types/alpinejs':
         specifier: ^3.13.11
         version: 3.13.11
@@ -65,10 +65,13 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^6.0.0
-        version: 6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)
+        version: 6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
       wrangler:
         specifier: ^4.0.0
         version: 4.93.0(@cloudflare/workers-types@4.20260519.1)
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
 packages:
 
@@ -1455,6 +1458,11 @@ packages:
       utf-8-validate:
         optional: true
 
+  yaml@2.9.0:
+    resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   youch-core@0.3.3:
     resolution: {integrity: sha512-ho7XuGjLaJ2hWHoK8yFnsUGy2Y5uDpqSTq1FkHLK4/oqKtyUU1AFbOOxY4IpC9f0fTLjwYbslUz0Po5BpD1wrA==}
 
@@ -2073,12 +2081,12 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.3.0
       '@tailwindcss/oxide-win32-x64-msvc': 4.3.0
 
-  '@tailwindcss/vite@4.3.0(vite@6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3))':
+  '@tailwindcss/vite@4.3.0(vite@6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))':
     dependencies:
       '@tailwindcss/node': 4.3.0
       '@tailwindcss/oxide': 4.3.0
       tailwindcss: 4.3.0
-      vite: 6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)
+      vite: 6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
 
   '@types/alpinejs@3.13.11': {}
 
@@ -2490,7 +2498,7 @@ snapshots:
     dependencies:
       pathe: 2.0.3
 
-  vite@6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3):
+  vite@6.4.2(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.4)
@@ -2503,6 +2511,7 @@ snapshots:
       jiti: 2.7.0
       lightningcss: 1.32.0
       tsx: 4.22.3
+      yaml: 2.9.0
 
   workerd@1.20260518.1:
     optionalDependencies:
@@ -2530,6 +2539,8 @@ snapshots:
       - utf-8-validate
 
   ws@8.18.0: {}
+
+  yaml@2.9.0: {}
 
   youch-core@0.3.3:
     dependencies:

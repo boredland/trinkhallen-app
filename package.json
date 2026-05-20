@@ -7,7 +7,8 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --mode client && tsx scripts/write-asset-manifest.ts && vite build",
+    "build": "vite build --mode client && tsx scripts/write-asset-manifest.ts && tsx scripts/import-data.ts && vite build",
+    "build:data": "tsx scripts/import-data.ts",
     "preview": "wrangler dev",
     "cf:deploy": "wrangler deploy --minify",
     "typecheck": "tsc --noEmit",
@@ -42,7 +43,8 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.0.0",
+    "yaml": "^2.9.0"
   },
   "engines": {
     "node": ">=22"

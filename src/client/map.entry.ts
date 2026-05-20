@@ -20,16 +20,14 @@ import maplibregl, {
 // styles always reach the page; importing here splits into a chunk our
 // manifest reader doesn't pull in transitively.
 import { resolveStyle } from "./build-style";
-
-interface KioskFeature {
-  type: "Feature";
-  geometry: { type: "Point"; coordinates: [number, number] };
-  properties: { id: string; name: string; tags?: string[] };
-}
-interface FeatureCollection {
-  type: "FeatureCollection";
-  features: KioskFeature[];
-}
+import { applyFilters, parseFilterFromQuery } from "./client-filters";
+import {
+  DETAIL_ZOOM,
+  detailFeaturesForView,
+  loadSummary,
+  type BBox,
+  type FeatureCollection,
+} from "./region-store";
 
 const mount = document.getElementById("map");
 if (mount instanceof HTMLElement) {
@@ -128,10 +126,20 @@ if (mount instanceof HTMLElement) {
 
   /** Add the kiosk source + layers. Idempotent — safe to re-call after a
    *  `map.setStyle()` (which strips custom sources/layers, but `addImage`
-   *  registrations survive). */
+   *  registrations survive).
+   *
+   *  Two sources, controlled by per-layer minzoom/maxzoom at DETAIL_ZOOM:
+   *    - kiosks-summary: one bubble per region, shown when zoomed out far
+   *      enough that individual markers would be useless (continent view).
+   *    - kiosks: per-region union for the current viewport, clustered. */
   async function addKioskLayers(): Promise<void> {
     if (map.getSource("kiosks")) return;
     await ensureKioskIcon();
+
+    map.addSource("kiosks-summary", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
 
     map.addSource("kiosks", {
       type: "geojson",
@@ -146,9 +154,44 @@ if (mount instanceof HTMLElement) {
     const dotStroke = isLight ? "#F5F2EC" : "#0A0A0A";
 
     map.addLayer({
+      id: "summary-bubble",
+      type: "circle",
+      source: "kiosks-summary",
+      maxzoom: DETAIL_ZOOM,
+      paint: {
+        "circle-color": "#FF2D6F",
+        "circle-stroke-color": "#FFD93D",
+        "circle-stroke-width": 1.5,
+        "circle-radius": [
+          "interpolate", ["linear"], ["get", "count"],
+          10, 14,
+          100, 20,
+          500, 26,
+          2000, 32,
+        ],
+        "circle-opacity": 0.92,
+      },
+    });
+
+    map.addLayer({
+      id: "summary-count",
+      type: "symbol",
+      source: "kiosks-summary",
+      maxzoom: DETAIL_ZOOM,
+      layout: {
+        "text-field": ["get", "count"],
+        "text-font": ["Noto Sans Medium"],
+        "text-size": 12,
+        "text-allow-overlap": true,
+      },
+      paint: { "text-color": clusterCountColor },
+    });
+
+    map.addLayer({
       id: "clusters",
       type: "circle",
       source: "kiosks",
+      minzoom: DETAIL_ZOOM,
       filter: ["has", "point_count"],
       paint: {
         "circle-color": "#FF2D6F",
@@ -163,6 +206,7 @@ if (mount instanceof HTMLElement) {
       id: "cluster-count",
       type: "symbol",
       source: "kiosks",
+      minzoom: DETAIL_ZOOM,
       filter: ["has", "point_count"],
       layout: {
         "text-field": ["get", "point_count_abbreviated"],
@@ -180,6 +224,7 @@ if (mount instanceof HTMLElement) {
       id: "unclustered-dot",
       type: "circle",
       source: "kiosks",
+      minzoom: DETAIL_ZOOM,
       filter: ["!", ["has", "point_count"]],
       paint: {
         "circle-color": "#FF2D6F",
@@ -195,6 +240,7 @@ if (mount instanceof HTMLElement) {
       id: "unclustered",
       type: "symbol",
       source: "kiosks",
+      minzoom: DETAIL_ZOOM,
       filter: ["!", ["has", "point_count"]],
       layout: {
         "icon-image": "kiosk-icon",
@@ -211,6 +257,22 @@ if (mount instanceof HTMLElement) {
 
   map.on("load", () => {
     void addKioskLayers();
+
+    map.on("click", "summary-bubble", (e: MapLayerMouseEvent) => {
+      const f = e.features?.[0];
+      if (!f || f.geometry.type !== "Point") return;
+      const bbox = (f.properties as { bbox?: number[] }).bbox;
+      if (bbox && bbox.length === 4) {
+        map.fitBounds(
+          [[bbox[0]!, bbox[1]!], [bbox[2]!, bbox[3]!]],
+          { duration: 600, padding: 40, essential: true },
+        );
+      } else {
+        map.easeTo({ center: f.geometry.coordinates as [number, number], zoom: DETAIL_ZOOM + 1 });
+      }
+    });
+    map.on("mouseenter", "summary-bubble", () => (map.getCanvas().style.cursor = "pointer"));
+    map.on("mouseleave", "summary-bubble", () => (map.getCanvas().style.cursor = ""));
 
     map.on("click", "clusters", async (e: MapLayerMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
@@ -339,21 +401,32 @@ async function fitToUserAndNearest(map: MlMap, lat: number, lng: number): Promis
 }
 
 async function refresh(map: MlMap): Promise<void> {
+  const summaryPromise = loadSummary().then((c) => {
+    const s = map.getSource("kiosks-summary") as GeoJSONSource | undefined;
+    s?.setData(c);
+  }).catch(() => {});
+
   const b = map.getBounds();
-  const bbox = `${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}`;
-  const url = new URL("/api/kiosks", location.origin);
-  url.searchParams.set("bbox", bbox);
-  for (const k of ["pay", "tags", "open_now", "q"]) {
-    const v = new URLSearchParams(location.search).get(k);
-    if (v) url.searchParams.set(k, v);
+  const view: BBox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+  const zoom = map.getZoom();
+  if (zoom < DETAIL_ZOOM) {
+    // Below the detail threshold the cluster layers are hidden, but we still
+    // clear the detail source so a later zoom-in doesn't briefly flash stale
+    // markers from the previous viewport.
+    const detail = map.getSource("kiosks") as GeoJSONSource | undefined;
+    detail?.setData({ type: "FeatureCollection", features: [] });
+    await summaryPromise;
+    return;
   }
+
   try {
-    const resp = await fetch(url.toString(), { headers: { accept: "application/geo+json" } });
-    if (!resp.ok) return;
-    const collection = (await resp.json()) as FeatureCollection;
-    const source = map.getSource("kiosks") as GeoJSONSource | undefined;
-    source?.setData(collection);
+    const features = await detailFeaturesForView(view);
+    const filter = parseFilterFromQuery(new URLSearchParams(location.search));
+    const filtered: FeatureCollection = applyFilters(features, filter);
+    const detail = map.getSource("kiosks") as GeoJSONSource | undefined;
+    detail?.setData(filtered);
   } catch {
     // Network hiccups are non-fatal — next moveend retries.
   }
+  await summaryPromise;
 }
