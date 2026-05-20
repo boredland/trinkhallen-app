@@ -1,5 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
+import { formatDistance, haversineMeters, type LatLng } from "../lib/geo";
 import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, formatStatus } from "../lib/opening-hours";
 
@@ -13,8 +14,8 @@ export interface KioskListProps {
   kiosks: KioskRecord[];
   totalInBbox: number;
   filteredCount: number;
-  /** When set, list items expose distance from this point. */
-  origin?: { lat: number; lng: number } | undefined;
+  /** When set, list items render a distance label. Sorting happens upstream. */
+  origin?: LatLng | undefined;
   /** Wraps the list — defaults to a vertical scroll. The /list page uses block. */
   variant?: "panel" | "page";
   /** When true, render a "× Filter zurücksetzen" link in the count row. */
@@ -31,6 +32,7 @@ export const KioskList: FC<KioskListProps> = ({
   variant = "panel",
   filterActive = false,
   resetHref,
+  origin,
   userAgent,
 }) => {
   const isFiltered = filteredCount !== totalInBbox || filterActive;
@@ -83,14 +85,18 @@ export const KioskList: FC<KioskListProps> = ({
         }
       >
         {kiosks.map((k) => (
-          <KioskRow kiosk={k} userAgent={userAgent} />
+          <KioskRow kiosk={k} userAgent={userAgent} origin={origin} />
         ))}
       </ul>
     </div>
   );
 };
 
-const KioskRow: FC<{ kiosk: KioskRecord; userAgent: string | null }> = ({ kiosk, userAgent }) => {
+const KioskRow: FC<{
+  kiosk: KioskRecord;
+  userAgent: string | null;
+  origin?: LatLng | undefined;
+}> = ({ kiosk, userAgent, origin }) => {
   const status = computeStatus(kiosk.hours?.raw);
   const nav = buildNavigateTargets({
     name: kiosk.name,
@@ -102,6 +108,7 @@ const KioskRow: FC<{ kiosk: KioskRecord; userAgent: string | null }> = ({ kiosk,
   const number = kiosk.address["number"];
   const district = kiosk.address["district"];
   const addr = [street && number ? `${street} ${number}` : street, district].filter(Boolean).join(" · ");
+  const distLabel = origin ? formatDistance(haversineMeters(origin, { lat: kiosk.lat, lng: kiosk.lng })) : null;
 
   return (
     <li>
@@ -118,7 +125,7 @@ const KioskRow: FC<{ kiosk: KioskRecord; userAgent: string | null }> = ({ kiosk,
             <span
               class={
                 status.kind === "open"
-                  ? "text-neon-amber"
+                  ? "text-status-open"
                   : status.kind === "closed"
                     ? "text-fg-dim"
                     : "text-fg-muted"
@@ -127,6 +134,11 @@ const KioskRow: FC<{ kiosk: KioskRecord; userAgent: string | null }> = ({ kiosk,
               {status.kind === "open" ? "▶▶▶ " : status.kind === "closed" ? "■ " : "… "}
               {formatStatus(status)}
             </span>
+            {distLabel && (
+              <span class="font-mono tabular-nums text-neon-cyan" aria-label="Entfernung">
+                · {distLabel}
+              </span>
+            )}
             {kiosk.payment && (
               <span class="flex items-center gap-1 text-fg-dim">
                 {PAY_ICONS.filter(({ key }) => kiosk.payment?.[key] === "yes").map(({ icon, label }) => (

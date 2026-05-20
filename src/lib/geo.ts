@@ -10,6 +10,42 @@ export interface Bbox {
   north: number;
 }
 
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+/** Great-circle distance in meters using the haversine formula. */
+export function haversineMeters(a: LatLng, b: LatLng): number {
+  const R = 6371008.8; // IUGG mean Earth radius in meters
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/** "230 m", "1.2 km", "12 km" — German-style spaces, fixed decimals. */
+export function formatDistance(meters: number): string {
+  if (!Number.isFinite(meters)) return "";
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  if (meters < 10_000) return `${(meters / 1000).toFixed(1)} km`;
+  return `${Math.round(meters / 1000)} km`;
+}
+
+export function parseLatLng(raw: string | null | undefined): LatLng | null {
+  if (!raw) return null;
+  const [lat, lng] = raw.split(",").map((s) => parseFloat(s));
+  if (
+    !Number.isFinite(lat) || !Number.isFinite(lng) ||
+    lat! < -90 || lat! > 90 || lng! < -180 || lng! > 180
+  ) {
+    return null;
+  }
+  return { lat: lat!, lng: lng! };
+}
+
 export function parseBbox(raw: string | null | undefined): Bbox | null {
   if (!raw) return null;
   const parts = raw.split(",").map((s) => parseFloat(s));

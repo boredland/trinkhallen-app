@@ -24,6 +24,13 @@
   --color-neon-amber: #ffd93d;
   --color-neon-cyan: #5ee2ff;
 
+  /* Theme-flippable status / link colours. The neon-* tokens stay branded
+     so map markers and large display surfaces keep their pop, but body-text
+     usages (status pills, rating stars, …) need to flip to darker shades on
+     the warm-white light surface or the contrast drops below WCAG AA. */
+  --color-status-open: #ffd93d;     /* dark mode: neon amber */
+  --color-link-soft:   #5ee2ff;     /* dark mode: neon cyan  */
+
   --color-success: #4ade80;
   --color-warn: #ffd93d;
   --color-danger: #ff2d6f;
@@ -55,6 +62,11 @@
   --color-fg: #0a0a0a;
   --color-fg-muted: #4a4a4a;
   --color-fg-dim: #8a8780;
+
+  /* Darker amber (~5:1 contrast on the warm-white background) + the
+     cyan-link gets bumped to a saturated teal for contrast as well. */
+  --color-status-open: #8b6914;
+  --color-link-soft:   #006c75;
 }
 
 @layer base {

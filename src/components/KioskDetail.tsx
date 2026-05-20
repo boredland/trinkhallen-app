@@ -54,7 +54,7 @@ export const KioskDetail: FC<{
         <p
           class={`mb-3 font-display text-sm tracking-wider uppercase ${
             status.kind === "open"
-              ? "text-neon-amber"
+              ? "text-status-open"
               : status.kind === "closed"
                 ? "text-fg-dim"
                 : "text-fg-muted"

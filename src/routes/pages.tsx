@@ -776,8 +776,8 @@ function Stat({ n, label }: { n: number; label: string }) {
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, { de: string; cls: string }> = {
-    open: { de: "Offen", cls: "border-neon-amber text-neon-amber" },
-    pending: { de: "Wartet", cls: "border-neon-amber text-neon-amber" },
+    open: { de: "Offen", cls: "border-status-open text-status-open" },
+    pending: { de: "Wartet", cls: "border-status-open text-status-open" },
     pr_opened: { de: "PR offen", cls: "border-neon-cyan text-neon-cyan" },
     merged: { de: "Übernommen", cls: "border-success text-success" },
     dismissed: { de: "Verworfen", cls: "border-border text-fg-dim" },

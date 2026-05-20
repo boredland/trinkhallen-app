@@ -3,7 +3,7 @@ import { KioskList } from "../components/KioskList";
 import type { Env } from "../env";
 import { getKioskById, queryKiosksInBbox, type KioskRecord } from "../lib/db";
 import { applyFilters, filterSignature, isFilterActive, parseFilterFromQuery } from "../lib/filters";
-import { parseBbox, quantizeBbox } from "../lib/geo";
+import { haversineMeters, parseBbox, parseLatLng, quantizeBbox } from "../lib/geo";
 
 export const apiKiosks = new Hono<{ Bindings: Env }>();
 
@@ -54,13 +54,22 @@ apiKiosks.get("/api/kiosks", async (c) => {
  * Targeted via HTMX from filter chips and the map's moveend handler.
  */
 apiKiosks.get("/api/kiosks/panel", async (c) => {
-  const bbox = parseBbox(c.req.query("bbox"));
+  const url = new URL(c.req.url);
+  const bbox = parseBbox(url.searchParams.get("bbox"));
+  const origin = parseLatLng(url.searchParams.get("origin"));
   if (!bbox) return c.html(<KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />);
-  const filter = parseFilterFromQuery(new URL(c.req.url).searchParams);
+  const filter = parseFilterFromQuery(url.searchParams);
   const all = await queryKiosksInBbox(c.env.DB, bbox, 5000);
   const filtered = applyFilters(all, filter);
-  // Sort by name; downstream client can re-sort by distance.
-  filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
+  if (origin) {
+    filtered.sort(
+      (a, b) =>
+        haversineMeters(origin, { lat: a.lat, lng: a.lng }) -
+        haversineMeters(origin, { lat: b.lat, lng: b.lng }),
+    );
+  } else {
+    filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
+  }
   return c.html(
     <KioskList
       kiosks={filtered.slice(0, 100)}
@@ -68,6 +77,7 @@ apiKiosks.get("/api/kiosks/panel", async (c) => {
       filteredCount={filtered.length}
       filterActive={isFilterActive(filter)}
       resetHref="/"
+      origin={origin ?? undefined}
       userAgent={c.req.header("user-agent") ?? null}
     />,
   );

@@ -124,7 +124,7 @@ const Stars: FC<{ current: number }> = ({ current }) => (
           />
           <span
             aria-hidden="true"
-            class={`transition-colors ${active ? "text-neon-amber" : "text-fg-dim hover:text-neon-amber/60"}`}
+            class={`transition-colors ${active ? "text-status-open" : "text-fg-dim hover:text-status-open/60"}`}
             data-star-value={star}
           >
             ★

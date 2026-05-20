@@ -61,19 +61,26 @@ if (mount instanceof HTMLElement) {
   });
 
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
-  map.addControl(
-    new maplibregl.GeolocateControl({
-      positionOptions: { enableHighAccuracy: true, timeout: 8000 },
-      trackUserLocation: false,
-      // Without this, low-accuracy positions (desktop wifi-triangulation
-      // returns radii of 10-50 km) cause fitBounds to zoom way out. Cap at
-      // z15 (~street level) and hide the big accuracy ring that looks
-      // alarming when accuracy is poor.
-      fitBoundsOptions: { maxZoom: 15 },
-      showAccuracyCircle: false,
-    }),
-    "top-right",
-  );
+  const geolocate = new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: true, timeout: 8000 },
+    trackUserLocation: false,
+    // Without this, low-accuracy positions (desktop wifi-triangulation
+    // returns radii of 10-50 km) cause fitBounds to zoom way out. Cap at
+    // z15 (~street level) and hide the big accuracy ring that looks
+    // alarming when accuracy is poor.
+    fitBoundsOptions: { maxZoom: 15 },
+    showAccuracyCircle: false,
+  });
+  // When the user clicks the geolocate button and we get coords back,
+  // broadcast so the sidebar can re-fetch with origin= and sort by distance.
+  geolocate.on("geolocate", (e: { coords: GeolocationCoordinates }) => {
+    window.dispatchEvent(
+      new CustomEvent("tk:origin-changed", {
+        detail: { lat: e.coords.latitude, lng: e.coords.longitude },
+      }),
+    );
+  });
+  map.addControl(geolocate, "top-right");
 
   /** Lazy-load + register the bottle-silhouette icon used by the unclustered
    *  symbol layer.

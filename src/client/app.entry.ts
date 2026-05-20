@@ -167,6 +167,20 @@ window.addEventListener("tk:bbox-changed", (e) => {
   void refreshPanel(new URLSearchParams(location.search));
 });
 
+// When the user clicks geolocate on the map, the GeolocateControl emits
+// coordinates that we want to thread into the sidebar fetch so the list
+// re-sorts by distance from the user. The `origin` param sticks to
+// data-panel-url so subsequent bbox/filter changes keep the sort.
+window.addEventListener("tk:origin-changed", (e) => {
+  const panel = document.getElementById("kiosk-panel");
+  if (!panel) return;
+  const { lat, lng } = (e as CustomEvent<{ lat: number; lng: number }>).detail;
+  const u = new URL(panel.dataset["panelUrl"] ?? "/api/kiosks/panel", location.origin);
+  u.searchParams.set("origin", `${lat.toFixed(5)},${lng.toFixed(5)}`);
+  panel.dataset["panelUrl"] = u.pathname + u.search;
+  void refreshPanel(new URLSearchParams(location.search));
+});
+
 // Kiosk detail sheet — only attaches if the map-page sheet container is
 // present in the DOM.
 installKioskSheet();
