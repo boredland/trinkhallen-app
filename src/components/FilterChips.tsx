@@ -48,8 +48,8 @@ export const FilterChips: FC<FilterChipsProps> = ({ filter, formAction, preserve
           tag isn't a query users actually run. */}
       <PaymentChip current={payCsv} value="cards" label="Karte" icon="💳" />
 
-      <TagChip tags={filter.tags} value="wc" label="WC" />
-      <TagChip tags={filter.tags} value="sitzgelegenheiten" label="Sitzen" />
+      <TagChip tags={filter.tags} value="wc" label="WC" icon="🚻" />
+      <TagChip tags={filter.tags} value="sitzgelegenheiten" label="Sitzen" icon="🪑" />
 
       {/* Search box collapses to icon on mobile via CSS-only :checked toggle */}
       <label class="ml-auto flex items-center gap-1 border-2 border-border bg-surface px-2 py-1 text-sm">
@@ -108,6 +108,11 @@ const PaymentChip: FC<{ current: string; value: string; label: string; icon: str
   return <Chip name={`pay_${value}`} value="1" checked={has} icon={icon} label={label} />;
 };
 
-const TagChip: FC<{ tags: string[]; value: string; label: string }> = ({ tags, value, label }) => (
-  <Chip name={`tag_${value}`} value="1" checked={tags.includes(value)} label={label} />
+const TagChip: FC<{ tags: string[]; value: string; label: string; icon?: string }> = ({
+  tags,
+  value,
+  label,
+  icon,
+}) => (
+  <Chip name={`tag_${value}`} value="1" checked={tags.includes(value)} icon={icon} label={label} />
 );

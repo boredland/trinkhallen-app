@@ -307,15 +307,23 @@ async function renderMapPage(
           data-collapsed="false"
           class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[60dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out data-[collapsed=true]:translate-y-full sm:top-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
         >
-          <div class="relative border-b-2 border-border p-3 pr-12">
+          <div class="relative border-b-2 border-border p-3 pr-10">
             <FilterChips filter={filter} formAction="/" />
+            {/* Direction-aware glyph: ← on desktop (sidebar slides off left),
+                ↓ on mobile (sidebar slides off bottom). Ghost styling keeps
+                it out of the way of the filter chips it sits next to. */}
             <button
               type="button"
               data-sidebar-collapse
               aria-label="Filter ausblenden"
-              class="absolute right-2 top-2 cursor-pointer border-2 border-border-hi bg-surface px-2 py-1 font-display text-sm leading-none text-fg-muted hover:border-neon-pink hover:text-neon-pink"
+              class="absolute right-1 top-1 flex h-8 w-8 cursor-pointer items-center justify-center text-lg leading-none text-fg-dim transition-colors hover:text-neon-pink focus-visible:text-neon-pink focus-visible:outline-2 focus-visible:outline-neon-pink"
             >
-              ×
+              <span class="sm:hidden" aria-hidden="true">
+                ↓
+              </span>
+              <span class="hidden sm:inline" aria-hidden="true">
+                ←
+              </span>
             </button>
           </div>
           <a

@@ -4,11 +4,11 @@ import { formatDistance, haversineMeters, type LatLng } from "../lib/geo";
 import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, formatStatus } from "../lib/opening-hours";
 
-const PAY_ICONS: Array<{ key: "cards" | "contactless" | "cash"; icon: string; label: string }> = [
-  { key: "cards", icon: "💳", label: "Karte" },
-  { key: "contactless", icon: "📲", label: "Kontaktlos" },
-  { key: "cash", icon: "💶", label: "Bar" },
-];
+// Row indicators surface things a user scans for at a glance: can I pay
+// with a card (girocard counts; see lib/filters.ts), is there a toilet.
+// "Bar" and "Kontaktlos" used to live here too — dropped because cash is
+// the default expectation and contactless is now folded into "Karte".
+const CARD_KEYS = ["cards", "contactless", "girocard"] as const;
 
 export interface KioskListProps {
   kiosks: KioskRecord[];
@@ -148,17 +148,31 @@ const KioskRow: FC<{
                 · {distLabel}
               </span>
             )}
-            {kiosk.payment && (
-              <span class="flex items-center gap-1 text-fg-dim">
-                {PAY_ICONS.filter(({ key }) => kiosk.payment?.[key] === "yes").map(
-                  ({ icon, label }) => (
-                    <span aria-label={label} title={label}>
-                      {icon}
+            {(() => {
+              const acceptsCard = CARD_KEYS.some((k) => kiosk.payment?.[k] === "yes");
+              const hasWc = kiosk.tags.includes("wc");
+              const hasSeating = kiosk.tags.includes("sitzgelegenheiten");
+              if (!acceptsCard && !hasWc && !hasSeating) return null;
+              return (
+                <span class="flex items-center gap-1 text-fg-dim">
+                  {acceptsCard && (
+                    <span aria-label="Karte" title="Karte">
+                      💳
                     </span>
-                  ),
-                )}
-              </span>
-            )}
+                  )}
+                  {hasSeating && (
+                    <span aria-label="Sitzgelegenheiten" title="Sitzgelegenheiten">
+                      🪑
+                    </span>
+                  )}
+                  {hasWc && (
+                    <span aria-label="WC" title="WC">
+                      🚻
+                    </span>
+                  )}
+                </span>
+              );
+            })()}
           </div>
         </a>
         <a

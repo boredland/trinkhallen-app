@@ -121,12 +121,17 @@ export function applyFilters(
       const set = new Set(r.tags);
       for (const t of f.tags) if (!set.has(t)) return false;
     }
-    // "Karte" chip toggles `cards` only, but we treat cards + contactless as
-    // a single "can I pay without cash" bucket — match a kiosk that accepts
-    // either signal. Older URLs with `pay=contactless` still work (same
-    // semantics).
+    // "Karte" chip = "can I pay with any card?". In Germany that's
+    // dominantly Girocard, with credit cards and contactless as the long
+    // tail. Match a kiosk that accepts any of the three; older URLs with
+    // pay=contactless still resolve into the same bucket.
     if (f.payment.cards || f.payment.contactless) {
-      if (r.payment?.["cards"] !== "yes" && r.payment?.["contactless"] !== "yes") return false;
+      if (
+        r.payment?.["cards"] !== "yes" &&
+        r.payment?.["contactless"] !== "yes" &&
+        r.payment?.["girocard"] !== "yes"
+      )
+        return false;
     }
     if (f.payment.cash && r.payment?.["cash"] !== "yes") return false;
     if (f.openNow) {

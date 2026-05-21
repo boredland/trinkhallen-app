@@ -143,9 +143,15 @@ export function applyFilters(
       const set = new Set(p.tags ?? []);
       for (const t of f.tags) if (!set.has(t)) return false;
     }
-    // Mirror lib/filters.ts: cards + contactless are one bucket.
+    // Mirror lib/filters.ts: any of cards / contactless / girocard counts
+    // toward the "Karte" filter — Girocard is the dominant German signal.
     if (f.payment.cards || f.payment.contactless) {
-      if (p.payment?.["cards"] !== "yes" && p.payment?.["contactless"] !== "yes") return false;
+      if (
+        p.payment?.["cards"] !== "yes" &&
+        p.payment?.["contactless"] !== "yes" &&
+        p.payment?.["girocard"] !== "yes"
+      )
+        return false;
     }
     if (f.payment.cash && p.payment?.["cash"] !== "yes") return false;
     if (f.openNow) {
