@@ -1,15 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="24" height="32">
-  <!-- Frankfurt Wasserhäuschen silhouette: cylindrical kiosk with the
-       iconic wide saucer roof. Pink fill, warm-white stroke for
-       readability on both light and dark basemaps. MapLibre
-       `icon-anchor: bottom` puts the body's footing on the GPS point. -->
+  <!-- Frankfurt Wasserhäuschen silhouette: cylindrical body with a wide
+       saucer roof and the iconic small cupola/lantern on top. Two
+       windows on the front, a plinth/footing at the bottom. Pink fill,
+       warm-white stroke so it reads on light and dark basemaps without
+       theme-aware tinting. MapLibre `icon-anchor: bottom` puts the
+       plinth's footprint on the GPS point. -->
+  <!-- Plinth (slightly wider than the body) -->
+  <rect x="3.5" y="27" width="17" height="4" rx="0.6"
+        fill="#FF2D6F" stroke="#F5F2EC" stroke-width="1.2" stroke-linejoin="round" />
   <!-- Cylindrical body -->
-  <rect x="6" y="13" width="12" height="18"
-        fill="#FF2D6F" stroke="#F5F2EC" stroke-width="1.2"
-        stroke-linejoin="round" stroke-linecap="round" />
-  <!-- Saucer roof — wide brim, overhangs the body by ~50% on each side -->
-  <ellipse cx="12" cy="10" rx="11" ry="3.5"
+  <rect x="6" y="11" width="12" height="17"
+        fill="#FF2D6F" stroke="#F5F2EC" stroke-width="1.2" stroke-linejoin="round" />
+  <!-- Saucer roof — wide brim overhanging the body on both sides -->
+  <ellipse cx="12" cy="8" rx="11" ry="3"
            fill="#FF2D6F" stroke="#F5F2EC" stroke-width="1.2" />
-  <!-- Serving-window slot in the front of the cylinder -->
-  <rect x="8.5" y="19" width="7" height="3.5" fill="#0A0A0A" />
+  <!-- Small support post between saucer and cap -->
+  <rect x="11" y="3.5" width="2" height="2.5"
+        fill="#FF2D6F" stroke="#F5F2EC" stroke-width="1" stroke-linejoin="round" />
+  <!-- Cap / lantern on top -->
+  <rect x="9.5" y="1.5" width="5" height="2.5" rx="0.5"
+        fill="#FF2D6F" stroke="#F5F2EC" stroke-width="1" stroke-linejoin="round" />
+  <!-- Two windows on the front -->
+  <rect x="7.5" y="15" width="3.2" height="5.5" fill="#0A0A0A" />
+  <rect x="13.3" y="15" width="3.2" height="5.5" fill="#0A0A0A" />
 </svg>
