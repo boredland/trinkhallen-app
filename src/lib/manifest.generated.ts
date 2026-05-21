@@ -67,13 +67,13 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
     "file": "assets/inter-latin-ext-700-normal-Ca8adRJv.woff2"
   },
   "src/client/app.entry.ts": {
-    "file": "assets/app-aNrR12F5.js",
+    "file": "assets/app-D3pfhPd1.js",
     "css": [
       "assets/app-CfoA_E4D.css"
     ]
   },
   "src/client/map.entry.ts": {
-    "file": "assets/map-CN1_u3As.js"
+    "file": "assets/map-D0R0QM2K.js"
   },
   "src/client/pick.entry.ts": {
     "file": "assets/pick-BswTFIQ5.js"

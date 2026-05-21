@@ -121,8 +121,13 @@ export function applyFilters(
       const set = new Set(r.tags);
       for (const t of f.tags) if (!set.has(t)) return false;
     }
-    if (f.payment.cards && r.payment?.["cards"] !== "yes") return false;
-    if (f.payment.contactless && r.payment?.["contactless"] !== "yes") return false;
+    // "Karte" chip toggles `cards` only, but we treat cards + contactless as
+    // a single "can I pay without cash" bucket — match a kiosk that accepts
+    // either signal. Older URLs with `pay=contactless` still work (same
+    // semantics).
+    if (f.payment.cards || f.payment.contactless) {
+      if (r.payment?.["cards"] !== "yes" && r.payment?.["contactless"] !== "yes") return false;
+    }
     if (f.payment.cash && r.payment?.["cash"] !== "yes") return false;
     if (f.openNow) {
       const s = computeStatus(r.hours?.raw, now);

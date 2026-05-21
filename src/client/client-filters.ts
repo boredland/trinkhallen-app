@@ -143,8 +143,10 @@ export function applyFilters(
       const set = new Set(p.tags ?? []);
       for (const t of f.tags) if (!set.has(t)) return false;
     }
-    if (f.payment.cards && p.payment?.["cards"] !== "yes") return false;
-    if (f.payment.contactless && p.payment?.["contactless"] !== "yes") return false;
+    // Mirror lib/filters.ts: cards + contactless are one bucket.
+    if (f.payment.cards || f.payment.contactless) {
+      if (p.payment?.["cards"] !== "yes" && p.payment?.["contactless"] !== "yes") return false;
+    }
     if (f.payment.cash && p.payment?.["cash"] !== "yes") return false;
     if (f.openNow) {
       const s = computeStatus(p.hours?.raw, now);

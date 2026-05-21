@@ -113,6 +113,23 @@ function attachFilterForm(form: HTMLFormElement): void {
     }, 150);
   };
 
+  // "Offen jetzt" and "Zeiten fehlen" are mutually exclusive — one asks
+  // for kiosks that resolve to an open status right now, the other asks
+  // for kiosks that have no hours data at all. Toggling one off the other.
+  form.addEventListener("change", (e) => {
+    const t = e.target as HTMLInputElement | null;
+    if (!t || t.type !== "checkbox" || !t.checked) return;
+    const pairs: Array<[string, string]> = [["open_now", "needs_hours"]];
+    for (const [a, b] of pairs) {
+      if (t.name === a) {
+        const other = form.querySelector<HTMLInputElement>(`input[name="${b}"]`);
+        if (other?.checked) other.checked = false;
+      } else if (t.name === b) {
+        const other = form.querySelector<HTMLInputElement>(`input[name="${a}"]`);
+        if (other?.checked) other.checked = false;
+      }
+    }
+  });
   form.addEventListener("change", submit);
   form.addEventListener("input", (e) => {
     if ((e.target as HTMLElement | null)?.tagName === "INPUT") submit();

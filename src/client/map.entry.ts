@@ -337,9 +337,12 @@ if (mount instanceof HTMLElement) {
   window.addEventListener("tk:focus-kiosk", (ev) => {
     const { lng, lat } = (ev as CustomEvent<{ lng: number; lat: number }>).detail;
     const desktop = window.matchMedia("(min-width: 640px)").matches;
+    // Zoom past clusterMaxZoom (15) so the focused kiosk renders as an
+    // individual dot — selecting one from the list and seeing a cluster
+    // is a UX no-op.
     map.flyTo({
       center: [lng, lat],
-      zoom: Math.max(map.getZoom(), 15),
+      zoom: Math.max(map.getZoom(), 16),
       padding: desktop ? { right: 448 } : { bottom: Math.round(window.innerHeight * 0.55) },
       duration: 600,
       essential: true,

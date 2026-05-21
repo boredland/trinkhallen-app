@@ -42,13 +42,14 @@ export const FilterChips: FC<FilterChipsProps> = ({ filter, formAction, preserve
         icon="❓"
         label="Zeiten fehlen"
       />
+      {/* One "Karte" chip covers cards + contactless — same intent ("can I
+          pay without cash?"), the apply layer merges them. Cash is not
+          worth a chip (default assumption everywhere) and the indoor
+          tag isn't a query users actually run. */}
       <PaymentChip current={payCsv} value="cards" label="Karte" icon="💳" />
-      <PaymentChip current={payCsv} value="contactless" label="Kontaktlos" icon="📲" />
-      <PaymentChip current={payCsv} value="cash" label="Bar" icon="💶" />
 
       <TagChip tags={filter.tags} value="wc" label="WC" />
       <TagChip tags={filter.tags} value="sitzgelegenheiten" label="Sitzen" />
-      <TagChip tags={filter.tags} value="innenraum" label="Innen" />
 
       {/* Search box collapses to icon on mobile via CSS-only :checked toggle */}
       <label class="ml-auto flex items-center gap-1 border-2 border-border bg-surface px-2 py-1 text-sm">
