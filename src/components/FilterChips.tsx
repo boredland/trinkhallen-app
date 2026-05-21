@@ -35,6 +35,13 @@ export const FilterChips: FC<FilterChipsProps> = ({ filter, formAction, preserve
       )}
 
       <Chip name="open_now" value="1" checked={filter.openNow} icon="▶▶▶" label="Offen jetzt" />
+      <Chip
+        name="needs_hours"
+        value="1"
+        checked={filter.needsHours}
+        icon="❓"
+        label="Zeiten fehlen"
+      />
       <PaymentChip current={payCsv} value="cards" label="Karte" icon="💳" />
       <PaymentChip current={payCsv} value="contactless" label="Kontaktlos" icon="📲" />
       <PaymentChip current={payCsv} value="cash" label="Bar" icon="💶" />

@@ -17,10 +17,17 @@ export interface ClientFilter {
   tags: string[];
   payment: { cards?: boolean; contactless?: boolean; cash?: boolean };
   openNow: boolean;
+  /** Kiosks missing opening hours — surfaces gaps for users to help fill in. */
+  needsHours: boolean;
   q?: string;
 }
 
-export const EMPTY_FILTER: ClientFilter = { tags: [], payment: {}, openNow: false };
+export const EMPTY_FILTER: ClientFilter = {
+  tags: [],
+  payment: {},
+  openNow: false,
+  needsHours: false,
+};
 
 interface FeatureProps {
   id: string;
@@ -49,6 +56,7 @@ export function parseFilterFromQuery(qs: URLSearchParams): ClientFilter {
       cash: pay.has("cash"),
     },
     openNow: qs.get("open_now") === "1" || qs.get("open_now") === "true",
+    needsHours: qs.get("needs_hours") === "1" || qs.get("needs_hours") === "true",
   };
   const q = qs.get("q")?.trim();
   if (q) f.q = q;
@@ -62,6 +70,7 @@ export function isFilterActive(f: ClientFilter): boolean {
     !!f.payment.contactless ||
     !!f.payment.cash ||
     f.openNow ||
+    f.needsHours ||
     !!f.q
   );
 }
@@ -141,6 +150,7 @@ export function applyFilters(
       const s = computeStatus(p.hours?.raw, now);
       if (s.kind !== "open") return false;
     }
+    if (f.needsHours && p.hours?.raw) return false;
     return true;
   });
 

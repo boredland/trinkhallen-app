@@ -53,6 +53,7 @@ function buildFilterQuery(form: HTMLFormElement): URLSearchParams {
   if (pay.length) params.set("pay", pay.join(","));
   if (tags.length) params.set("tags", tags.join(","));
   if (fd.get("open_now")) params.set("open_now", "1");
+  if (fd.get("needs_hours")) params.set("needs_hours", "1");
   const q = (fd.get("q") as string | null)?.trim();
   if (q) params.set("q", q);
   return params;
@@ -65,7 +66,7 @@ async function refreshPanel(params: URLSearchParams): Promise<void> {
   if (!baseUrl) return;
   const url = new URL(baseUrl, location.origin);
   for (const [k, v] of params.entries()) url.searchParams.set(k, v);
-  for (const k of ["pay", "tags", "open_now", "q"]) {
+  for (const k of ["pay", "tags", "open_now", "needs_hours", "q"]) {
     if (!params.has(k)) url.searchParams.delete(k);
   }
   const resp = await fetch(url.toString(), { headers: { accept: "text/html" } });
@@ -81,6 +82,7 @@ function attachFilterForm(form: HTMLFormElement): void {
     if (input.name.startsWith("pay_")) input.checked = pay.has(input.name.slice(4));
     else if (input.name.startsWith("tag_")) input.checked = tags.has(input.name.slice(4));
     else if (input.name === "open_now") input.checked = params.get("open_now") === "1";
+    else if (input.name === "needs_hours") input.checked = params.get("needs_hours") === "1";
   });
 
   let debounce: ReturnType<typeof setTimeout> | undefined;

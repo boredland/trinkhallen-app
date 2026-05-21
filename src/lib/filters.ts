@@ -12,6 +12,8 @@ export interface KioskFilter {
   tags: string[];
   payment: { cards?: boolean; contactless?: boolean; cash?: boolean };
   openNow: boolean;
+  /** Kiosks missing opening hours — surfaces gaps for users to help fill in. */
+  needsHours: boolean;
   q?: string;
 }
 
@@ -19,6 +21,7 @@ export const EMPTY_FILTER: KioskFilter = {
   tags: [],
   payment: {},
   openNow: false,
+  needsHours: false,
 };
 
 /** Stable string used as a cache-key suffix. Empty filter → empty string. */
@@ -29,6 +32,7 @@ export function filterSignature(f: KioskFilter): string {
   if (f.payment.contactless) parts.push("p=contactless");
   if (f.payment.cash) parts.push("p=cash");
   if (f.openNow) parts.push("o=1");
+  if (f.needsHours) parts.push("nh=1");
   if (f.q) parts.push(`q=${f.q.toLowerCase()}`);
   return parts.join("&");
 }
@@ -51,6 +55,7 @@ export function parseFilterFromQuery(qs: URLSearchParams): KioskFilter {
       cash: pay.has("cash"),
     },
     openNow: qs.get("open_now") === "1" || qs.get("open_now") === "true",
+    needsHours: qs.get("needs_hours") === "1" || qs.get("needs_hours") === "true",
   };
   const q = qs.get("q")?.trim();
   if (q) f.q = q;
@@ -84,6 +89,7 @@ export function applyFilters(
     !f.payment.contactless &&
     !f.payment.cash &&
     !f.openNow &&
+    !f.needsHours &&
     !f.q
   ) {
     return records;
@@ -122,6 +128,7 @@ export function applyFilters(
       const s = computeStatus(r.hours?.raw, now);
       if (s.kind !== "open") return false;
     }
+    if (f.needsHours && r.hours?.raw) return false;
     return true;
   });
 }
@@ -134,6 +141,7 @@ export function isFilterActive(f: KioskFilter): boolean {
     !!f.payment.contactless ||
     !!f.payment.cash ||
     f.openNow ||
+    f.needsHours ||
     !!f.q
   );
 }
