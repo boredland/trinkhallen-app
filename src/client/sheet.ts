@@ -100,11 +100,22 @@ async function openSheet(href: string, push: boolean): Promise<void> {
   body.scrollTop = 0;
   // Reattach any data-back / data-sheet-close handlers injected into the body.
   attachInBody();
+  // "Was the sheet already open before this swap" decides push vs replace.
+  // Opening fresh from the map pushes /k/<id> so the back button returns to
+  // the map. Swapping between kiosks inside an already-open sheet replaces
+  // instead — otherwise each "in der Nähe" click grows the back stack and
+  // closing has to walk back through every previous sheet (popstate then
+  // re-opens them one by one).
+  const wasOpen = openUrl !== null;
   openUrl = href;
   if (push) {
     const u = new URL(href, location.origin);
-    history.pushState({ sheet: href }, "", u.pathname + u.search);
-    pushedHistory = true;
+    if (wasOpen && pushedHistory) {
+      history.replaceState({ sheet: href }, "", u.pathname + u.search);
+    } else {
+      history.pushState({ sheet: href }, "", u.pathname + u.search);
+      pushedHistory = true;
+    }
   }
   setOpen(true);
 }
