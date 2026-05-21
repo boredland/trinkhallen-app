@@ -4,10 +4,16 @@ import { KioskDetail } from "../components/KioskDetail";
 import { KioskList } from "../components/KioskList";
 import { Layout } from "../components/Layout";
 import type { Env } from "../env";
-import { countKiosks, getKioskById, queryKiosksInBbox } from "../lib/asset-kiosks";
+import {
+  countKiosks,
+  findNearbyKiosks,
+  getKioskById,
+  queryKiosksInBbox,
+} from "../lib/asset-kiosks";
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
+import { computeStatus } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
 
@@ -33,6 +39,17 @@ const PAYMENT_TO_SCHEMA: Record<string, string> = {
   contactless: "ContactlessPayment",
   mobile: "GooglePay",
 };
+
+function kioskBreadcrumbJsonLd(kiosk: KioskRecord): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Trinkhallen", item: `${ORIGIN}/` },
+      { "@type": "ListItem", position: 2, name: kiosk.name, item: `${ORIGIN}/k/${kiosk.id}` },
+    ],
+  };
+}
 
 function kioskJsonLd(kiosk: KioskRecord, aggregate?: Aggregate | null): object {
   const addr = kiosk.address;
@@ -144,11 +161,16 @@ async function renderMapPage(
     const all = await queryKiosksInBbox(c.env, initialBbox, 5000);
     const filtered = applyFilters(all, filter);
     filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
+    const openNowCount = filtered.reduce(
+      (n, r) => (computeStatus(r.hours?.raw).kind === "open" ? n + 1 : n),
+      0,
+    );
     initialPanel = (
       <KioskList
         kiosks={filtered.slice(0, 100)}
         totalInBbox={all.length}
         filteredCount={filtered.length}
+        openNowCount={openNowCount}
         filterActive={isFilterActive(filter)}
         resetHref="/"
         userAgent={c.req.header("user-agent") ?? null}
@@ -164,7 +186,9 @@ async function renderMapPage(
     ? kioskDescription(focused.kiosk)
     : "Karte mit Trinkhallen, Wasserhäuschen und Spätis in ganz Deutschland — gefiltert nach Öffnungszeiten, Zahlung und Tags. Ein Klick zur Navigation.";
   const canonicalUrl = focused ? `${ORIGIN}/k/${focused.kiosk.id}` : `${ORIGIN}/`;
-  const jsonLd = focused ? kioskJsonLd(focused.kiosk, focused.aggregate) : homepageJsonLd();
+  const jsonLd = focused
+    ? [kioskJsonLd(focused.kiosk, focused.aggregate), kioskBreadcrumbJsonLd(focused.kiosk)]
+    : homepageJsonLd();
 
   return c.html(
     <Layout
@@ -469,10 +493,17 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         404,
       );
     }
-    const [aggregate, ownRating] = await Promise.all([
+    const [aggregate, ownRating, nearbyHits] = await Promise.all([
       getAggregate(c.env, kiosk.id),
       user ? getOwnRating(c.env, kiosk.id, user.id) : Promise.resolve(null),
+      findNearbyKiosks(c.env, { lat: kiosk.lat, lng: kiosk.lng }, kiosk.id, 5),
     ]);
+    const nearby = nearbyHits.map(({ record, distance }) => ({
+      id: record.id,
+      name: record.name,
+      district: record.address["district"],
+      distance,
+    }));
     const detail = (
       <KioskDetail
         kiosk={kiosk}
@@ -480,6 +511,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         aggregate={aggregate}
         ownRating={ownRating}
         isLoggedIn={!!user}
+        nearby={nearby}
       />
     );
     // ?partial=1 → bare HTML the client sheet fetches when navigating

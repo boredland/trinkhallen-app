@@ -10,6 +10,7 @@ import {
   parseFilterFromQuery,
 } from "../lib/filters";
 import { haversineMeters, parseBbox, parseLatLng, quantizeBbox } from "../lib/geo";
+import { computeStatus } from "../lib/opening-hours";
 
 export const apiKiosks = new Hono<{ Bindings: Env }>();
 
@@ -77,11 +78,16 @@ apiKiosks.get("/api/kiosks/panel", async (c) => {
   } else {
     filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
   }
+  const openNowCount = filtered.reduce(
+    (n, r) => (computeStatus(r.hours?.raw).kind === "open" ? n + 1 : n),
+    0,
+  );
   return c.html(
     <KioskList
       kiosks={filtered.slice(0, 100)}
       totalInBbox={all.length}
       filteredCount={filtered.length}
+      openNowCount={openNowCount}
       filterActive={isFilterActive(filter)}
       resetHref="/"
       origin={origin ?? undefined}

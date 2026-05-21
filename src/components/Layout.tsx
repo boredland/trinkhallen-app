@@ -80,7 +80,20 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
         <link rel="manifest" href="/manifest.webmanifest" />
 
-        {isMapPage && <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin="" />}
+        {isMapPage && (
+          <>
+            <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin="" />
+            {/* Style JSON is the first request MapLibre makes; preload it so
+                the browser's lookahead scanner fires before our JS executes
+                and parses the URL out of build-style.ts. */}
+            <link
+              rel="preload"
+              href="https://tiles.openfreemap.org/styles/dark"
+              as="fetch"
+              crossorigin=""
+            />
+          </>
+        )}
         {/* Fonts (Anton + Inter) are self-hosted via @fontsource and bundled
             into the client CSS chunk by Vite — see src/client/app.entry.ts.
             No render-blocking cross-origin stylesheet load. */}

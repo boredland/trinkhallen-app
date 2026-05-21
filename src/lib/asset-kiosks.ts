@@ -166,6 +166,45 @@ export async function countKiosks(env: Env): Promise<number> {
 }
 
 /**
+ * The N closest kiosks to `origin`, excluding the feature with `excludeId`
+ * (used by /k/:id to render "in der Nähe"). Loads the region whose bbox
+ * contains the origin first, then expands to neighbours if it can't fill
+ * the limit — avoids touching every region for short-range queries.
+ */
+export async function findNearbyKiosks(
+  env: Env,
+  origin: { lat: number; lng: number },
+  excludeId: string,
+  limit = 5,
+): Promise<Array<{ record: KioskRecord; distance: number }>> {
+  const manifest = await loadManifest(env);
+  // Pad the lookup bbox so we always have neighbours to compare against,
+  // even if the origin sits at the very edge of its region. ~5 km in
+  // longitude at German latitudes.
+  const slugs = manifest.regions
+    .filter(
+      (r) =>
+        r.bbox[0] - 0.05 <= origin.lng &&
+        r.bbox[2] + 0.05 >= origin.lng &&
+        r.bbox[1] - 0.05 <= origin.lat &&
+        r.bbox[3] + 0.05 >= origin.lat,
+    )
+    .map((r) => r.slug);
+  const collections = await Promise.all(slugs.map((s) => recordsForRegion(env, s)));
+  const ranked: Array<{ record: KioskRecord; distance: number }> = [];
+  for (const records of collections) {
+    for (const r of records) {
+      if (r.kind === "vending") continue;
+      if (r.id === excludeId) continue;
+      const d = haversineMeters(origin, { lat: r.lat, lng: r.lng });
+      ranked.push({ record: r, distance: d });
+    }
+  }
+  ranked.sort((a, b) => a.distance - b.distance);
+  return ranked.slice(0, limit);
+}
+
+/**
  * Closest kiosk to `origin` across the whole dataset. Loads every region file
  * once (cached for the isolate lifetime). For ~12 k features this is on the
  * order of a few ms after the first call.

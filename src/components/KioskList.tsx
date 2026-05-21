@@ -14,6 +14,10 @@ export interface KioskListProps {
   kiosks: KioskRecord[];
   totalInBbox: number;
   filteredCount: number;
+  /** Number of kiosks in the current list whose hours.raw evaluates to
+   *  "open right now". Surfaces an "X offen jetzt" badge in the header so
+   *  the in-a-hurry persona has a glanceable answer above the fold. */
+  openNowCount?: number;
   /** When set, list items render a distance label. Sorting happens upstream. */
   origin?: LatLng | undefined;
   /** Wraps the list — defaults to a vertical scroll. The /list page uses block. */
@@ -29,6 +33,7 @@ export const KioskList: FC<KioskListProps> = ({
   kiosks,
   totalInBbox,
   filteredCount,
+  openNowCount,
   variant = "panel",
   filterActive = false,
   resetHref,
@@ -66,7 +71,12 @@ export const KioskList: FC<KioskListProps> = ({
     // to min-height: auto (content-size) and the list grows past the viewport.
     <div class={variant === "panel" ? "flex h-full min-h-0 flex-col" : "block"}>
       <div class="flex items-center justify-between border-b-2 border-border px-4 py-2 text-xs uppercase tracking-wider">
-        <span class={isFiltered ? "text-neon-pink" : "text-fg-dim"}>{countLabel}</span>
+        <span class={isFiltered ? "text-neon-pink" : "text-fg-dim"}>
+          {countLabel}
+          {typeof openNowCount === "number" && openNowCount > 0 && (
+            <span class="ml-2 text-status-open">▶▶▶ {openNowCount} offen</span>
+          )}
+        </span>
         {isFiltered && resetHref && (
           <a
             href={resetHref}

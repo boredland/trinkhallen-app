@@ -18,13 +18,21 @@ const PAYMENT_LABELS: Record<string, { de: string; icon: string }> = {
 };
 const PAYMENT_ORDER = ["cash", "cards", "contactless", "girocard", "mobile"] as const;
 
+export interface NearbyKiosk {
+  id: string;
+  name: string;
+  district?: string;
+  distance: number;
+}
+
 export const KioskDetail: FC<{
   kiosk: KioskRecord;
   userAgent: string | null;
   aggregate: Aggregate;
   ownRating: RatingRow | null;
   isLoggedIn: boolean;
-}> = ({ kiosk, userAgent, aggregate, ownRating, isLoggedIn }) => {
+  nearby?: NearbyKiosk[];
+}> = ({ kiosk, userAgent, aggregate, ownRating, isLoggedIn, nearby }) => {
   const status = computeStatus(kiosk.hours?.raw);
   const statusLabel = formatStatus(status);
   const nav = buildNavigateTargets({
@@ -40,6 +48,25 @@ export const KioskDetail: FC<{
   const district = addr["district"];
 
   const hopfenstopSource = kiosk.sources?.find((s) => s.type === "hopfenstop");
+  const osmSource = kiosk.sources?.find((s) => s.type === "osm");
+
+  const city = addr["city"];
+  const intro = (() => {
+    if (city && district) return `${kiosk.name} ist ein Späti im Stadtteil ${district} in ${city}.`;
+    if (city) return `${kiosk.name} ist ein Späti in ${city}.`;
+    return null;
+  })();
+  const tagSentence =
+    kiosk.tags.length > 0
+      ? `Hier gibt es: ${kiosk.tags.map((s) => tagLabel(s)).join(", ")}.`
+      : null;
+  const updatedDate = kiosk.updatedAt
+    ? new Date(kiosk.updatedAt * 1000).toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <article class="border-2 border-border bg-surface">
@@ -101,6 +128,13 @@ export const KioskDetail: FC<{
           </ul>
         </details>
       </section>
+
+      {(intro || tagSentence) && (
+        <section class="border-b-2 border-border p-6 text-fg-muted">
+          {intro && <p class="text-fg">{intro}</p>}
+          {tagSentence && <p class="mt-1">{tagSentence}</p>}
+        </section>
+      )}
 
       {kiosk.payment && (
         <section class="border-b-2 border-border p-6">
@@ -171,6 +205,32 @@ export const KioskDetail: FC<{
         <ReportForm kioskId={kiosk.id} isLoggedIn={isLoggedIn} currentHoursRaw={kiosk.hours?.raw} />
       </section>
 
+      {nearby && nearby.length > 0 && (
+        <section class="border-b-2 border-border p-6">
+          <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
+            In der Nähe
+          </h2>
+          <ul class="space-y-2 text-sm">
+            {nearby.map((n) => (
+              <li class="flex items-baseline justify-between gap-3">
+                <a
+                  href={`/k/${n.id}`}
+                  class="text-fg underline-offset-2 hover:text-neon-pink hover:underline"
+                >
+                  {n.name}
+                  {n.district && <span class="text-fg-dim"> · {n.district}</span>}
+                </a>
+                <span class="font-mono tabular-nums text-xs text-fg-dim">
+                  {n.distance < 1000
+                    ? `${Math.round(n.distance)} m`
+                    : `${(n.distance / 1000).toFixed(1)} km`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <footer class="flex flex-col gap-2 p-6 text-sm text-fg-dim sm:flex-row sm:items-center sm:justify-between">
         <p>
           <span class="text-fg-muted">ID:</span> <code class="font-mono">{kiosk.id}</code>
@@ -178,6 +238,26 @@ export const KioskDetail: FC<{
             <>
               {" · "}
               <span class="text-fg-muted">Quelle:</span> HopfenStop
+            </>
+          )}
+          {osmSource && (
+            <>
+              {" · "}
+              <span class="text-fg-muted">Quelle:</span>{" "}
+              <a
+                class="underline-offset-2 hover:text-neon-cyan hover:underline"
+                href={`https://www.openstreetmap.org/${osmSource.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                OpenStreetMap
+              </a>
+              {updatedDate && (
+                <>
+                  {" · "}
+                  <span class="text-fg-muted">Aktualisiert:</span> {updatedDate}
+                </>
+              )}
             </>
           )}
         </p>
