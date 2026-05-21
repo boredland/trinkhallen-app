@@ -671,6 +671,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       name: record.name,
       district: record.address["district"],
       distance,
+      lng: record.lng,
+      lat: record.lat,
     }));
     const detail = (
       <KioskDetail

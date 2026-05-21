@@ -23,6 +23,8 @@ export interface NearbyKiosk {
   name: string;
   district?: string;
   distance: number;
+  lng: number;
+  lat: number;
 }
 
 export const KioskDetail: FC<{
@@ -215,6 +217,8 @@ export const KioskDetail: FC<{
               <li class="flex items-baseline justify-between gap-3">
                 <a
                   href={`/k/${n.id}`}
+                  data-lng={String(n.lng)}
+                  data-lat={String(n.lat)}
                   class="text-fg underline-offset-2 hover:text-neon-pink hover:underline"
                 >
                   {n.name}
