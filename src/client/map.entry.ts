@@ -26,7 +26,9 @@ import {
   DETAIL_ZOOM,
   detailFeaturesForView,
   type FeatureCollection,
-  loadSummary,
+  loadSummaryAtZoom,
+  SUMMARY_ZOOMS,
+  type SummaryZoom,
 } from "./region-store";
 
 const mount = document.getElementById("map");
@@ -102,13 +104,18 @@ if (mount instanceof HTMLElement) {
   });
   map.addControl(geolocate, "top-right");
 
+  const summarySourceId = (z: SummaryZoom): string => `kiosks-summary-z${z}`;
+  const summaryBubbleId = (z: SummaryZoom): string => `summary-bubble-z${z}`;
+  const summaryCountId = (z: SummaryZoom): string => `summary-count-z${z}`;
+
   /** Add the kiosk source + layers. Idempotent — safe to re-call after a
    *  `map.setStyle()` (which strips custom sources/layers).
    *
-   *  Two sources, controlled by per-layer minzoom/maxzoom at DETAIL_ZOOM:
-   *    - kiosks-summary: one bubble per region, shown when zoomed out far
-   *      enough that individual markers would be useless (continent view).
-   *    - kiosks: per-region union for the current viewport, clustered.
+   *  Sources, controlled by per-layer min/maxzoom:
+   *    - kiosks-summary-z{5..8}: pre-baked supercluster snapshot for that
+   *      zoom band, one cluster bubble per layer at zoom range [z, z+1).
+   *      Used below DETAIL_ZOOM where loading every region would be wasteful.
+   *    - kiosks: per-region union for the current viewport, clustered live.
    *
    *  Unclustered features render as a simple coloured dot — no custom
    *  SVG. The dot scales up at high zoom; cluster-vs-unclustered
@@ -116,10 +123,12 @@ if (mount instanceof HTMLElement) {
   function addKioskLayers(): void {
     if (map.getSource("kiosks")) return;
 
-    map.addSource("kiosks-summary", {
-      type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
-    });
+    for (const z of SUMMARY_ZOOMS) {
+      map.addSource(summarySourceId(z), {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+    }
 
     map.addSource("kiosks", {
       type: "geojson",
@@ -133,45 +142,56 @@ if (mount instanceof HTMLElement) {
     const clusterCountColor = isLight ? "#F5F2EC" : "#0A0A0A";
     const dotStroke = isLight ? "#F5F2EC" : "#0A0A0A";
 
-    map.addLayer({
-      id: "summary-bubble",
-      type: "circle",
-      source: "kiosks-summary",
-      maxzoom: DETAIL_ZOOM,
-      paint: {
-        "circle-color": "#FF2D6F",
-        "circle-stroke-color": "#FFD93D",
-        "circle-stroke-width": 1.5,
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["get", "count"],
-          10,
-          14,
-          100,
-          20,
-          500,
-          26,
-          2000,
-          32,
-        ],
-        "circle-opacity": 0.92,
-      },
-    });
+    for (const z of SUMMARY_ZOOMS) {
+      // Each layer is visible only inside its own [z, z+1) zoom band. The
+      // last band runs up to DETAIL_ZOOM where the live cluster source takes
+      // over — so the union of all bands covers exactly [5, DETAIL_ZOOM).
+      const minzoom = z;
+      const maxzoom = z + 1;
+      map.addLayer({
+        id: summaryBubbleId(z),
+        type: "circle",
+        source: summarySourceId(z),
+        minzoom,
+        maxzoom,
+        paint: {
+          "circle-color": "#FF2D6F",
+          "circle-stroke-color": "#FFD93D",
+          "circle-stroke-width": 1.5,
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["get", "point_count"],
+            1,
+            8,
+            10,
+            14,
+            100,
+            20,
+            500,
+            26,
+            2000,
+            32,
+          ],
+          "circle-opacity": 0.92,
+        },
+      });
 
-    map.addLayer({
-      id: "summary-count",
-      type: "symbol",
-      source: "kiosks-summary",
-      maxzoom: DETAIL_ZOOM,
-      layout: {
-        "text-field": ["get", "count"],
-        "text-font": ["Noto Sans Medium"],
-        "text-size": 12,
-        "text-allow-overlap": true,
-      },
-      paint: { "text-color": clusterCountColor },
-    });
+      map.addLayer({
+        id: summaryCountId(z),
+        type: "symbol",
+        source: summarySourceId(z),
+        minzoom,
+        maxzoom,
+        layout: {
+          "text-field": ["get", "point_count_abbreviated"],
+          "text-font": ["Noto Sans Medium"],
+          "text-size": 12,
+          "text-allow-overlap": true,
+        },
+        paint: { "text-color": clusterCountColor },
+      });
+    }
 
     map.addLayer({
       id: "clusters",
@@ -253,24 +273,23 @@ if (mount instanceof HTMLElement) {
   map.on("load", () => {
     addKioskLayers();
 
-    map.on("click", "summary-bubble", (e: MapLayerMouseEvent) => {
-      const f = e.features?.[0];
-      if (!f || f.geometry.type !== "Point") return;
-      const bbox = (f.properties as { bbox?: number[] }).bbox;
-      if (bbox && bbox.length === 4) {
-        map.fitBounds(
-          [
-            [bbox[0]!, bbox[1]!],
-            [bbox[2]!, bbox[3]!],
-          ],
-          { duration: 600, padding: 40, essential: true },
-        );
-      } else {
-        map.easeTo({ center: f.geometry.coordinates as [number, number], zoom: DETAIL_ZOOM + 1 });
-      }
-    });
-    map.on("mouseenter", "summary-bubble", () => (map.getCanvas().style.cursor = "pointer"));
-    map.on("mouseleave", "summary-bubble", () => (map.getCanvas().style.cursor = ""));
+    for (const z of SUMMARY_ZOOMS) {
+      const layerId = summaryBubbleId(z);
+      map.on("click", layerId, (e: MapLayerMouseEvent) => {
+        const f = e.features?.[0];
+        if (!f || f.geometry.type !== "Point") return;
+        // Step into the next zoom band so the cluster visibly refines (or, at
+        // the last band, crosses into per-region detail).
+        map.easeTo({
+          center: f.geometry.coordinates as [number, number],
+          zoom: z + 1,
+          duration: 500,
+          essential: true,
+        });
+      });
+      map.on("mouseenter", layerId, () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", layerId, () => (map.getCanvas().style.cursor = ""));
+    }
 
     map.on("click", "clusters", async (e: MapLayerMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
@@ -403,16 +422,22 @@ async function fitToUserAndNearest(map: MlMap, lat: number, lng: number): Promis
 }
 
 async function refresh(map: MlMap): Promise<void> {
-  const summaryPromise = loadSummary()
-    .then((c) => {
-      const s = map.getSource("kiosks-summary") as GeoJSONSource | undefined;
-      s?.setData(c);
-    })
-    .catch(() => {});
+  // Load the summary for the active zoom band only. Other bands are hidden by
+  // their layer min/maxzoom, so leaving their sources empty is fine — they'll
+  // populate the next time the user zooms into that band.
+  const zoom = map.getZoom();
+  const activeSummary = activeSummaryZoom(zoom);
+  const summaryPromise = activeSummary
+    ? loadSummaryAtZoom(activeSummary)
+        .then((c) => {
+          const s = map.getSource(`kiosks-summary-z${activeSummary}`) as GeoJSONSource | undefined;
+          s?.setData(c);
+        })
+        .catch(() => {})
+    : Promise.resolve();
 
   const b = map.getBounds();
   const view: BBox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
-  const zoom = map.getZoom();
   if (zoom < DETAIL_ZOOM) {
     // Below the detail threshold the cluster layers are hidden, but we still
     // clear the detail source so a later zoom-in doesn't briefly flash stale
@@ -433,4 +458,15 @@ async function refresh(map: MlMap): Promise<void> {
     // Network hiccups are non-fatal — next moveend retries.
   }
   await summaryPromise;
+}
+
+function activeSummaryZoom(zoom: number): SummaryZoom | null {
+  if (zoom >= DETAIL_ZOOM) return null;
+  for (let i = SUMMARY_ZOOMS.length - 1; i >= 0; i--) {
+    const z = SUMMARY_ZOOMS[i] as SummaryZoom;
+    if (zoom >= z) return z;
+  }
+  // Below the first summary band the map itself is clamped (minZoom: 5), so
+  // this branch is unreachable in practice; pin to the lowest band for safety.
+  return SUMMARY_ZOOMS[0];
 }

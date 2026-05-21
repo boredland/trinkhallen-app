@@ -5,7 +5,8 @@
  * (scripts/import-data.ts) drops into `/data/`. Replaces the `/api/kiosks?bbox=`
  * round-trip so the map's hot path no longer hits D1.
  *
- *   - Below DETAIL_ZOOM: one Point per region (the low-zoom summary).
+ *   - Below DETAIL_ZOOM: one supercluster snapshot per integer zoom band
+ *     (_summary_z5..z8.geojson). The map binds one snapshot per layer band.
  *   - At/above DETAIL_ZOOM: the union of per-region FeatureCollections whose
  *     bbox intersects the current viewport. Each region is fetched once and
  *     cached for the lifetime of the page.
@@ -32,9 +33,13 @@ export interface Feature {
 }
 
 export const DETAIL_ZOOM = 9;
+/** Integer zooms with a pre-baked summary snapshot. Kept in sync with
+ *  SUMMARY_ZOOMS in scripts/import-data.ts. */
+export const SUMMARY_ZOOMS = [5, 6, 7, 8] as const;
+export type SummaryZoom = (typeof SUMMARY_ZOOMS)[number];
 
 let manifestPromise: Promise<{ regions: ManifestEntry[] }> | null = null;
-let summaryPromise: Promise<FeatureCollection> | null = null;
+const summaryPromises = new Map<SummaryZoom, Promise<FeatureCollection>>();
 const regionPromises = new Map<string, Promise<FeatureCollection>>();
 
 const EMPTY_COLLECTION: FeatureCollection = { type: "FeatureCollection", features: [] };
@@ -53,20 +58,22 @@ export function loadManifest(): Promise<{ regions: ManifestEntry[] }> {
   return manifestPromise;
 }
 
-export function loadSummary(): Promise<FeatureCollection> {
-  summaryPromise ??= fetch("/data/_summary.geojson", {
-    headers: { accept: "application/geo+json" },
-  })
-    .then((r) =>
-      r.ok
-        ? (r.json() as Promise<FeatureCollection>)
-        : Promise.reject(new Error(`summary ${r.status}`)),
-    )
-    .catch((err) => {
-      summaryPromise = null;
-      throw err;
-    });
-  return summaryPromise;
+export function loadSummaryAtZoom(z: SummaryZoom): Promise<FeatureCollection> {
+  let p = summaryPromises.get(z);
+  if (!p) {
+    p = fetch(`/data/_summary_z${z}.geojson`, { headers: { accept: "application/geo+json" } })
+      .then((r) =>
+        r.ok
+          ? (r.json() as Promise<FeatureCollection>)
+          : Promise.reject(new Error(`summary_z${z} ${r.status}`)),
+      )
+      .catch((err) => {
+        summaryPromises.delete(z);
+        throw err;
+      });
+    summaryPromises.set(z, p);
+  }
+  return p;
 }
 
 import { classifyKind } from "../lib/kind";

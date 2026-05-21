@@ -10,18 +10,19 @@
  *   - else: shallow-clone boredland/trinkhallen-data into .tmp/ (CI)
  *
  * Emits:
- *   dist/static/data/<slug>.geojson    — verbatim per-region FeatureCollection
- *   dist/static/data/_manifest.json    — array of { slug, prefix, bbox, count }
- *   dist/static/data/_summary.geojson  — one Point per region (bbox center)
+ *   dist/static/data/<slug>.geojson         — verbatim per-region FeatureCollection
+ *   dist/static/data/_manifest.json         — array of { slug, prefix, bbox, count }
+ *   dist/static/data/_summary_z{5..8}.geojson — supercluster snapshot per zoom band
  *
- * The map client reads _summary.geojson at low zoom and the per-region files at
- * high zoom, intersecting the viewport with manifest bboxes to pick which
- * files to fetch.
+ * The map client picks the right _summary_z<z>.geojson for the current zoom
+ * (one layer per integer zoom in [5, 9)) and switches to the per-region files
+ * at and above DETAIL_ZOOM.
  */
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import Supercluster from "supercluster";
 import YAML from "yaml";
 
 const REPO_URL = "https://github.com/boredland/trinkhallen-data.git";
@@ -89,7 +90,9 @@ function main(): void {
   mkdirSync(OUT_DIR, { recursive: true });
 
   const manifest: Array<{ slug: string; prefix: string; bbox: Region["bbox"]; count: number }> = [];
-  const summaryFeatures: Feature[] = [];
+  // Every non-vending kiosk across all regions, used to feed supercluster for
+  // the low-zoom overview snapshots.
+  const allOverviewFeatures: Feature[] = [];
   // (id, lastmod-or-null) pairs collected for the build-time sitemap.
   const sitemapEntries: Array<{ id: string; lastmod: string | null }> = [];
 
@@ -109,29 +112,55 @@ function main(): void {
       count: features.length,
     });
 
-    const [w, s, e, n] = region.bbox;
-    summaryFeatures.push({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [(w + e) / 2, (s + n) / 2] },
-      properties: { slug: region.slug, count: features.length, bbox: region.bbox },
-    });
-
     for (const f of features) {
-      const id = (f.properties as { id?: string; kind?: string }).id;
-      const kind = (f.properties as { kind?: string }).kind;
-      if (!id || kind === "vending_machine") continue;
-      const updated = (f.properties as { updated?: string }).updated;
-      sitemapEntries.push({ id, lastmod: updated ?? null });
+      const props = f.properties as { id?: string; kind?: string; updated?: string };
+      if (props.kind === "vending_machine") continue;
+      allOverviewFeatures.push(f);
+      if (!props.id) continue;
+      sitemapEntries.push({ id: props.id, lastmod: props.updated ?? null });
     }
 
     console.log(`  ${region.slug}: ${features.length} features`);
   }
 
   writeFileSync(`${OUT_DIR}/_manifest.json`, JSON.stringify({ regions: manifest }));
-  writeFileSync(
-    `${OUT_DIR}/_summary.geojson`,
-    JSON.stringify({ type: "FeatureCollection", features: summaryFeatures }),
-  );
+
+  // ── per-zoom overview snapshots ───────────────────────────────────────────
+  // One supercluster index over every kiosk; getClusters(world, z) gives us
+  // the cluster set as MapLibre would see it at integer zoom z. We emit one
+  // file per integer zoom in [5, DETAIL_ZOOM) so the map can pick the right
+  // resolution per layer band instead of using a flat per-region centroid.
+  const SUMMARY_ZOOMS = [5, 6, 7, 8] as const;
+  const cluster = new Supercluster({
+    minZoom: SUMMARY_ZOOMS[0],
+    maxZoom: SUMMARY_ZOOMS[SUMMARY_ZOOMS.length - 1]!,
+    radius: 60,
+  }).load(allOverviewFeatures as unknown as GeoJSON.Feature<GeoJSON.Point>[]);
+
+  const WORLD: [number, number, number, number] = [-180, -85, 180, 85];
+  for (const z of SUMMARY_ZOOMS) {
+    const clusters = cluster.getClusters(WORLD, z);
+    // The summary layer only renders count bubbles — drop per-kiosk metadata so
+    // every feature is uniform `{point_count, point_count_abbreviated}`, and
+    // singletons stay light.
+    const slim = clusters.map((f) => ({
+      type: "Feature" as const,
+      geometry: f.geometry,
+      properties: (() => {
+        const props = f.properties as { point_count?: number; point_count_abbreviated?: string };
+        const count = props.point_count ?? 1;
+        return {
+          point_count: count,
+          point_count_abbreviated: props.point_count_abbreviated ?? String(count),
+        };
+      })(),
+    }));
+    writeFileSync(
+      `${OUT_DIR}/_summary_z${z}.geojson`,
+      JSON.stringify({ type: "FeatureCollection", features: slim }),
+    );
+    console.log(`  _summary_z${z}.geojson: ${slim.length} clusters`);
+  }
 
   // ── sitemap.xml ───────────────────────────────────────────────────────────
   const today = new Date().toISOString().slice(0, 10);
