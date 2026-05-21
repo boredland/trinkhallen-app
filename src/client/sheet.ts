@@ -16,6 +16,25 @@ let openUrl: string | null = null; // /k/<id> while open; null when closed
 // True when the user landed directly on /k/:id (initial SSR opens the sheet
 // for us, no pushState yet). On close we then push "/" to update the URL.
 let pushedHistory = false;
+// Whatever the sidebar's `data-collapsed` was before we hid it for the sheet —
+// restored on close so a user who'd manually collapsed it stays collapsed.
+let sidebarPrevCollapsed: string | null = null;
+
+function hideSidebarForSheet(): void {
+  const sidebar = document.querySelector<HTMLElement>("[data-sidebar]");
+  if (!sidebar) return;
+  if (sidebarPrevCollapsed === null) {
+    sidebarPrevCollapsed = sidebar.dataset["collapsed"] ?? "false";
+  }
+  sidebar.dataset["collapsed"] = "true";
+}
+
+function restoreSidebarFromSheet(): void {
+  const sidebar = document.querySelector<HTMLElement>("[data-sidebar]");
+  if (!sidebar || sidebarPrevCollapsed === null) return;
+  sidebar.dataset["collapsed"] = sidebarPrevCollapsed;
+  sidebarPrevCollapsed = null;
+}
 
 function el(id: string): HTMLElement | null {
   return document.getElementById(id);
@@ -45,6 +64,8 @@ function setOpen(open: boolean): void {
   backdrop.dataset["open"] = open ? "true" : "false";
   sheet.setAttribute("aria-hidden", open ? "false" : "true");
   document.body.style.overflow = open ? "hidden" : "";
+  if (open) hideSidebarForSheet();
+  else restoreSidebarFromSheet();
 }
 
 function idFromHref(href: string): string | null {
