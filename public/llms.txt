@@ -1,0 +1,26 @@
+# trinkhallen.app
+
+> trinkhallen.app is a free, community-maintained map of German Trinkhallen,
+> Spätis, Wasserhäuschen, and Kioske. It shows real-time open/closed status,
+> payment methods, and one-click navigation for thousands of locations across
+> Germany. Data comes from OpenStreetMap and community contributions. The
+> site is non-commercial and runs without trackers.
+
+## Key pages
+
+- [About & data sources](https://trinkhallen.app/about): What the site is, how
+  data is sourced (OSM + a HopfenStop seed), and how to contribute.
+- [Map](https://trinkhallen.app/): Interactive map of every kiosk in the
+  dataset. Filter by open-now, card payment, common tags.
+- [Submit a kiosk](https://trinkhallen.app/add): Community submission form;
+  approved submissions become PRs on the public dataset.
+- [Data repository](https://github.com/boredland/trinkhallen-data): The
+  GeoJSON dataset, schema, and OSM ingest workflows.
+- [Application repository](https://github.com/boredland/trinkhallen-app): The
+  Cloudflare Workers + Hono SSR app.
+
+## Usage
+
+Data is licensed CC BY-NC 4.0 (attribution required, non-commercial only) and
+derived in part from OpenStreetMap (ODbL). AI retrieval and grounding for
+answering user queries is permitted. Inclusion in AI training corpora is not.

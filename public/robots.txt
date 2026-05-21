@@ -1,0 +1,43 @@
+# trinkhallen.app — robots policy.
+#
+# Default-allow for crawlers + AI retrieval bots; auth-gated and API paths are
+# disallowed because they have no public indexing value. Training-only AI bots
+# are blocked separately.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /me
+Disallow: /add
+Disallow: /moderate
+Disallow: /*?partial=1
+
+# AI retrieval / grounding bots — explicitly allowed (they answer live queries
+# rather than vacuuming for training corpora).
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-Web
+Allow: /
+User-agent: Google-Extended
+Allow: /
+
+# Training-only crawlers — declined.
+User-agent: CCBot
+Disallow: /
+User-agent: anthropic-ai
+Disallow: /
+User-agent: cohere-ai
+Disallow: /
+User-agent: Bytespider
+Disallow: /
+
+Sitemap: https://trinkhallen.app/sitemap.xml

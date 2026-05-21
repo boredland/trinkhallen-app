@@ -198,6 +198,11 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
   });
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: Alpine attaches itself to window with no shipped type
-(window as any).Alpine = Alpine;
-Alpine.start();
+// Only spin Alpine up when the page actually carries `[x-data]` directives.
+// SSR detail pages and most static routes have none and don't need ~30 KB of
+// reactive engine running.
+if (document.querySelector("[x-data]")) {
+  // biome-ignore lint/suspicious/noExplicitAny: Alpine attaches itself to window with no shipped type
+  (window as any).Alpine = Alpine;
+  Alpine.start();
+}

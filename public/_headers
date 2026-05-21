@@ -18,6 +18,15 @@
 /sw.js
   Cache-Control: public, max-age=0, must-revalidate
 
+# SEO surfaces — short edge cache, long SWR. Both are regenerated on deploy
+# (sitemap rebuilds with the data; robots/llms are static text files).
+/sitemap.xml
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+/robots.txt
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+/llms.txt
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+
 # Static art — change rarely, no hash. Moderate cache.
 /favicon.svg
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800

@@ -90,6 +90,8 @@ function main(): void {
 
   const manifest: Array<{ slug: string; prefix: string; bbox: Region["bbox"]; count: number }> = [];
   const summaryFeatures: Feature[] = [];
+  // (id, lastmod-or-null) pairs collected for the build-time sitemap.
+  const sitemapEntries: Array<{ id: string; lastmod: string | null }> = [];
 
   for (const region of regions) {
     const inputPath = resolve(src, region.path);
@@ -113,6 +115,15 @@ function main(): void {
       geometry: { type: "Point", coordinates: [(w + e) / 2, (s + n) / 2] },
       properties: { slug: region.slug, count: features.length, bbox: region.bbox },
     });
+
+    for (const f of features) {
+      const id = (f.properties as { id?: string; kind?: string }).id;
+      const kind = (f.properties as { kind?: string }).kind;
+      if (!id || kind === "vending_machine") continue;
+      const updated = (f.properties as { updated?: string }).updated;
+      sitemapEntries.push({ id, lastmod: updated ?? null });
+    }
+
     console.log(`  ${region.slug}: ${features.length} features`);
   }
 
@@ -121,6 +132,22 @@ function main(): void {
     `${OUT_DIR}/_summary.geojson`,
     JSON.stringify({ type: "FeatureCollection", features: summaryFeatures }),
   );
+
+  // ── sitemap.xml ───────────────────────────────────────────────────────────
+  const today = new Date().toISOString().slice(0, 10);
+  const base = "https://trinkhallen.app";
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    `  <url><loc>${base}/</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq></url>`,
+    `  <url><loc>${base}/about</loc><lastmod>${today}</lastmod></url>`,
+    ...sitemapEntries.map(
+      ({ id, lastmod }) =>
+        `  <url><loc>${base}/k/${id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}</url>`,
+    ),
+    "</urlset>",
+  ].join("\n");
+  writeFileSync(resolve("dist/static/sitemap.xml"), xml);
 
   const total = manifest.reduce((n, r) => n + r.count, 0);
   console.log(`Done. ${manifest.length} regions, ${total} features → ${OUT_DIR}`);

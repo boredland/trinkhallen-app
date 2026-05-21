@@ -16,6 +16,8 @@ app.use("*", logger());
 app.use(
   "*",
   secureHeaders({
+    // HSTS — 1 year + subdomains, eligible for the browser preload list.
+    strictTransportSecurity: "max-age=31536000; includeSubDomains; preload",
     contentSecurityPolicy: {
       defaultSrc: ["'self'"],
       // Anton + Inter from Google Fonts; OpenFreeMap serves the basemap

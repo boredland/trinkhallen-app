@@ -1,3 +1,4 @@
+import { raw } from "hono/html";
 import type { FC, PropsWithChildren } from "hono/jsx";
 import { asset, type ClientEntry } from "../lib/assets";
 
@@ -12,6 +13,14 @@ export interface LayoutUser {
 export interface LayoutProps {
   title?: string;
   description?: string;
+  /** Absolute URL of the canonical version of this page. Routed in from
+   *  src/routes/pages.tsx so query-string variants don't fragment indexing. */
+  canonicalUrl?: string;
+  /** Set on auth-gated / functional pages to keep them out of the index. */
+  noindex?: boolean;
+  /** Pre-serialised JSON-LD blocks; each becomes its own `<script>` in <head>.
+   *  Pass a single object or an array — we wrap and stringify here. */
+  jsonLd?: object | object[];
   /** Page identifier used to highlight the active nav link. */
   nav?: "map" | "about" | "me" | "moderate";
   /** Pre-bundled client entry points to load on this page. */
@@ -23,6 +32,7 @@ export interface LayoutProps {
 }
 
 const SITE = "TRINKHALLEN.APP";
+const ORIGIN = "https://trinkhallen.app";
 const DESCRIPTION_DEFAULT =
   "Finde Trinkhallen, Wasserhäuschen und Spätis in deiner Nähe. Offen jetzt, Karte akzeptiert, ein Klick zur Navigation.";
 
@@ -30,12 +40,19 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
   children,
   title,
   description = DESCRIPTION_DEFAULT,
+  canonicalUrl,
+  noindex = false,
+  jsonLd,
   nav = "map",
   clientEntries = ["app"],
   fullBleed = false,
   user,
 }) => {
   const fullTitle = title ? `${title} · ${SITE}` : SITE;
+  const canonical = canonicalUrl ?? ORIGIN + (nav === "about" ? "/about" : "/");
+  const ogImage = `${ORIGIN}/apple-touch-icon.svg`;
+  const isMapPage = clientEntries.includes("map") || clientEntries.includes("pick");
+  const jsonLdBlocks = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
   return (
     <html lang="de" data-theme="dark">
@@ -44,9 +61,19 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#0A0A0A" />
         <meta name="description" content={description} />
+        {noindex && <meta name="robots" content="noindex, nofollow" />}
+        <link rel="canonical" href={canonical} />
         <meta property="og:title" content={fullTitle} />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonical} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:locale" content="de_DE" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={fullTitle} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={ogImage} />
+        <link rel="alternate" hreflang="de" href={canonical} />
         <title>{fullTitle}</title>
 
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -55,10 +82,20 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap"
-        />
+        {isMapPage && <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin="" />}
+        {/* Non-blocking stylesheet load: print-media swap with onload fixup
+            so the font load doesn't block the initial render. The <noscript>
+            fallback keeps fonts working with JS disabled. raw() needed
+            because Hono JSX's <link> type omits `onload`. */}
+        {raw(
+          `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">`,
+        )}
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap"
+          />
+        </noscript>
 
         {(() => {
           const assets = clientEntries.map(asset);
@@ -75,6 +112,12 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
             </>
           );
         })()}
+
+        {jsonLdBlocks.map((block) => (
+          <script type="application/ld+json">
+            {raw(JSON.stringify(block).replace(/</g, "\\u003c"))}
+          </script>
+        ))}
       </head>
       <body class={fullBleed ? "h-dvh overflow-hidden" : "min-h-dvh"}>
         <Header nav={nav} user={user} />

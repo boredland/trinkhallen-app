@@ -8,7 +8,105 @@ import { countKiosks, getKioskById, queryKiosksInBbox } from "../lib/asset-kiosk
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
+import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
+
+const ORIGIN = "https://trinkhallen.app";
+
+function kioskHeadline(kiosk: KioskRecord): string {
+  const city = kiosk.address["city"];
+  return city ? `${kiosk.name} — Späti in ${city}` : kiosk.name;
+}
+
+function kioskDescription(kiosk: KioskRecord): string {
+  const city = kiosk.address["city"];
+  const district = kiosk.address["district"];
+  const where = district && city ? `${district}, ${city}` : (city ?? "Deutschland");
+  const hours = kiosk.hours?.raw ? "Öffnungszeiten" : "Öffnungszeiten (Hinweise willkommen)";
+  return `${kiosk.name} in ${where} — ${hours}, Zahlungsmethoden und ein Klick zur Navigation auf trinkhallen.app.`;
+}
+
+const PAYMENT_TO_SCHEMA: Record<string, string> = {
+  cash: "Cash",
+  cards: "CreditCard",
+  girocard: "DebitCard",
+  contactless: "ContactlessPayment",
+  mobile: "GooglePay",
+};
+
+function kioskJsonLd(kiosk: KioskRecord, aggregate?: Aggregate | null): object {
+  const addr = kiosk.address;
+  const url = `${ORIGIN}/k/${kiosk.id}`;
+  const business: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "ConvenienceStore",
+    "@id": url,
+    url,
+    name: kiosk.name,
+    address: {
+      "@type": "PostalAddress",
+      ...(addr["street"] && addr["number"]
+        ? { streetAddress: `${addr["street"]} ${addr["number"]}` }
+        : addr["street"]
+          ? { streetAddress: addr["street"] }
+          : {}),
+      ...(addr["postalcode"] ? { postalCode: addr["postalcode"] } : {}),
+      ...(addr["city"] ? { addressLocality: addr["city"] } : {}),
+      ...(addr["district"] ? { addressRegion: addr["district"] } : {}),
+      addressCountry: "DE",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: kiosk.lat,
+      longitude: kiosk.lng,
+    },
+  };
+  if (kiosk.hours?.raw) business["openingHours"] = kiosk.hours.raw;
+  if (kiosk.payment) {
+    const accepted = Object.entries(kiosk.payment)
+      .filter(([_, v]) => v === "yes")
+      .map(([k]) => PAYMENT_TO_SCHEMA[k])
+      .filter(Boolean);
+    if (accepted.length) business["paymentAccepted"] = accepted.join(", ");
+  }
+  if (aggregate && aggregate.count > 0) {
+    business["aggregateRating"] = {
+      "@type": "AggregateRating",
+      ratingValue: aggregate.avg.toFixed(1),
+      ratingCount: aggregate.count,
+      bestRating: 5,
+      worstRating: 1,
+    };
+  }
+  return business;
+}
+
+function homepageJsonLd(): object[] {
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": `${ORIGIN}/#website`,
+      url: `${ORIGIN}/`,
+      name: "trinkhallen.app",
+      description:
+        "Trinkhallen, Wasserhäuschen und Spätis in Deutschland — offen, durchsuchbar, von der Community gepflegt.",
+      inLanguage: "de-DE",
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": `${ORIGIN}/#organization`,
+      name: "trinkhallen.app",
+      url: `${ORIGIN}/`,
+      logo: `${ORIGIN}/apple-touch-icon.svg`,
+      sameAs: [
+        "https://github.com/boredland/trinkhallen-app",
+        "https://github.com/boredland/trinkhallen-data",
+      ],
+    },
+  ];
+}
 
 /**
  * Render the map page, optionally with the kiosk detail sheet pre-opened.
@@ -20,7 +118,7 @@ import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
  */
 async function renderMapPage(
   c: import("hono").Context<{ Bindings: Env }>,
-  focused?: { kiosk: KioskRecord; inner: unknown; href: string },
+  focused?: { kiosk: KioskRecord; inner: unknown; href: string; aggregate?: Aggregate | null },
 ): Promise<Response> {
   const url = new URL(c.req.url);
   const filter = parseFilterFromQuery(url.searchParams);
@@ -59,10 +157,26 @@ async function renderMapPage(
   }
 
   const sheetOpen = !!focused;
-  const title = focused ? focused.kiosk.name : "Karte";
+  const title = focused
+    ? kioskHeadline(focused.kiosk)
+    : "Trinkhallen, Spätis & Wasserhäuschen finden";
+  const description = focused
+    ? kioskDescription(focused.kiosk)
+    : "Karte mit Trinkhallen, Wasserhäuschen und Spätis in ganz Deutschland — gefiltert nach Öffnungszeiten, Zahlung und Tags. Ein Klick zur Navigation.";
+  const canonicalUrl = focused ? `${ORIGIN}/k/${focused.kiosk.id}` : `${ORIGIN}/`;
+  const jsonLd = focused ? kioskJsonLd(focused.kiosk, focused.aggregate) : homepageJsonLd();
 
   return c.html(
-    <Layout title={title} nav="map" clientEntries={["app", "map"]} fullBleed user={c.get("user")}>
+    <Layout
+      title={title}
+      description={description}
+      canonicalUrl={canonicalUrl}
+      jsonLd={jsonLd}
+      nav="map"
+      clientEntries={["app", "map"]}
+      fullBleed
+      user={c.get("user")}
+    >
       <div class="relative h-full w-full">
         <div
           id="map"
@@ -162,7 +276,13 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/about", async (c) => {
     const [total, ratings] = await Promise.all([countKiosks(c.env), countRatings(c.env)]);
     return c.html(
-      <Layout title="Über" nav="about" user={c.get("user")}>
+      <Layout
+        title="Über trinkhallen.app"
+        description="trinkhallen.app listet Trinkhallen, Spätis und Wasserhäuschen in ganz Deutschland — mit Öffnungszeiten, Kartenzahlung-Filter und Direktnavigation. Daten aus OpenStreetMap und der Community, offen auf GitHub."
+        canonicalUrl="https://trinkhallen.app/about"
+        nav="about"
+        user={c.get("user")}
+      >
         <article class="space-y-10">
           <header>
             <h1 class="font-display text-4xl tracking-wide text-fg sm:text-6xl">
@@ -293,6 +413,27 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             </p>
           </section>
 
+          <section>
+            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Betreiber</h2>
+            <p class="mt-3 text-fg-muted">
+              trinkhallen.app wird von{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://github.com/boredland"
+              >
+                Jonas (boredland)
+              </a>{" "}
+              als nicht-kommerzielles Open-Source-Projekt betrieben. Kontakt &amp; Issues über{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://github.com/boredland/trinkhallen-app/issues"
+              >
+                GitHub
+              </a>
+              .
+            </p>
+          </section>
+
           <footer class="pt-4 text-xs text-fg-dim">
             Bugs &amp; Wünsche →{" "}
             <a
@@ -316,7 +457,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     if (!kiosk) {
       if (partial) return c.text("not found", 404);
       return c.html(
-        <Layout title="Nicht gefunden" nav="map" user={user}>
+        <Layout title="Nicht gefunden" noindex nav="map" user={user}>
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Kiosk nicht gefunden</h1>
           <p class="mt-3 text-fg-muted">
             Die ID <code class="font-mono">{id}</code> existiert nicht.{" "}
@@ -346,7 +487,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     // with the sheet pre-opened, so direct deep links land in the same
     // UI as in-app clicks.
     if (partial) return c.html(detail);
-    return renderMapPage(c, { kiosk, inner: detail, href: `/k/${kiosk.id}` });
+    return renderMapPage(c, { kiosk, inner: detail, href: `/k/${kiosk.id}`, aggregate });
   });
 
   app.get("/add", async (c) => {
@@ -357,7 +498,13 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const initialLng = url.searchParams.get("lng") ?? "";
     const error = url.searchParams.get("error");
     return c.html(
-      <Layout title="Späti hinzufügen" nav="map" user={user} clientEntries={["app", "pick"]}>
+      <Layout
+        title="Späti hinzufügen"
+        noindex
+        nav="map"
+        user={user}
+        clientEntries={["app", "pick"]}
+      >
         <header class="mb-6">
           <h1 class="font-display text-4xl tracking-wide text-fg">Späti vorschlagen</h1>
           <p class="mt-2 text-fg-muted">
@@ -556,7 +703,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     if (!user) {
       const magic = c.req.query("magic");
       return c.html(
-        <Layout title="Anmelden" nav="me" user={undefined}>
+        <Layout title="Anmelden" noindex nav="me" user={undefined}>
           <section class="border-2 border-border bg-surface p-8">
             <h1 class="font-display text-3xl tracking-wide text-fg sm:text-4xl">Anmelden</h1>
             <p class="mt-3 text-fg-muted">
@@ -679,7 +826,7 @@ async function renderProfile(
   const fmtDate = (s: number) => new Date(s * 1000).toLocaleDateString("de-DE");
 
   return c.html(
-    <Layout title="Profil" nav="me" user={user}>
+    <Layout title="Profil" noindex nav="me" user={user}>
       <section class="border-2 border-border bg-surface p-6">
         <div class="flex items-center gap-4">
           {user.avatarUrl ? (

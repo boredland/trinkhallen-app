@@ -26,7 +26,7 @@
  * Bump VERSION below to invalidate everything.
  */
 
-const VERSION = "v3";
+const VERSION = "v4";
 const STATIC_CACHE = `tk-static-${VERSION}`;
 const TILES_CACHE = `tk-tiles-${VERSION}`;
 const DATA_CACHE = `tk-data-${VERSION}`;
@@ -106,10 +106,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation requests: prefer the network so freshly-deployed SSR HTML
-  // lands quickly. Falls back to cache when offline.
+  // Navigation requests: stale-while-revalidate so repeat visits paint
+  // the cached SSR HTML instantly, then refresh in the background. The
+  // SSR is cheap (single-digit ms) so users on a fresh deploy see new
+  // HTML within one navigation.
   if (req.mode === "navigate") {
-    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
     return;
   }
 
