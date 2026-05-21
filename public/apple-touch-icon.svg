@@ -1,9 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
   <rect width="180" height="180" fill="#0A0A0A"/>
-  <!-- Same Trinkhalle silhouette as the favicon, scaled. Slightly thicker
-       stroke for the larger render size. -->
-  <path d="M90 158 L40 158 L40 135 L51 135 L51 67 L40 67 L90 22 L140 67 L129 67 L129 135 L140 135 L140 158 Z"
-        fill="#FF2D6F" stroke="#FFD93D" stroke-width="6"
+  <!-- Frankfurt Wasserhäuschen at home-screen scale. Sign on top of the
+       saucer adds the recognisable detail you'd see in the real thing. -->
+  <!-- Sign + support post -->
+  <rect x="64" y="18" width="52" height="22" rx="3"
+        fill="#FF2D6F" stroke="#FFD93D" stroke-width="3"
+        stroke-linejoin="round" />
+  <rect x="87" y="40" width="6" height="6" fill="#FFD93D" />
+  <!-- Cylindrical body -->
+  <rect x="38" y="78" width="104" height="80"
+        fill="#FF2D6F" stroke="#FFD93D" stroke-width="5"
         stroke-linejoin="round" stroke-linecap="round" />
-  <rect x="62" y="90" width="56" height="16" fill="#0A0A0A" />
+  <!-- Saucer roof -->
+  <ellipse cx="90" cy="58" rx="84" ry="20"
+           fill="#FF2D6F" stroke="#FFD93D" stroke-width="5" />
+  <!-- Serving window -->
+  <rect x="60" y="108" width="60" height="20" fill="#0A0A0A" />
 </svg>

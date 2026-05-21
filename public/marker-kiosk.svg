@@ -1,13 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="24" height="32">
-  <!-- Frankfurt Trinkhalle silhouette: rectangular pavilion, pitched roof
-       with overhanging eaves, serving-counter awning ledge along the
-       bottom. Pink fill with a warm-white stroke so it reads on both
-       light and dark basemaps without theme-aware tinting.
-       MapLibre `icon-anchor: bottom` places the awning floor on the GPS
-       point — no pin tail needed. -->
-  <path d="M12 1 L22 10 L19 10 L19 23 L21.5 23 L21.5 31 L2.5 31 L2.5 23 L5 23 L5 10 L2 10 Z"
+  <!-- Frankfurt Wasserhäuschen silhouette: cylindrical kiosk with the
+       iconic wide saucer roof. Pink fill, warm-white stroke for
+       readability on both light and dark basemaps. MapLibre
+       `icon-anchor: bottom` puts the body's footing on the GPS point. -->
+  <!-- Cylindrical body -->
+  <rect x="6" y="13" width="12" height="18"
         fill="#FF2D6F" stroke="#F5F2EC" stroke-width="1.2"
         stroke-linejoin="round" stroke-linecap="round" />
-  <!-- Serving window (dark slot in the centre of the box body) -->
-  <rect x="7.5" y="14.5" width="9" height="4" fill="#0A0A0A" />
+  <!-- Saucer roof — wide brim, overhangs the body by ~50% on each side -->
+  <ellipse cx="12" cy="10" rx="11" ry="3.5"
+           fill="#FF2D6F" stroke="#F5F2EC" stroke-width="1.2" />
+  <!-- Serving-window slot in the front of the cylinder -->
+  <rect x="8.5" y="19" width="7" height="3.5" fill="#0A0A0A" />
 </svg>
