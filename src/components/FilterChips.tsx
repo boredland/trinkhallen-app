@@ -78,15 +78,20 @@ const Chip: FC<{
   icon?: string;
   label: string;
 }> = ({ name, value, checked, icon, label }) => (
-  <label
-    class={`inline-flex cursor-pointer select-none items-center gap-1.5 border-2 px-2 py-1 text-sm font-medium transition-colors ${
-      checked
-        ? "border-neon-pink bg-neon-pink text-bg shadow-[var(--shadow-glow-pink)]"
-        : "border-border-hi bg-surface text-fg-muted hover:border-fg-muted hover:text-fg"
-    }`}
-  >
-    <input type="checkbox" name={name} value={value} checked={checked} class="sr-only" />
-    {icon && <span aria-hidden="true">{icon}</span>}
+  // Style flows from the checkbox's live :checked state (via :has() on the
+  // label, peer-checked: on the icon) — not from the SSR-time `checked`
+  // prop. That way a toggle updates the visual immediately, before the
+  // change handler in app.entry.ts has even fired the query refresh.
+  <label class="inline-flex cursor-pointer select-none items-center gap-1.5 border-2 border-border bg-transparent px-2 py-1 text-sm font-medium text-fg-dim transition-colors hover:border-border-hi hover:text-fg has-checked:border-neon-pink has-checked:bg-neon-pink has-checked:text-bg has-checked:shadow-[var(--shadow-glow-pink)]">
+    <input type="checkbox" name={name} value={value} checked={checked} class="peer sr-only" />
+    {icon && (
+      <span
+        aria-hidden="true"
+        class="opacity-50 grayscale transition peer-checked:opacity-100 peer-checked:grayscale-0"
+      >
+        {icon}
+      </span>
+    )}
     <span>{label}</span>
   </label>
 );

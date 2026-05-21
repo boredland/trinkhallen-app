@@ -67,9 +67,9 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
     "file": "assets/inter-latin-ext-700-normal-Ca8adRJv.woff2"
   },
   "src/client/app.entry.ts": {
-    "file": "assets/app-B-JIByU9.js",
+    "file": "assets/app-BEAGciLZ.js",
     "css": [
-      "assets/app-BIOt4gtF.css"
+      "assets/app-CfoA_E4D.css"
     ]
   },
   "src/client/map.entry.ts": {
