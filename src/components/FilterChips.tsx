@@ -79,10 +79,10 @@ const Chip: FC<{
   label: string;
 }> = ({ name, value, checked, icon, label }) => (
   <label
-    class={`inline-flex cursor-pointer select-none items-center gap-1.5 border-2 px-2 py-1 text-sm transition-colors ${
+    class={`inline-flex cursor-pointer select-none items-center gap-1.5 border-2 px-2 py-1 text-sm font-medium transition-colors ${
       checked
-        ? "border-neon-pink bg-neon-pink/10 text-neon-pink"
-        : "border-border text-fg-muted hover:border-border-hi hover:text-fg"
+        ? "border-neon-pink bg-neon-pink text-bg shadow-[var(--shadow-glow-pink)]"
+        : "border-border-hi bg-surface text-fg-muted hover:border-fg-muted hover:text-fg"
     }`}
   >
     <input type="checkbox" name={name} value={value} checked={checked} class="sr-only" />
