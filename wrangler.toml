@@ -15,10 +15,6 @@ database_name = "trinkhallen-prod"
 database_id = "27575e60-47dc-4552-ba98-15db77d6d4c2"
 migrations_dir = "migrations"
 
-[[r2_buckets]]
-binding = "TILES"
-bucket_name = "trinkhallen-tiles"
-
 # Cloudflare Email Routing outbound binding.
 # Operator setup:
 #   1. Enable Email Routing for trinkhallen.app in the Cloudflare dashboard.
@@ -35,8 +31,7 @@ PUBLIC_ORIGIN = "https://trinkhallen.app"
 
 # Secrets (set via `wrangler secret put`):
 #   SESSION_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-#   GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_INSTALLATION_ID,
-#   GITHUB_WEBHOOK_SECRET
+#   GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_INSTALLATION_ID
 
 [[routes]]
 pattern = "trinkhallen.app"
@@ -45,7 +40,7 @@ custom_domain = true
 [observability.logs]
 enabled = true
 
-# Local dev: D1 + R2 are emulated via Miniflare; secrets read from .dev.vars
+# Local dev: D1 emulated via Miniflare; secrets read from .dev.vars
 [env.local]
 [env.local.vars]
 PUBLIC_ORIGIN = "http://localhost:8787"

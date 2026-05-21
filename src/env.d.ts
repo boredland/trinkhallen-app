@@ -4,7 +4,6 @@
 export interface Env {
   // Bindings
   DB: D1Database;
-  TILES: R2Bucket;
   ASSETS: Fetcher;
   EMAIL: SendEmail;
 
@@ -18,7 +17,6 @@ export interface Env {
   GITHUB_APP_ID: string;
   GITHUB_APP_PRIVATE_KEY: string;
   GITHUB_APP_INSTALLATION_ID: string;
-  GITHUB_WEBHOOK_SECRET: string;
 }
 
 declare module "hono" {

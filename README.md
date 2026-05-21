@@ -66,7 +66,6 @@ One-time operator setup:
 ```sh
 # Cloudflare resources
 wrangler d1 create trinkhallen-prod          # copy database_id into wrangler.toml
-wrangler r2 bucket create trinkhallen-tiles
 
 # Secrets (interactive prompts)
 wrangler secret put SESSION_SECRET
@@ -149,8 +148,7 @@ repeat visits cost nothing.
 [OpenFreeMap](https://openfreemap.org) — free hosted OpenMapTiles, no
 API key. `src/client/build-style.ts` picks the style URL by theme
 (`dark` or `positron`) and hands it to MapLibre, which fetches glyphs,
-sprite, and vector tiles natively. The R2 `TILES` binding in
-`wrangler.toml` is now unused — leave it for now, drop when convenient.
+sprite, and vector tiles natively.
 
 ## Moderation
 
