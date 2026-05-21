@@ -4,9 +4,9 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
     "file": "assets/build-style-BCY0Swr6.js"
   },
   "src/client/app.entry.ts": {
-    "file": "assets/app-CeepWyYj.js",
+    "file": "assets/app-DKw4qu6X.js",
     "css": [
-      "assets/app-BJtMYnXp.css"
+      "assets/app-RxYg3rtr.css"
     ]
   },
   "src/client/map.entry.ts": {

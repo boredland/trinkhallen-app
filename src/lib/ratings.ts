@@ -81,3 +81,8 @@ export async function deleteRating(env: Env, kioskId: string, userId: string): P
     .bind(kioskId, userId)
     .run();
 }
+
+export async function countRatings(env: Env): Promise<number> {
+  const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM ratings`).first<{ n: number }>();
+  return row?.n ?? 0;
+}

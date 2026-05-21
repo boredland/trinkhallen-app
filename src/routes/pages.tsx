@@ -8,7 +8,7 @@ import { countKiosks, getKioskById, queryKiosksInBbox } from "../lib/asset-kiosk
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
-import { getAggregate, getOwnRating } from "../lib/ratings";
+import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
 import { PMTILES_URL, pmtilesAvailable } from "../lib/tiles-available";
 
 /**
@@ -164,7 +164,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/list", (c) => c.redirect("/", 301));
 
   app.get("/about", async (c) => {
-    const total = await countKiosks(c.env);
+    const [total, ratings] = await Promise.all([countKiosks(c.env), countRatings(c.env)]);
     return c.html(
       <Layout title="Über" nav="about" user={c.get("user")}>
         <article class="space-y-10">
@@ -177,6 +177,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               Offen, durchsuchbar, von der Community gepflegt — nicht-kommerziell.
             </p>
           </header>
+
+          <section class="grid grid-cols-2 gap-4 sm:gap-6">
+            <Metric value={total} label="Trinkhallen kartiert" />
+            <Metric value={ratings} label="Bewertungen abgegeben" />
+          </section>
 
           <section>
             <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Was ist das?</h2>
@@ -833,6 +838,17 @@ function Stat({ n, label }: { n: number; label: string }) {
     <div class="border-2 border-border bg-surface-2 py-3">
       <div class="font-display text-3xl text-neon-amber tabular-nums">{n}</div>
       <div class="text-xs uppercase tracking-wider text-fg-dim">{label}</div>
+    </div>
+  );
+}
+
+function Metric({ value, label }: { value: number; label: string }) {
+  return (
+    <div class="border-2 border-border bg-surface px-5 py-6 sm:px-6 sm:py-8">
+      <div class="font-display text-5xl text-neon-pink tabular-nums sm:text-6xl">
+        {value.toLocaleString("de-DE")}
+      </div>
+      <div class="mt-2 text-sm uppercase tracking-wider text-fg-dim">{label}</div>
     </div>
   );
 }
