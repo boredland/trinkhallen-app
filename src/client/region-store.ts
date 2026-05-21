@@ -79,8 +79,8 @@ export function loadRegion(slug: string): Promise<FeatureCollection> {
         if (!r.ok) throw new Error(`region ${slug} ${r.status}`);
         const c = (await r.json()) as FeatureCollection;
         for (const f of c.features) {
-          const name = (f.properties as { name?: string }).name ?? "";
-          (f.properties as { _kind?: string })._kind = classifyKind(name);
+          const p = f.properties as { name?: string; kind?: string; _kind?: string };
+          p._kind = classifyKind({ name: p.name, dataKind: p.kind });
         }
         return c;
       })

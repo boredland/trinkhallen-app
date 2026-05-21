@@ -37,6 +37,7 @@ interface Feature {
     tags?: string[];
     payment?: Record<string, "yes" | "no" | "unknown">;
     sources?: Array<{ type: string; id: string; version?: number }>;
+    kind?: "vending_machine";
     updated?: string;
   };
 }
@@ -89,7 +90,7 @@ function featureToRecord(slug: string, f: Feature): KioskRecord {
     lng,
     lat,
     updatedAt,
-    kind: classifyKind(p.name),
+    kind: classifyKind({ name: p.name, dataKind: p.kind }),
   };
   if (p.description) record.description = p.description;
   if (p.hours) record.hours = p.hours;

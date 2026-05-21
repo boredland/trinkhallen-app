@@ -7,14 +7,27 @@
  * the GeoJSON — but on the map we render them differently or hide them
  * outright so the Späti experience stays focused.
  *
- * Long-term, the OSM scrape should capture the canonical signals
- * (`amenity=fuel`, `vending=*`, `self_service=only`) into structured tags;
- * for now we infer from the name. Conservative patterns — a missed
- * classification renders the previous (default-kiosk) behaviour; a
- * false-positive would silently hide a real Späti, which is worse.
+ * Two-tier classification:
+ *   1. Read `properties.kind` if the data layer already classified the
+ *      feature (trinkhallen-data PR #19 + osm-to-geojson.ts detectKind()
+ *      from canonical OSM tags `amenity=vending_machine`, `self_service=only`,
+ *      `automated=yes`).
+ *   2. Otherwise, fall back to name regex — catches features whose OSM
+ *      tags don't carry the disambiguating signals and the gas-station
+ *      category, which OSM doesn't tag consistently.
+ *
+ * Conservative patterns — a missed classification renders the previous
+ * (default-kiosk) behaviour; a false-positive would silently hide a real
+ * Späti, which is worse.
  */
 
 export type KioskKind = "kiosk" | "gas_station" | "vending";
+
+interface ClassifyInput {
+  name?: string | null;
+  /** Set by the data pipeline (trinkhallen-data) from canonical OSM tags. */
+  dataKind?: string | null;
+}
 
 const GAS_STATION_PATTERNS = [
   /\btankstelle\b/i,
@@ -36,8 +49,15 @@ const VENDING_PATTERNS = [
   /\bautomaten[-\s]*shop\b/i,
 ];
 
-export function classifyKind(name: string | null | undefined): KioskKind {
-  const n = (name ?? "").trim();
+export function classifyKind(input: ClassifyInput | string | null | undefined): KioskKind {
+  const obj: ClassifyInput =
+    typeof input === "string" || input == null ? { name: input ?? "" } : input;
+
+  // Tier 1: the data layer's signal wins when present.
+  if (obj.dataKind === "vending_machine") return "vending";
+
+  // Tier 2: name regex.
+  const n = (obj.name ?? "").trim();
   if (!n) return "kiosk";
   for (const p of VENDING_PATTERNS) if (p.test(n)) return "vending";
   for (const p of GAS_STATION_PATTERNS) if (p.test(n)) return "gas_station";
