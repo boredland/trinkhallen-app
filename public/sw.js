@@ -8,10 +8,8 @@
  *     hash; the SW just stores whatever it's asked for.
  *
  *   tk-tiles-vN
- *     The PMTiles file (tiles.trinkhallen.app/de.pmtiles, range requests)
- *     and Protomaps' sprite + glyph fetches. Cache-first; the filenames
- *     don't change between rebuilds — when we rebuild we ship a new
- *     filename, see tiles-available.ts.
+ *     OpenFreeMap's style JSON, glyphs, sprite, and vector tiles
+ *     (everything at https://tiles.openfreemap.org). Cache-first.
  *
  *   tk-data-vN
  *     Per-region kiosk GeoJSON + manifest + summary served from /data/*.
@@ -28,24 +26,15 @@
  * Bump VERSION below to invalidate everything.
  */
 
-const VERSION = "v2";
+const VERSION = "v3";
 const STATIC_CACHE = `tk-static-${VERSION}`;
 const TILES_CACHE = `tk-tiles-${VERSION}`;
 const DATA_CACHE = `tk-data-${VERSION}`;
 const RUNTIME_CACHE = `tk-runtime-${VERSION}`;
 const ALL_CACHES = [STATIC_CACHE, TILES_CACHE, DATA_CACHE, RUNTIME_CACHE];
 
-// `api.protomaps.com` serves the Protomaps style metadata MapLibre fetches
-// during style load. Kept in the same long-lived tile cache as the rest of
-// the basemap stack.
-const TILES_HOSTS = new Set(["tiles.trinkhallen.app", "protomaps.github.io", "api.protomaps.com"]);
-const STATIC_PATH_PREFIXES = [
-  "/assets/",
-  "/favicon.svg",
-  "/apple-touch-icon.svg",
-  "/marker-kiosk.svg",
-  "/style-night.json",
-];
+const TILES_HOSTS = new Set(["tiles.openfreemap.org"]);
+const STATIC_PATH_PREFIXES = ["/assets/", "/favicon.svg", "/apple-touch-icon.svg"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

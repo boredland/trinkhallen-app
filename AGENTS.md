@@ -75,10 +75,10 @@ bun run db:migrate:remote
 - **D1 indexes** live in `migrations/0005_indexes.sql`. When adding a
   query with a `WHERE` on a column that isn't a PK, check that an index
   covers it.
-- **`src/lib/tiles-available.ts:TILE_FILENAME`** is unversioned. Re-
-  uploading the PMTiles bundle without changing the name traps users on
-  stale tiles via the SW cache — bump the filename (and the constant)
-  when you regenerate.
+- **Basemap is OpenFreeMap** (`src/client/build-style.ts`) — hosted at
+  `tiles.openfreemap.org`, no API key. If they go down, the map breaks
+  with no fallback today. Adding a fallback would be a Workers KV /
+  in-Assets style JSON that points at a raster source.
 
 ## Don'ts
 
@@ -128,6 +128,16 @@ bun run db:migrate:remote
   community ratings remain too sparse to be useful, AND (b) we're
   willing to pay for Google Places API access (~€17/1000 requests,
   ToS-clean).
+- **2026-05-21 — Switched basemap to OpenFreeMap, dropped custom map
+  markers.** Stopped self-hosting PMTiles in R2 + the Protomaps style
+  layer. Point MapLibre at `tiles.openfreemap.org/styles/{dark|positron}`,
+  let it fetch tiles/glyphs/sprite natively. Removed
+  `@protomaps/basemaps` and `pmtiles` deps, `src/lib/tiles-available.ts`,
+  `public/style-night.json`, and the per-kiosk SVG markers
+  (`marker-kiosk.svg`, `marker-gas.svg`). Unclustered features are now
+  plain coloured circles. The vending-machine filter (lib/kind.ts) stays
+  — that's still functional value. Trade-off: third-party dependency on
+  OpenFreeMap's uptime; no fallback today.
 
 When adding a new entry: date it, name what changed, say why, and link
 the PR/commit if relevant. Keep entries terse — this list is a memory

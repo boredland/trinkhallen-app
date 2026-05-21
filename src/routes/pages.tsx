@@ -9,7 +9,6 @@ import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
-import { PMTILES_URL, pmtilesAvailable } from "../lib/tiles-available";
 
 /**
  * Render the map page, optionally with the kiosk detail sheet pre-opened.
@@ -25,7 +24,6 @@ async function renderMapPage(
 ): Promise<Response> {
   const url = new URL(c.req.url);
   const filter = parseFilterFromQuery(url.searchParams);
-  const tilesMode = (await pmtilesAvailable(c.env, c.executionCtx)) ? "pmtiles" : "raster";
 
   // For a focused kiosk we centre the map on it; otherwise the URL ?c=lat,lng
   // or default Frankfurt centre takes over (handled in map.entry.ts).
@@ -70,8 +68,6 @@ async function renderMapPage(
           id="map"
           class="h-full w-full bg-surface"
           data-bbox="5.87,47.27,15.04,55.06"
-          data-tiles={tilesMode}
-          data-pmtiles-url={tilesMode === "pmtiles" ? PMTILES_URL : undefined}
           data-filter-state={url.search}
           data-focus-lng={focusLng !== undefined ? String(focusLng) : undefined}
           data-focus-lat={focusLat !== undefined ? String(focusLat) : undefined}
@@ -360,7 +356,6 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const initialLat = url.searchParams.get("lat") ?? "";
     const initialLng = url.searchParams.get("lng") ?? "";
     const error = url.searchParams.get("error");
-    const pickTilesMode = (await pmtilesAvailable(c.env, c.executionCtx)) ? "pmtiles" : "raster";
     return c.html(
       <Layout title="Späti hinzufügen" nav="map" user={user} clientEntries={["app", "pick"]}>
         <header class="mb-6">
@@ -387,12 +382,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         <form action="/add" method="post" class="space-y-6 border-2 border-border bg-surface p-6">
           <fieldset class="space-y-3">
             <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">Ort</legend>
-            <div
-              id="pick-map"
-              class="h-72 w-full border-2 border-border-hi bg-bg sm:h-96"
-              data-tiles={pickTilesMode}
-              data-pmtiles-url={pickTilesMode === "pmtiles" ? PMTILES_URL : undefined}
-            />
+            <div id="pick-map" class="h-72 w-full border-2 border-border-hi bg-bg sm:h-96" />
             <p class="text-xs text-fg-dim">
               ▶ Klick auf die Karte, um die genaue Position zu setzen. Geolokalisierung
               (Pfeil-Symbol oben rechts) füllt automatisch ein.

@@ -18,27 +18,22 @@ app.use(
   secureHeaders({
     contentSecurityPolicy: {
       defaultSrc: ["'self'"],
-      // Anton + Inter from Google Fonts; PBF glyphs from Protomaps' assets host
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://protomaps.github.io"],
+      // Anton + Inter from Google Fonts; OpenFreeMap serves the basemap
+      // sprite, glyphs, and tiles from a single host.
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://tiles.openfreemap.org"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      // Avatars + Protomaps basemap sprite (PNG + JSON metadata)
+      // Google avatars + OpenFreeMap raster shading + sprite PNGs.
       imgSrc: [
         "'self'",
         "data:",
         "blob:",
         "https://lh3.googleusercontent.com",
-        "https://protomaps.github.io",
+        "https://tiles.openfreemap.org",
       ],
       scriptSrc: ["'self'", "'unsafe-inline'"],
       workerSrc: ["'self'", "blob:"],
-      // tiles.trinkhallen.app: PMTiles range fetches.
-      // protomaps.github.io: sprite + glyph fetches by MapLibre.
-      connectSrc: [
-        "'self'",
-        "https://tiles.trinkhallen.app",
-        "https://protomaps.github.io",
-        "https://api.protomaps.com",
-      ],
+      // OpenFreeMap: style JSON + vector tiles + sprite metadata.
+      connectSrc: ["'self'", "https://tiles.openfreemap.org"],
       frameAncestors: ["'none'"],
     },
   }),

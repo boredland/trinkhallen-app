@@ -18,9 +18,7 @@
 /sw.js
   Cache-Control: public, max-age=0, must-revalidate
 
-# Static art (markers, icons) — change rarely, no hash. Moderate cache.
-/marker-kiosk.svg
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+# Static art — change rarely, no hash. Moderate cache.
 /favicon.svg
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 /apple-touch-icon.svg

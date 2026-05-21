@@ -102,56 +102,19 @@ if (mount instanceof HTMLElement) {
   });
   map.addControl(geolocate, "top-right");
 
-  /** Lazy-load + register the marker icons used by the unclustered symbol
-   *  layer.
-   *
-   *  MapLibre's `map.loadImage()` rejects SVG (it pipes through ImageBitmap
-   *  which only handles raster formats), so we rasterise to a canvas at the
-   *  pixel ratio we want and hand over the ImageData. Native SDF tinting is
-   *  skipped — the icons are self-contained with their own brand colour. */
-  async function rasteriseSvg(src: string): Promise<ImageData | null> {
-    const w = 24;
-    const h = 32;
-    const scale = (window.devicePixelRatio ?? 1) >= 2 ? 2 : 1;
-    const img = new Image();
-    img.decoding = "async";
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error(`marker ${src} failed to load`));
-      img.src = src;
-    });
-    const canvas = document.createElement("canvas");
-    canvas.width = w * scale;
-    canvas.height = h * scale;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, w * scale, h * scale);
-    return ctx.getImageData(0, 0, canvas.width, canvas.height);
-  }
-
-  async function ensureKioskIcon(): Promise<void> {
-    const scale = (window.devicePixelRatio ?? 1) >= 2 ? 2 : 1;
-    if (!map.hasImage("kiosk-icon")) {
-      const data = await rasteriseSvg("/marker-kiosk.svg");
-      if (data) map.addImage("kiosk-icon", data, { pixelRatio: scale });
-    }
-    if (!map.hasImage("gas-icon")) {
-      const data = await rasteriseSvg("/marker-gas.svg");
-      if (data) map.addImage("gas-icon", data, { pixelRatio: scale });
-    }
-  }
-
   /** Add the kiosk source + layers. Idempotent — safe to re-call after a
-   *  `map.setStyle()` (which strips custom sources/layers, but `addImage`
-   *  registrations survive).
+   *  `map.setStyle()` (which strips custom sources/layers).
    *
    *  Two sources, controlled by per-layer minzoom/maxzoom at DETAIL_ZOOM:
    *    - kiosks-summary: one bubble per region, shown when zoomed out far
    *      enough that individual markers would be useless (continent view).
-   *    - kiosks: per-region union for the current viewport, clustered. */
-  async function addKioskLayers(): Promise<void> {
+   *    - kiosks: per-region union for the current viewport, clustered.
+   *
+   *  Unclustered features render as a simple coloured dot — no custom
+   *  SVG. The dot scales up at high zoom; cluster-vs-unclustered
+   *  visibility is driven by the cluster property MapLibre maintains. */
+  function addKioskLayers(): void {
     if (map.getSource("kiosks")) return;
-    await ensureKioskIcon();
 
     map.addSource("kiosks-summary", {
       type: "geojson",
@@ -241,10 +204,9 @@ if (mount instanceof HTMLElement) {
       },
     });
 
-    // Low-zoom dot: keeps unclustered markers visible when they're tiny and
-    // the bottle icon would just be noise. Fades out as the icon fades in.
+    // Unclustered single dot — grows as we zoom in.
     map.addLayer({
-      id: "unclustered-dot",
+      id: "unclustered",
       type: "circle",
       source: "kiosks",
       minzoom: DETAIL_ZOOM,
@@ -252,37 +214,15 @@ if (mount instanceof HTMLElement) {
       paint: {
         "circle-color": "#FF2D6F",
         "circle-stroke-color": dotStroke,
-        "circle-stroke-width": 1,
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 3, 13, 5, 14, 0],
-        "circle-opacity": ["interpolate", ["linear"], ["zoom"], 12, 1, 14, 0],
-      },
-    });
-
-    // Wasserhäuschen / gas-pump icon: scales up at high zoom where the dot
-    // would feel small. The `_kind` property is set client-side in
-    // region-store.ts by name regex; everything not classified as a gas
-    // station falls through to the default kiosk silhouette.
-    map.addLayer({
-      id: "unclustered",
-      type: "symbol",
-      source: "kiosks",
-      minzoom: DETAIL_ZOOM,
-      filter: ["!", ["has", "point_count"]],
-      layout: {
-        "icon-image": ["case", ["==", ["get", "_kind"], "gas_station"], "gas-icon", "kiosk-icon"],
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.5, 14, 0.9, 18, 1.4],
-        "icon-anchor": "bottom",
-        "icon-allow-overlap": true,
-        "icon-ignore-placement": true,
-      },
-      paint: {
-        "icon-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0, 14, 1],
+        "circle-stroke-width": 1.5,
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 4, 14, 6, 17, 9],
+        "circle-opacity": 1,
       },
     });
   }
 
   map.on("load", () => {
-    void addKioskLayers();
+    addKioskLayers();
 
     map.on("click", "summary-bubble", (e: MapLayerMouseEvent) => {
       const f = e.features?.[0];
@@ -388,7 +328,8 @@ if (mount instanceof HTMLElement) {
   // Whenever the style finishes loading (initial load *and* every setStyle),
   // make sure our custom source + layers are present and repopulated.
   map.on("style.load", () => {
-    void addKioskLayers().then(() => refresh(map));
+    addKioskLayers();
+    void refresh(map);
   });
 }
 

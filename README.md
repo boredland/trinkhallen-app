@@ -137,37 +137,20 @@ repeat visits cost nothing.
   across deploys; SWR carries through brief inconsistencies after a data
   push), `/sw.js` `max-age=0, must-revalidate`.
 - **Service worker** (`public/sw.js`) has four named caches: `tk-static-vN`
-  (cache-first), `tk-tiles-vN` (cache-first; PMTiles + Protomaps glyphs),
-  `tk-data-vN` (SWR for `/data/*`), `tk-runtime-vN` (SWR for the legacy
-  bbox API + network-first for nav requests). Bump VERSION on breaking
-  changes; old caches are dropped on activate.
+  (cache-first), `tk-tiles-vN` (cache-first; OpenFreeMap style + glyphs +
+  vector tiles), `tk-data-vN` (SWR for `/data/*`), `tk-runtime-vN` (SWR
+  for the legacy bbox API + network-first for nav requests). Bump
+  VERSION on breaking changes; old caches are dropped on activate.
 - **Worker `caches.default`** for the legacy `/api/kiosks?bbox=` response,
   keyed by quantized bbox + filter signature.
 
-## Dark vector map (PMTiles)
+## Basemap
 
-Protomaps `BLACK` flavor served from `tiles.trinkhallen.app` (a Custom
-Domain on the R2 bucket). MapLibre's `pmtiles://` protocol fetches the
-header + directory + tile blobs via Range requests. If R2 is empty the
-SSR check (`pmtilesAvailable()` in `src/lib/tiles-available.ts`)
-transparently falls back to dimmed OSM raster.
-
-To produce a Germany PMTiles file:
-
-```sh
-docker run --rm -v "$(pwd)":/data ghcr.io/onthegomap/planetiler:latest \
-  --area=germany --download
-mv data/output.pmtiles tmp/de.pmtiles
-
-wrangler r2 object put trinkhallen-tiles/de.pmtiles \
-  --file=tmp/de.pmtiles --remote --content-type=application/octet-stream
-```
-
-⚠️ `TILE_FILENAME` in `src/lib/tiles-available.ts` is unversioned (`de.pmtiles`).
-The service worker caches it indefinitely, so a fresh upload won't reach
-users automatically. When you regenerate tiles, either rename the file
-(e.g. `de-YYYY-MM-DD.pmtiles`) and bump `TILE_FILENAME`, or bump the SW
-`VERSION` constant to invalidate the cache.
+[OpenFreeMap](https://openfreemap.org) — free hosted OpenMapTiles, no
+API key. `src/client/build-style.ts` picks the style URL by theme
+(`dark` or `positron`) and hands it to MapLibre, which fetches glyphs,
+sprite, and vector tiles natively. The R2 `TILES` binding in
+`wrangler.toml` is now unused — leave it for now, drop when convenient.
 
 ## Moderation
 
