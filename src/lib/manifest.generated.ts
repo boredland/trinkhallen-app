@@ -6,10 +6,70 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
   "_maplibre-ChAaPfnC.js": {
     "file": "assets/maplibre-ChAaPfnC.js"
   },
+  "node_modules/@fontsource/anton/files/anton-latin-400-normal.woff": {
+    "file": "assets/anton-latin-400-normal-AUNGEG_V.woff"
+  },
+  "node_modules/@fontsource/anton/files/anton-latin-400-normal.woff2": {
+    "file": "assets/anton-latin-400-normal-Byf51wtH.woff2"
+  },
+  "node_modules/@fontsource/anton/files/anton-latin-ext-400-normal.woff": {
+    "file": "assets/anton-latin-ext-400-normal-BMODBQc6.woff"
+  },
+  "node_modules/@fontsource/anton/files/anton-latin-ext-400-normal.woff2": {
+    "file": "assets/anton-latin-ext-400-normal-SyiqE2Jt.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-400-normal.woff": {
+    "file": "assets/inter-latin-400-normal-CyCys3Eg.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2": {
+    "file": "assets/inter-latin-400-normal-C38fXH4l.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-500-normal.woff": {
+    "file": "assets/inter-latin-500-normal-BL9OpVg8.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2": {
+    "file": "assets/inter-latin-500-normal-Cerq10X2.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-600-normal.woff": {
+    "file": "assets/inter-latin-600-normal-CiBQ2DWP.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2": {
+    "file": "assets/inter-latin-600-normal-LgqL8muc.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-700-normal.woff": {
+    "file": "assets/inter-latin-700-normal-BLAVimhd.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2": {
+    "file": "assets/inter-latin-700-normal-Yt3aPRUw.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-ext-400-normal.woff": {
+    "file": "assets/inter-latin-ext-400-normal-77YHD8bZ.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-ext-400-normal.woff2": {
+    "file": "assets/inter-latin-ext-400-normal-C1nco2VV.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-ext-500-normal.woff": {
+    "file": "assets/inter-latin-ext-500-normal-BxGbmqWO.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-ext-500-normal.woff2": {
+    "file": "assets/inter-latin-ext-500-normal-CV4jyFjo.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-ext-600-normal.woff": {
+    "file": "assets/inter-latin-ext-600-normal-CIVaiw4L.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-ext-600-normal.woff2": {
+    "file": "assets/inter-latin-ext-600-normal-D2bJ5OIk.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-ext-700-normal.woff": {
+    "file": "assets/inter-latin-ext-700-normal-TidjK2hL.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-ext-700-normal.woff2": {
+    "file": "assets/inter-latin-ext-700-normal-Ca8adRJv.woff2"
+  },
   "src/client/app.entry.ts": {
-    "file": "assets/app-CwVZzMRM.js",
+    "file": "assets/app-CfP8w_2t.js",
     "css": [
-      "assets/app-DhxjMzEC.css"
+      "assets/app-DcIQqEsu.css"
     ]
   },
   "src/client/map.entry.ts": {

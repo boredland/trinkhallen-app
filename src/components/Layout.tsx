@@ -80,22 +80,10 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
         <link rel="manifest" href="/manifest.webmanifest" />
 
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
         {isMapPage && <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin="" />}
-        {/* Non-blocking stylesheet load: print-media swap with onload fixup
-            so the font load doesn't block the initial render. The <noscript>
-            fallback keeps fonts working with JS disabled. raw() needed
-            because Hono JSX's <link> type omits `onload`. */}
-        {raw(
-          `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">`,
-        )}
-        <noscript>
-          <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap"
-          />
-        </noscript>
+        {/* Fonts (Anton + Inter) are self-hosted via @fontsource and bundled
+            into the client CSS chunk by Vite — see src/client/app.entry.ts.
+            No render-blocking cross-origin stylesheet load. */}
 
         {(() => {
           const assets = clientEntries.map(asset);

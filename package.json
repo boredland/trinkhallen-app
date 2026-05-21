@@ -22,6 +22,8 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "@fontsource/anton": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
     "@hono/oauth-providers": "^0.6.0",
     "alpinejs": "^3.14.9",
     "fuse.js": "^7.3.0",

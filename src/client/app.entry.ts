@@ -1,6 +1,21 @@
 import Alpine from "alpinejs";
 import "./app.css";
 import "maplibre-gl/dist/maplibre-gl.css";
+
+// Self-hosted fonts — latin + latin-ext (German umlauts live in latin-ext).
+// Vite hashes the .woff2 files into dist/static/assets/ and emits a
+// `@font-face` rule per import, so the basemap and the chrome no longer
+// reach out to fonts.googleapis.com.
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
+import "@fontsource/inter/latin-700.css";
+import "@fontsource/inter/latin-ext-400.css";
+import "@fontsource/inter/latin-ext-500.css";
+import "@fontsource/inter/latin-ext-600.css";
+import "@fontsource/inter/latin-ext-700.css";
+import "@fontsource/anton/latin-400.css";
+import "@fontsource/anton/latin-ext-400.css";
 import { installKioskSheet } from "./sheet";
 
 // ── Theme toggle ────────────────────────────────────────────────────────────

@@ -20,10 +20,10 @@ app.use(
     strictTransportSecurity: "max-age=31536000; includeSubDomains; preload",
     contentSecurityPolicy: {
       defaultSrc: ["'self'"],
-      // Anton + Inter from Google Fonts; OpenFreeMap serves the basemap
-      // sprite, glyphs, and tiles from a single host.
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://tiles.openfreemap.org"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      // Fonts are self-hosted (@fontsource bundled into our CSS chunk).
+      // OpenFreeMap serves its glyphs from tiles.openfreemap.org.
+      fontSrc: ["'self'", "https://tiles.openfreemap.org"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
       // Google avatars + OpenFreeMap raster shading + sprite PNGs.
       imgSrc: [
         "'self'",
