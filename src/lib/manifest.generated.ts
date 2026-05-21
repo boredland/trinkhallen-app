@@ -10,7 +10,7 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
     ]
   },
   "src/client/map.entry.ts": {
-    "file": "assets/map-DY1h2Hzc.js"
+    "file": "assets/map-DygBqqB6.js"
   },
   "src/client/pick.entry.ts": {
     "file": "assets/pick-D1Ck2HUv.js"

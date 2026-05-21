@@ -28,7 +28,7 @@ more — data-repo pushes hit a Cloudflare Deploy Hook instead.
 
 ## Pre-commit
 
-`pnpm install` triggers `lefthook install` (via the `prepare` script in
+`bun install` triggers `lefthook install` (via the `prepare` script in
 package.json). On every `git commit`:
 
 - **biome check --write --files-ignore-unknown** on staged TS/TSX/JS/JSON,
@@ -48,7 +48,7 @@ Cloudflare Workers Builds watches `main` and rebuilds on every push. The
 build step shallow-clones `boredland/trinkhallen-data` to pick up the
 latest GeoJSON before Vite runs.
 
-Do **not** run `wrangler deploy` (or `pnpm cf:deploy`) from the CLI. The
+Do **not** run `wrangler deploy` (or `bun run cf:deploy`) from the CLI. The
 auto-deploy is the source of truth; a CLI push uses your local stale
 trinkhallen-data and overwrites the proper build.
 
@@ -56,7 +56,7 @@ D1 migrations are **not** auto-applied. After landing a migration in
 `migrations/`, run:
 
 ```sh
-pnpm db:migrate:remote
+bun run db:migrate:remote
 ```
 
 ## Hot spots

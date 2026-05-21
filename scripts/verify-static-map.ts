@@ -2,8 +2,8 @@
  * Smoke test: load the map in a real browser, verify the static data path
  * is exercised end-to-end, screenshot for visual confirm.
  *
- * Run while `pnpm preview` is up:
- *   tsx scripts/verify-static-map.ts
+ * Run while `bun run preview` is up:
+ *   bun scripts/verify-static-map.ts
  */
 
 import { chromium } from "playwright";

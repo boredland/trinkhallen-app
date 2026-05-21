@@ -7,8 +7,8 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --mode client && tsx scripts/write-asset-manifest.ts && tsx scripts/import-data.ts && vite build",
-    "build:data": "tsx scripts/import-data.ts",
+    "build": "vite build --mode client && bun scripts/write-asset-manifest.ts && bun scripts/import-data.ts && vite build",
+    "build:data": "bun scripts/import-data.ts",
     "preview": "wrangler dev",
     "cf:deploy": "wrangler deploy --minify",
     "prepare": "lefthook install",
@@ -18,7 +18,7 @@
     "format": "biome format --write",
     "db:migrate:local": "wrangler d1 migrations apply trinkhallen-prod --local",
     "db:migrate:remote": "wrangler d1 migrations apply trinkhallen-prod --remote",
-    "db:reset:local": "rm -rf .wrangler/state/v3/d1 && pnpm db:migrate:local",
+    "db:reset:local": "rm -rf .wrangler/state/v3/d1 && bun run db:migrate:local",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
@@ -42,14 +42,9 @@
     "lefthook": "^2.1.8",
     "playwright": "^1.60.0",
     "tailwindcss": "^4.1.0",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
     "wrangler": "^4.0.0",
     "yaml": "^2.9.0"
-  },
-  "engines": {
-    "node": ">=22"
-  },
-  "packageManager": "pnpm@9.15.0"
+  }
 }

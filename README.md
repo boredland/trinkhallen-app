@@ -34,15 +34,15 @@ pokes a Cloudflare Deploy Hook so the next deploy rebuilds with fresh data.
 
 ```sh
 mise install                                # toolchains
-pnpm install                                # also runs `lefthook install`
-pnpm db:migrate:local                       # D1 schema for the user-gen tables
+bun install                                # also runs `lefthook install`
+bun run db:migrate:local                       # D1 schema for the user-gen tables
 cp .env.example .dev.vars                   # any secrets you have
-TRINKHALLEN_DATA_PATH=../trinkhallen-data pnpm build   # one-time, refreshes static data
-pnpm preview                                # wrangler dev
+TRINKHALLEN_DATA_PATH=../trinkhallen-data bun run build   # one-time, refreshes static data
+bun run preview                                # wrangler dev
 ```
 
-`pnpm dev` (Vite + Miniflare) is also available if you need HMR; it expects
-`dist/static/data/` to exist from a prior `pnpm build:data`.
+`bun run dev` (Vite + Miniflare) is also available if you need HMR; it expects
+`dist/static/data/` to exist from a prior `bun run build:data`.
 
 Pre-commit runs **biome check --write** (auto-fix + restage) and
 **tsc --noEmit** (full project) in parallel via lefthook. To bypass in an
@@ -58,7 +58,7 @@ disk.
 D1 migrations are **not** automatic. After a push that adds a migration:
 
 ```sh
-pnpm db:migrate:remote
+bun run db:migrate:remote
 ```
 
 One-time operator setup:

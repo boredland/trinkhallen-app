@@ -7,7 +7,7 @@
  *   - the map canvas's bounding rect + a few computed style props
  *   - a screenshot
  *
- * Usage: pnpm tsx scripts/debug-map.ts <url>
+ * Usage: bun scripts/debug-map.ts <url>
  */
 
 import { mkdir } from "node:fs/promises";
