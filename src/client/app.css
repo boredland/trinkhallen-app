@@ -69,6 +69,21 @@
   --color-link-soft: #006c75;
 }
 
+/* Cross-document View Transitions — Chromium 126+ falls back gracefully
+   elsewhere. Pairs with the bfcache eligibility (no-store-free, no
+   unload listeners) and the speculation rules in <head> so back/forward
+   and likely-next nav both feel instantaneous. */
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 @layer base {
   html {
     background: var(--color-bg);

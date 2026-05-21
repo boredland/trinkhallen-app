@@ -119,6 +119,27 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
             {raw(JSON.stringify(block).replace(/</g, "\\u003c"))}
           </script>
         ))}
+
+        {/* Speculation Rules — Chromium browsers prerender same-origin
+            /k/* and /stadt/* targets on user intent (hover / pointerdown
+            via `eagerness: moderate`). Cap is enforced by the browser
+            (~10 concurrent prerenders). Falls back silently elsewhere.
+            ?partial=1 links never appear as <a href> so don't need an
+            exclusion — they only fire from HTMX fetches. */}
+        <script type="speculationrules">
+          {raw(
+            JSON.stringify({
+              prerender: [
+                {
+                  where: {
+                    or: [{ href_matches: "/k/*" }, { href_matches: "/stadt/*" }],
+                  },
+                  eagerness: "moderate",
+                },
+              ],
+            }),
+          )}
+        </script>
       </head>
       <body class={fullBleed ? "h-dvh overflow-hidden" : "min-h-dvh"}>
         <Header nav={nav} user={user} />
