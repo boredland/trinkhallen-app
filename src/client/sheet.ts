@@ -16,6 +16,11 @@ let openUrl: string | null = null; // /k/<id> while open; null when closed
 // True when the user landed directly on /k/:id (initial SSR opens the sheet
 // for us, no pushState yet). On close we then push "/" to update the URL.
 let pushedHistory = false;
+// Bumped by every open or close. Each openSheet snapshots its value before
+// the partial fetch and checks again after — if a newer call superseded it,
+// it bails. Prevents the race where a backdrop click during an in-flight
+// nearby-fetch reopens the sheet when the fetch resolves.
+let openSeq = 0;
 // Whatever the sidebar's `data-collapsed` was before we hid it for the sheet —
 // restored on close so a user who'd manually collapsed it stays collapsed.
 let sidebarPrevCollapsed: string | null = null;
@@ -83,9 +88,13 @@ function dispatchSelection(id: string | null): void {
 }
 
 async function openSheet(href: string, push: boolean): Promise<void> {
+  const seq = ++openSeq;
   // Dispatch eagerly so the halo lights up before the fetch resolves.
   dispatchSelection(idFromHref(href));
   const html = await fetchPartial(href);
+  // Backdrop-close (or another openSheet call) during the in-flight fetch:
+  // a newer event bumped openSeq, so let it own the sheet state and exit.
+  if (seq !== openSeq) return;
   if (html === null) {
     // Fallback to full nav if the partial fails.
     location.href = href;
@@ -121,6 +130,8 @@ async function openSheet(href: string, push: boolean): Promise<void> {
 }
 
 function closeSheet(viaPop = false): void {
+  // Invalidate any in-flight openSheet — see openSeq comment.
+  openSeq++;
   if (openUrl === null) return;
   openUrl = null;
   setOpen(false);
