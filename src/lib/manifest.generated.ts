@@ -4,13 +4,13 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
     "file": "assets/build-style-BCY0Swr6.js"
   },
   "src/client/app.entry.ts": {
-    "file": "assets/app-DKw4qu6X.js",
+    "file": "assets/app-GjmIK2fI.js",
     "css": [
-      "assets/app-RxYg3rtr.css"
+      "assets/app-DhxjMzEC.css"
     ]
   },
   "src/client/map.entry.ts": {
-    "file": "assets/map-DO4CVTky.js"
+    "file": "assets/map-BNuFnZYT.js"
   },
   "src/client/pick.entry.ts": {
     "file": "assets/pick-D1Ck2HUv.js"

@@ -73,11 +73,12 @@ export function loadRegion(slug: string): Promise<FeatureCollection> {
   let p = regionPromises.get(slug);
   if (!p) {
     p = fetch(`/data/${slug}.geojson`, { headers: { accept: "application/geo+json" } })
-      .then((r) =>
-        r.ok
-          ? (r.json() as Promise<FeatureCollection>)
-          : Promise.reject(new Error(`region ${slug} ${r.status}`)),
-      )
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`region ${slug} ${r.status}`);
+        const c = (await r.json()) as FeatureCollection;
+        for (const f of c.features) classifyFeature(f);
+        return c;
+      })
       .catch((err) => {
         regionPromises.delete(slug);
         throw err;
@@ -85,6 +86,38 @@ export function loadRegion(slug: string): Promise<FeatureCollection> {
     regionPromises.set(slug, p);
   }
   return p;
+}
+
+// ── kiosk-vs-gas-station classifier ────────────────────────────────────────
+//
+// Heuristic: gas-station kiosks almost always carry the word "Tankstelle" or
+// a major brand name in their OSM `name`. We tag them with `_kind:
+// "gas_station"` so the map style can swap icons. Property is prefixed `_`
+// because it's a client-side annotation, not part of the upstream schema.
+//
+// Patterns use word boundaries to avoid false positives like "Schale" /
+// "Sterneck" / "Jetzt offen". Conservative on purpose: a missed gas station
+// just renders as a kiosk (the current behaviour); a false positive renders
+// a normal kiosk as a gas pump, which is more confusing.
+const GAS_STATION_PATTERNS = [
+  /\btankstelle\b/i,
+  /\bautohof\b/i,
+  /\baral\b/i,
+  /\bshell\b/i,
+  /\besso\b/i,
+  /\btotal\b/i,
+  /\b(bp|jet|omv|hem|agip|avia|q1)\b/i,
+  /\bstar\s+tankstelle\b/i,
+];
+
+function classifyFeature(f: Feature): void {
+  const name = (f.properties as { name?: string }).name ?? "";
+  for (const p of GAS_STATION_PATTERNS) {
+    if (p.test(name)) {
+      (f.properties as { _kind?: string })._kind = "gas_station";
+      return;
+    }
+  }
 }
 
 function bboxesOverlap(a: BBox, b: BBox): boolean {

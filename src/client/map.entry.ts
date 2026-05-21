@@ -102,15 +102,14 @@ if (mount instanceof HTMLElement) {
   });
   map.addControl(geolocate, "top-right");
 
-  /** Lazy-load + register the bottle-silhouette icon used by the unclustered
-   *  symbol layer.
+  /** Lazy-load + register the marker icons used by the unclustered symbol
+   *  layer.
    *
    *  MapLibre's `map.loadImage()` rejects SVG (it pipes through ImageBitmap
    *  which only handles raster formats), so we rasterise to a canvas at the
    *  pixel ratio we want and hand over the ImageData. Native SDF tinting is
-   *  skipped — the icon is self-contained with its own brand colour + stroke. */
-  async function ensureKioskIcon(): Promise<void> {
-    if (map.hasImage("kiosk-icon")) return;
+   *  skipped — the icons are self-contained with their own brand colour. */
+  async function rasteriseSvg(src: string): Promise<ImageData | null> {
     const w = 24;
     const h = 32;
     const scale = (window.devicePixelRatio ?? 1) >= 2 ? 2 : 1;
@@ -118,17 +117,28 @@ if (mount instanceof HTMLElement) {
     img.decoding = "async";
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
-      img.onerror = () => reject(new Error("kiosk icon failed to load"));
-      img.src = "/marker-kiosk.svg";
+      img.onerror = () => reject(new Error(`marker ${src} failed to load`));
+      img.src = src;
     });
     const canvas = document.createElement("canvas");
     canvas.width = w * scale;
     canvas.height = h * scale;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) return null;
     ctx.drawImage(img, 0, 0, w * scale, h * scale);
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    map.addImage("kiosk-icon", data, { pixelRatio: scale });
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  }
+
+  async function ensureKioskIcon(): Promise<void> {
+    const scale = (window.devicePixelRatio ?? 1) >= 2 ? 2 : 1;
+    if (!map.hasImage("kiosk-icon")) {
+      const data = await rasteriseSvg("/marker-kiosk.svg");
+      if (data) map.addImage("kiosk-icon", data, { pixelRatio: scale });
+    }
+    if (!map.hasImage("gas-icon")) {
+      const data = await rasteriseSvg("/marker-gas.svg");
+      if (data) map.addImage("gas-icon", data, { pixelRatio: scale });
+    }
   }
 
   /** Add the kiosk source + layers. Idempotent — safe to re-call after a
@@ -248,7 +258,10 @@ if (mount instanceof HTMLElement) {
       },
     });
 
-    // Bottle icon: scales up at high zoom where the dot would feel small.
+    // Wasserhäuschen / gas-pump icon: scales up at high zoom where the dot
+    // would feel small. The `_kind` property is set client-side in
+    // region-store.ts by name regex; everything not classified as a gas
+    // station falls through to the default kiosk silhouette.
     map.addLayer({
       id: "unclustered",
       type: "symbol",
@@ -256,7 +269,7 @@ if (mount instanceof HTMLElement) {
       minzoom: DETAIL_ZOOM,
       filter: ["!", ["has", "point_count"]],
       layout: {
-        "icon-image": "kiosk-icon",
+        "icon-image": ["case", ["==", ["get", "_kind"], "gas_station"], "gas-icon", "kiosk-icon"],
         "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.5, 14, 0.9, 18, 1.4],
         "icon-anchor": "bottom",
         "icon-allow-overlap": true,
