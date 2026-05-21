@@ -8,6 +8,8 @@ import {
   countKiosks,
   findNearbyKiosks,
   getKioskById,
+  kiosksByRegion,
+  loadManifest,
   queryKiosksInBbox,
 } from "../lib/asset-kiosks";
 import type { KioskRecord } from "../lib/db";
@@ -18,6 +20,30 @@ import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
 
 const ORIGIN = "https://trinkhallen.app";
+
+/**
+ * Human-readable German names for the per-city landing pages. Slugs not in
+ * this map fall back to capitalised-slug.
+ */
+const CITY_DISPLAY: Record<string, string> = {
+  frankfurt: "Frankfurt am Main",
+  koeln: "Köln",
+  duesseldorf: "Düsseldorf",
+  muenchen: "München",
+  nuernberg: "Nürnberg",
+  muenster: "Münster",
+  osnabrueck: "Osnabrück",
+  saarbruecken: "Saarbrücken",
+  goettingen: "Göttingen",
+  luebeck: "Lübeck",
+  wuerzburg: "Würzburg",
+  halle: "Halle (Saale)",
+  ruhr: "Ruhrgebiet",
+};
+
+function cityDisplayName(slug: string): string {
+  return CITY_DISPLAY[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
+}
 
 function kioskHeadline(kiosk: KioskRecord): string {
   const city = kiosk.address["city"];
@@ -41,13 +67,33 @@ const PAYMENT_TO_SCHEMA: Record<string, string> = {
 };
 
 function kioskBreadcrumbJsonLd(kiosk: KioskRecord): object {
+  // `kiosk.region` is the full path like "de/hessen/frankfurt" or
+  // "de/nordrhein-westfalen/duesseldorf"; the trailing segment is the
+  // slug that matches /stadt/:slug.
+  const cityStub = kiosk.region.split("/").pop() ?? null;
+  const cityCrumb =
+    cityStub != null
+      ? {
+          "@type": "ListItem",
+          position: 2,
+          name: cityDisplayName(cityStub),
+          item: `${ORIGIN}/stadt/${cityStub}`,
+        }
+      : null;
+  const items: object[] = [
+    { "@type": "ListItem", position: 1, name: "Trinkhallen", item: `${ORIGIN}/` },
+  ];
+  if (cityCrumb) items.push(cityCrumb);
+  items.push({
+    "@type": "ListItem",
+    position: items.length + 1,
+    name: kiosk.name,
+    item: `${ORIGIN}/k/${kiosk.id}`,
+  });
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Trinkhallen", item: `${ORIGIN}/` },
-      { "@type": "ListItem", position: 2, name: kiosk.name, item: `${ORIGIN}/k/${kiosk.id}` },
-    ],
+    itemListElement: items,
   };
 }
 
@@ -296,6 +342,128 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
 
   // Legacy redirect — /list was unified into the map sidebar.
   app.get("/list", (c) => c.redirect("/", 301));
+
+  // Per-city directory pages. SERP analysis (see SXO audit) showed that
+  // "trinkhallen frankfurt" / "späti berlin" rank curated lists, not maps —
+  // /stadt/:slug serves a real list page so we can compete for those.
+  app.get("/stadt/:slug", async (c) => {
+    const slug = c.req.param("slug");
+    const [manifest, kiosks] = await Promise.all([
+      loadManifest(c.env),
+      kiosksByRegion(c.env, slug),
+    ]);
+    const region = manifest.regions.find((r) => r.slug === slug);
+    if (!region || kiosks.length === 0) {
+      return c.html(
+        <Layout title="Stadt nicht gefunden" noindex nav="map" user={c.get("user")}>
+          <h1 class="font-display text-4xl tracking-wide text-fg">404 — Stadt nicht gefunden</h1>
+          <p class="mt-3 text-fg-muted">
+            <code class="font-mono">{slug}</code> ist nicht in unserem Datensatz.{" "}
+            <a class="text-neon-cyan underline-offset-2 hover:underline" href="/">
+              Zurück zur Karte
+            </a>
+          </p>
+        </Layout>,
+        404,
+      );
+    }
+
+    const city = cityDisplayName(slug);
+    const total = kiosks.length;
+    const sorted = [...kiosks].sort((a, b) => a.name.localeCompare(b.name, "de"));
+    const openNowCount = sorted.reduce(
+      (n, r) => (computeStatus(r.hours?.raw).kind === "open" ? n + 1 : n),
+      0,
+    );
+    const visible = sorted.slice(0, 100);
+    const [w, s, e, n] = region.bbox;
+    const centerLat = (s + n) / 2;
+    const centerLng = (w + e) / 2;
+    const mapHref = `/?c=${centerLat.toFixed(4)},${centerLng.toFixed(4)}&z=12`;
+
+    const itemListJsonLd: object = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: `Trinkhallen, Spätis & Wasserhäuschen in ${city}`,
+      numberOfItems: total,
+      itemListElement: visible.map((k, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `${ORIGIN}/k/${k.id}`,
+        name: k.name,
+      })),
+    };
+    const breadcrumbJsonLd: object = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Trinkhallen", item: `${ORIGIN}/` },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: city,
+          item: `${ORIGIN}/stadt/${slug}`,
+        },
+      ],
+    };
+
+    return c.html(
+      <Layout
+        title={`Trinkhallen, Spätis & Wasserhäuschen in ${city}`}
+        description={`${total} Trinkhallen, Spätis und Wasserhäuschen in ${city} — mit Öffnungszeiten, Kartenzahlung und Direktnavigation. ${openNowCount} jetzt offen.`}
+        canonicalUrl={`${ORIGIN}/stadt/${slug}`}
+        jsonLd={[itemListJsonLd, breadcrumbJsonLd]}
+        nav="map"
+        user={c.get("user")}
+      >
+        <article class="space-y-6">
+          <header>
+            <p class="font-display text-sm uppercase tracking-wider text-fg-muted">
+              <a class="hover:text-neon-pink" href="/">
+                Trinkhallen
+              </a>{" "}
+              · {city}
+            </p>
+            <h1 class="mt-2 font-display text-4xl tracking-wide text-fg sm:text-6xl">
+              Spätis & Trinkhallen in {city}
+            </h1>
+            <p class="mt-3 text-lg text-fg-muted">
+              {total.toLocaleString("de-DE")} Standorte in {city}.
+              {openNowCount > 0 && (
+                <>
+                  {" "}
+                  <span class="text-status-open">▶▶▶ {openNowCount} jetzt offen.</span>
+                </>
+              )}
+            </p>
+            <p class="mt-4">
+              <a class="btn-neon" href={mapHref}>
+                ▶ Auf der Karte ansehen
+              </a>
+            </p>
+          </header>
+
+          <KioskList
+            kiosks={visible}
+            totalInBbox={total}
+            filteredCount={total}
+            openNowCount={openNowCount}
+            variant="page"
+            userAgent={c.req.header("user-agent") ?? null}
+          />
+
+          {total > visible.length && (
+            <p class="text-sm text-fg-dim">
+              {visible.length} von {total.toLocaleString("de-DE")} angezeigt.{" "}
+              <a class="text-neon-cyan underline-offset-2 hover:underline" href={mapHref}>
+                Alle auf der Karte →
+              </a>
+            </p>
+          )}
+        </article>
+      </Layout>,
+    );
+  });
 
   app.get("/about", async (c) => {
     const [total, ratings] = await Promise.all([countKiosks(c.env), countRatings(c.env)]);

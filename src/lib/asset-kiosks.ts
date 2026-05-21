@@ -99,6 +99,18 @@ function featureToRecord(slug: string, f: Feature): KioskRecord {
   return record;
 }
 
+/**
+ * All non-vending kiosks in the named region. Exposed for the per-city
+ * landing pages (/stadt/:slug). Returns an empty array if the region
+ * isn't in the manifest.
+ */
+export async function kiosksByRegion(env: Env, slug: string): Promise<KioskRecord[]> {
+  const manifest = await loadManifest(env);
+  if (!manifest.regions.some((r) => r.slug === slug)) return [];
+  const records = await recordsForRegion(env, slug);
+  return records.filter((r) => r.kind !== "vending");
+}
+
 async function recordsForRegion(env: Env, slug: string): Promise<KioskRecord[]> {
   let rs = regionRecordsCache.get(slug);
   if (!rs) {
