@@ -682,12 +682,49 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         nearby={nearby}
       />
     );
-    // ?partial=1 → bare HTML the client sheet fetches when navigating
-    // in-app. The full /k/:id page below now renders the map experience
-    // with the sheet pre-opened, so direct deep links land in the same
-    // UI as in-app clicks.
+    // ?partial=1 → bare HTML the client sheet fetches when an in-app
+    // map click opens the detail sheet over the map.
     if (partial) return c.html(detail);
-    return renderMapPage(c, { kiosk, inner: detail, href: `/k/${kiosk.id}`, aggregate });
+
+    // Direct /k/:id GET → standalone "place page". The article is the
+    // primary semantic element rather than an overlay on a map; this is
+    // the URL crawlers, AI retrieval bots, and shared-link recipients
+    // hit. The in-app sheet flow still uses ?partial=1 (above), so the
+    // map experience is unaffected for clicks inside the app.
+    const city = kiosk.address["city"];
+    return c.html(
+      <Layout
+        title={kioskHeadline(kiosk)}
+        description={kioskDescription(kiosk)}
+        canonicalUrl={`${ORIGIN}/k/${kiosk.id}`}
+        jsonLd={[kioskJsonLd(kiosk, aggregate), kioskBreadcrumbJsonLd(kiosk)]}
+        nav="map"
+        user={user}
+      >
+        <p class="mb-4 font-display text-sm uppercase tracking-wider text-fg-muted">
+          <a class="hover:text-neon-pink" href="/">
+            Trinkhallen
+          </a>
+          {city && (
+            <>
+              {" · "}
+              <a class="hover:text-neon-pink" href={`/stadt/${kiosk.region.split("/").pop()}`}>
+                {cityDisplayName(kiosk.region.split("/").pop() ?? "")}
+              </a>
+            </>
+          )}
+        </p>
+        {detail}
+        <p class="mt-4">
+          <a
+            class="text-neon-cyan underline-offset-2 hover:underline"
+            href={`/?c=${kiosk.lat.toFixed(4)},${kiosk.lng.toFixed(4)}&z=16`}
+          >
+            ▶ Auf der Karte ansehen
+          </a>
+        </p>
+      </Layout>,
+    );
   });
 
   app.get("/add", async (c) => {
