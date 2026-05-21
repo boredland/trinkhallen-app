@@ -12,6 +12,7 @@
 import type { Env } from "../env";
 import type { KioskRecord } from "./db";
 import { type Bbox, haversineMeters } from "./geo";
+import { classifyKind } from "./kind";
 
 interface ManifestEntry {
   slug: string;
@@ -88,6 +89,7 @@ function featureToRecord(slug: string, f: Feature): KioskRecord {
     lng,
     lat,
     updatedAt,
+    kind: classifyKind(p.name),
   };
   if (p.description) record.description = p.description;
   if (p.hours) record.hours = p.hours;
@@ -142,6 +144,7 @@ export async function queryKiosksInBbox(
   const out: KioskRecord[] = [];
   for (const records of collections) {
     for (const r of records) {
+      if (r.kind === "vending") continue; // not surfaced in collection views
       if (r.lng >= bbox.west && r.lng <= bbox.east && r.lat >= bbox.south && r.lat <= bbox.north) {
         out.push(r);
         if (out.length >= limit) return out;
@@ -152,8 +155,13 @@ export async function queryKiosksInBbox(
 }
 
 export async function countKiosks(env: Env): Promise<number> {
+  // Count from the loaded region records (not the manifest sum) so the figure
+  // matches what users actually see — vending-only entries are excluded.
   const manifest = await loadManifest(env);
-  return manifest.regions.reduce((n, r) => n + r.count, 0);
+  const all = await Promise.all(manifest.regions.map((r) => recordsForRegion(env, r.slug)));
+  let n = 0;
+  for (const rs of all) for (const r of rs) if (r.kind !== "vending") n++;
+  return n;
 }
 
 /**
@@ -171,6 +179,7 @@ export async function findNearestKiosk(
   let bestDist = Infinity;
   for (const records of all) {
     for (const r of records) {
+      if (r.kind === "vending") continue; // never recommend an automat as "nearest"
       const d = haversineMeters(origin, { lat: r.lat, lng: r.lng });
       if (d < bestDist) {
         bestDist = d;

@@ -69,6 +69,8 @@ export function loadSummary(): Promise<FeatureCollection> {
   return summaryPromise;
 }
 
+import { classifyKind } from "../lib/kind";
+
 export function loadRegion(slug: string): Promise<FeatureCollection> {
   let p = regionPromises.get(slug);
   if (!p) {
@@ -76,7 +78,10 @@ export function loadRegion(slug: string): Promise<FeatureCollection> {
       .then(async (r) => {
         if (!r.ok) throw new Error(`region ${slug} ${r.status}`);
         const c = (await r.json()) as FeatureCollection;
-        for (const f of c.features) classifyFeature(f);
+        for (const f of c.features) {
+          const name = (f.properties as { name?: string }).name ?? "";
+          (f.properties as { _kind?: string })._kind = classifyKind(name);
+        }
         return c;
       })
       .catch((err) => {
@@ -86,38 +91,6 @@ export function loadRegion(slug: string): Promise<FeatureCollection> {
     regionPromises.set(slug, p);
   }
   return p;
-}
-
-// ── kiosk-vs-gas-station classifier ────────────────────────────────────────
-//
-// Heuristic: gas-station kiosks almost always carry the word "Tankstelle" or
-// a major brand name in their OSM `name`. We tag them with `_kind:
-// "gas_station"` so the map style can swap icons. Property is prefixed `_`
-// because it's a client-side annotation, not part of the upstream schema.
-//
-// Patterns use word boundaries to avoid false positives like "Schale" /
-// "Sterneck" / "Jetzt offen". Conservative on purpose: a missed gas station
-// just renders as a kiosk (the current behaviour); a false positive renders
-// a normal kiosk as a gas pump, which is more confusing.
-const GAS_STATION_PATTERNS = [
-  /\btankstelle\b/i,
-  /\bautohof\b/i,
-  /\baral\b/i,
-  /\bshell\b/i,
-  /\besso\b/i,
-  /\btotal\b/i,
-  /\b(bp|jet|omv|hem|agip|avia|q1)\b/i,
-  /\bstar\s+tankstelle\b/i,
-];
-
-function classifyFeature(f: Feature): void {
-  const name = (f.properties as { name?: string }).name ?? "";
-  for (const p of GAS_STATION_PATTERNS) {
-    if (p.test(name)) {
-      (f.properties as { _kind?: string })._kind = "gas_station";
-      return;
-    }
-  }
 }
 
 function bboxesOverlap(a: BBox, b: BBox): boolean {
@@ -133,14 +106,16 @@ export async function regionsForView(view: BBox): Promise<string[]> {
 /**
  * Resolve the feature set that should populate the detail (clustered) source
  * for the current viewport. Union across all regions whose bbox intersects.
- * Caller is responsible for swapping to the summary source at low zoom.
+ * Pure vending-machine entries (classified by name regex in lib/kind.ts) are
+ * dropped from the map view by default — deep links via /k/:id still load
+ * them, they just don't surface on the map or sidebar.
  */
 export async function detailFeaturesForView(view: BBox): Promise<FeatureCollection> {
   const slugs = await regionsForView(view);
   if (slugs.length === 0) return EMPTY_COLLECTION;
   const collections = await Promise.all(slugs.map(loadRegion));
-  return {
-    type: "FeatureCollection",
-    features: collections.flatMap((c) => c.features),
-  };
+  const features = collections
+    .flatMap((c) => c.features)
+    .filter((f) => (f.properties as { _kind?: string })._kind !== "vending");
+  return { type: "FeatureCollection", features };
 }

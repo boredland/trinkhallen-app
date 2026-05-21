@@ -16,4 +16,7 @@ export interface KioskRecord {
   lat: number;
   sources?: Array<{ type: string; id: string; version?: number }>;
   updatedAt: number;
+  /** Derived from name via lib/kind.ts. Used to drop vending-only entries
+   *  from collection views without hiding them from /k/:id deep links. */
+  kind: "kiosk" | "gas_station" | "vending";
 }
