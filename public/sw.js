@@ -1,6 +1,6 @@
 /* trinkhallen.app — service worker
  *
- * Three caches, each with its own strategy:
+ * Four caches, each with its own strategy:
  *
  *   tk-static-vN
  *     Hashed JS/CSS bundles from /assets, plus the small static art in
@@ -13,20 +13,32 @@
  *     don't change between rebuilds — when we rebuild we ship a new
  *     filename, see tiles-available.ts.
  *
+ *   tk-data-vN
+ *     Per-region kiosk GeoJSON + manifest + summary served from /data/*.
+ *     URLs are stable across deploys (we rewrite the file content), so
+ *     stale-while-revalidate gives users an instant map on repeat visits
+ *     and a quiet background refresh that picks up the next deploy's data
+ *     within a single page-load.
+ *
  *   tk-runtime-vN
- *     SSR pages and /api/kiosks. Stale-while-revalidate so the user
- *     gets last-known content instantly on repeat visits while we fetch
- *     the fresh version in the background.
+ *     SSR pages and the legacy /api/kiosks fallback. Stale-while-
+ *     revalidate so the user gets last-known content instantly on repeat
+ *     visits while we fetch the fresh version in the background.
  *
  * Bump VERSION below to invalidate everything.
  */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC_CACHE = `tk-static-${VERSION}`;
 const TILES_CACHE = `tk-tiles-${VERSION}`;
+const DATA_CACHE = `tk-data-${VERSION}`;
 const RUNTIME_CACHE = `tk-runtime-${VERSION}`;
+const ALL_CACHES = [STATIC_CACHE, TILES_CACHE, DATA_CACHE, RUNTIME_CACHE];
 
-const TILES_HOSTS = new Set(["tiles.trinkhallen.app", "protomaps.github.io"]);
+// `api.protomaps.com` serves the Protomaps style metadata MapLibre fetches
+// during style load. Kept in the same long-lived tile cache as the rest of
+// the basemap stack.
+const TILES_HOSTS = new Set(["tiles.trinkhallen.app", "protomaps.github.io", "api.protomaps.com"]);
 const STATIC_PATH_PREFIXES = [
   "/assets/",
   "/favicon.svg",
@@ -40,7 +52,7 @@ self.addEventListener("install", (event) => {
   // Pre-warm the app shell so the first offline visit lands on something.
   event.waitUntil(
     caches.open(RUNTIME_CACHE).then((cache) =>
-      cache.addAll(["/", "/about", "/list", "/me"]).catch(() => {
+      cache.addAll(["/", "/about", "/me"]).catch(() => {
         // best-effort; offline-during-install is fine
       }),
     ),
@@ -53,9 +65,7 @@ self.addEventListener("activate", (event) => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter(
-            (k) => k.startsWith("tk-") && ![STATIC_CACHE, TILES_CACHE, RUNTIME_CACHE].includes(k),
-          )
+          .filter((k) => k.startsWith("tk-") && !ALL_CACHES.includes(k))
           .map((k) => caches.delete(k)),
       );
       await self.clients.claim();
@@ -90,8 +100,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // /api/kiosks: stale-while-revalidate keyed by the exact request URL
-  // (which already includes bbox + filter signature).
+  // /data/*: per-region kiosk GeoJSON + manifest. Stale-while-revalidate so
+  // the next map pan is instant offline AND picks up the deploy's new data
+  // on the very next request.
+  if (url.origin === self.location.origin && url.pathname.startsWith("/data/")) {
+    event.respondWith(staleWhileRevalidate(req, DATA_CACHE));
+    return;
+  }
+
+  // Legacy /api/kiosks fallback: stale-while-revalidate keyed by the exact
+  // request URL (which already includes bbox + filter signature). The map's
+  // hot path now reads /data/* directly; this only covers any consumers
+  // still using the API.
   if (url.origin === self.location.origin && url.pathname.startsWith("/api/kiosks")) {
     event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
     return;

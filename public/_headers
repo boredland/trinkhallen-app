@@ -1,0 +1,29 @@
+# Per-route response headers for the Workers Assets binding.
+# Format mirrors Cloudflare Pages — `_headers` is copied into dist/static
+# by the Vite build's `publicDir`.
+
+# Hashed bundles in /assets/* are content-addressed; safe to cache forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# /data/* is rebuilt on every deploy but the URLs (e.g. /data/frankfurt.geojson)
+# stay the same. Short edge max-age + long stale-while-revalidate gives users
+# instant repeat visits while the next deploy still reaches them within minutes.
+# The service worker also keeps a stale-while-revalidate copy.
+/data/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+# Service worker itself must NOT be cached aggressively — browsers re-check it
+# on every page load; a long max-age would freeze users on an old SW.
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Static art (markers, icons) — change rarely, no hash. Moderate cache.
+/marker-kiosk.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/favicon.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/apple-touch-icon.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/manifest.webmanifest
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
