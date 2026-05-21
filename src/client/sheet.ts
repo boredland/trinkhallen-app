@@ -47,7 +47,23 @@ function setOpen(open: boolean): void {
   document.body.style.overflow = open ? "hidden" : "";
 }
 
+function idFromHref(href: string): string | null {
+  try {
+    const pathname = new URL(href, location.origin).pathname;
+    const m = pathname.match(/^\/k\/([^/]+)$/);
+    return m ? (m[1] ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
+function dispatchSelection(id: string | null): void {
+  window.dispatchEvent(new CustomEvent("tk:selected-kiosk", { detail: { id } }));
+}
+
 async function openSheet(href: string, push: boolean): Promise<void> {
+  // Dispatch eagerly so the halo lights up before the fetch resolves.
+  dispatchSelection(idFromHref(href));
   const html = await fetchPartial(href);
   if (html === null) {
     // Fallback to full nav if the partial fails.
@@ -76,6 +92,7 @@ function closeSheet(viaPop = false): void {
   if (openUrl === null) return;
   openUrl = null;
   setOpen(false);
+  dispatchSelection(null);
   const body = el(BODY_ID);
   if (body) {
     // Delay clearing until after the transition so the user doesn't see
@@ -116,13 +133,15 @@ export function installKioskSheet(): void {
   const sheetEl = el(SHEET_ID);
   if (!sheetEl) return;
 
-  // SSR may have pre-opened the sheet (direct landing on /k/:id). Pick up
-  // that state without re-fetching the body — it's already in the DOM.
+  // SSR may have pre-opened the sheet (legacy path; current /k/:id is
+  // standalone, but keep the branch in case any other route ever wants
+  // to land with the sheet open).
   if (sheetEl.dataset["open"] === "true") {
     openUrl = sheetEl.dataset["initialHref"] ?? location.pathname;
     pushedHistory = false;
     attachInBody();
     document.body.style.overflow = "hidden";
+    dispatchSelection(idFromHref(openUrl));
   }
 
   // Delegated click handler: any <a href="/k/...">. Also focuses the map on

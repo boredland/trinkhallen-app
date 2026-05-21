@@ -219,7 +219,36 @@ if (mount instanceof HTMLElement) {
         "circle-opacity": 1,
       },
     });
+
+    // Selection halo — a single amber ring around the currently-open kiosk.
+    // Filter starts as a never-match; sheet.ts dispatches tk:selected-kiosk
+    // events as the user opens/closes the sheet and we swap the id in.
+    map.addLayer({
+      id: "unclustered-selected",
+      type: "circle",
+      source: "kiosks",
+      minzoom: DETAIL_ZOOM,
+      filter: ["==", ["get", "id"], ""],
+      paint: {
+        "circle-color": "rgba(0,0,0,0)",
+        "circle-stroke-color": "#FFD93D",
+        "circle-stroke-width": 3,
+        "circle-stroke-opacity": 0.95,
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 9, 14, 13, 17, 18],
+      },
+    });
   }
+
+  function setSelectedKiosk(id: string | null): void {
+    const filter: maplibregl.FilterSpecification = ["==", ["get", "id"], id ?? ""];
+    if (map.getLayer("unclustered-selected")) {
+      map.setFilter("unclustered-selected", filter);
+    }
+  }
+  window.addEventListener("tk:selected-kiosk", (e) => {
+    const id = (e as CustomEvent<{ id: string | null }>).detail?.id ?? null;
+    setSelectedKiosk(id);
+  });
 
   map.on("load", () => {
     addKioskLayers();
