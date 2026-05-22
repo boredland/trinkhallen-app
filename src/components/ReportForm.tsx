@@ -34,7 +34,7 @@ export const ReportForm: FC<ReportFormProps> = ({ kioskId, isLoggedIn, currentHo
   return (
     <details class="text-sm" data-report-form>
       <summary class="cursor-pointer font-display tracking-wider uppercase text-fg-muted hover:text-neon-pink">
-        ▶ Falsche oder fehlende Info melden
+        Falsche oder fehlende Info melden
       </summary>
       <form action="/api/reports" method="post" class="mt-4 space-y-3">
         <input type="hidden" name="kiosk_id" value={kioskId} />

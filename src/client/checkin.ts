@@ -1,44 +1,53 @@
 /**
  * Check-in island.
  *
- * Wires the "Ich war hier" button rendered by CheckinForm.tsx:
- *   1. Best-effort browser geolocation (short timeout — no blocking UX).
- *   2. POST /api/checkins with kiosk_id + lat/lng if granted.
- *   3. Reveal the gap-fill questions by toggling data-open on the wrapper.
+ * Two responsibilities:
+ *   1. The "Ich war hier" button — best-effort browser geolocation, POSTs
+ *      /api/checkins, reveals the gap-fill question block.
+ *   2. The gap-fill forms — intercept submit, POST to /api/reports, swap the
+ *      "Danke!" fragment in place.
  *
- * Idempotent: re-running `install()` after the sheet swaps in new content
- * is safe — handlers are attached once per button via dataset markers.
+ * Implementation: document-level event delegation so wiring is idempotent
+ * and survives any number of sheet swaps without us re-running attach logic.
+ * The legacy `installCheckinForm()` export remains so existing call sites
+ * (app.entry.ts initial load + tk:sheet-body-swapped) keep working — it's
+ * now a no-op after the first call.
  */
 
-export function installCheckinForm(scope: ParentNode = document): void {
-  const buttons = scope.querySelectorAll<HTMLButtonElement>("[data-checkin-button]");
-  for (const btn of buttons) {
-    if (btn.dataset["checkinWired"] === "1") continue;
-    btn.dataset["checkinWired"] = "1";
-    btn.addEventListener("click", onCheckinClick);
-  }
-  const forms = scope.querySelectorAll<HTMLFormElement>("[data-checkin-form]");
-  for (const form of forms) {
-    if (form.dataset["checkinFormWired"] === "1") continue;
-    form.dataset["checkinFormWired"] = "1";
-    form.addEventListener("submit", onFormSubmit);
-  }
+let installed = false;
+
+export function installCheckinForm(_scope: ParentNode = document): void {
+  if (installed) return;
+  installed = true;
+
+  document.addEventListener("click", (ev) => {
+    const btn = (ev.target as HTMLElement | null)?.closest<HTMLButtonElement>(
+      "[data-checkin-button]",
+    );
+    if (!btn) return;
+    onCheckinClick(btn);
+  });
+
+  document.addEventListener("submit", (ev) => {
+    const form = (ev.target as HTMLElement | null)?.closest<HTMLFormElement>("[data-checkin-form]");
+    if (!form) return;
+    ev.preventDefault();
+    void onFormSubmit(form);
+  });
 }
 
-function onCheckinClick(ev: MouseEvent): void {
-  const btn = ev.currentTarget as HTMLButtonElement;
+function onCheckinClick(btn: HTMLButtonElement): void {
+  if (btn.dataset["checkinDone"] === "1") return;
+  btn.dataset["checkinDone"] = "1";
+
   const wrapper = btn.closest<HTMLElement>("[data-checkin]");
   if (!wrapper) return;
   const kioskId = wrapper.dataset["kioskId"];
   if (!kioskId) return;
 
-  // Visual: lock the button immediately so a panicked double-tap doesn't fire
-  // two POSTs (the server dedupes per-day anyway, but no point being noisy).
   btn.disabled = true;
   btn.textContent = "Danke! Was hat gefehlt?";
   wrapper.dataset["open"] = "true";
-  // Reveal the question block. Using the native `hidden` attribute keeps
-  // the component pure JSX (no extra CSS selector gymnastics).
   const questions = wrapper.querySelector<HTMLElement>("[data-checkin-questions]");
   if (questions) questions.hidden = false;
 
@@ -61,9 +70,7 @@ async function postCheckin(kioskId: string): Promise<void> {
   }
 }
 
-async function onFormSubmit(ev: SubmitEvent): Promise<void> {
-  ev.preventDefault();
-  const form = ev.currentTarget as HTMLFormElement;
+async function onFormSubmit(form: HTMLFormElement): Promise<void> {
   const submitBtn = form.querySelector<HTMLButtonElement>("button[type='submit']");
   if (submitBtn) submitBtn.disabled = true;
   try {
@@ -78,7 +85,6 @@ async function onFormSubmit(ev: SubmitEvent): Promise<void> {
       return;
     }
     const html = await resp.text();
-    // Replace the form with the "Danke!" fragment from the server.
     form.outerHTML = html;
   } catch {
     if (submitBtn) submitBtn.disabled = false;

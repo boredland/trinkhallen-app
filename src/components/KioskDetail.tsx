@@ -59,10 +59,6 @@ export const KioskDetail: FC<{
     if (city) return `${kiosk.name} ist ein Späti in ${city}.`;
     return null;
   })();
-  const tagSentence =
-    kiosk.tags.length > 0
-      ? `Hier gibt es: ${kiosk.tags.map((s) => tagLabel(s)).join(", ")}.`
-      : null;
   const updatedDate = kiosk.updatedAt
     ? new Date(kiosk.updatedAt * 1000).toLocaleDateString("de-DE", {
         day: "2-digit",
@@ -132,10 +128,9 @@ export const KioskDetail: FC<{
         </details>
       </section>
 
-      {(intro || tagSentence) && (
+      {intro && (
         <section class="border-b-2 border-border p-6 text-fg-muted">
-          {intro && <p class="text-fg">{intro}</p>}
-          {tagSentence && <p class="mt-1">{tagSentence}</p>}
+          <p class="text-fg">{intro}</p>
         </section>
       )}
 

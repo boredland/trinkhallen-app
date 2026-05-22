@@ -42,12 +42,12 @@ export const CheckinForm: FC<{ kiosk: KioskRecord; isLoggedIn: boolean }> = ({
 }) => {
   if (!isLoggedIn) {
     return (
-      <a
-        href="/auth/google"
-        class="inline-block border-2 border-border bg-surface px-4 py-2 text-sm font-medium text-fg-dim transition-colors hover:border-neon-cyan hover:text-neon-cyan"
-      >
-        Mit Google anmelden, um zu helfen →
-      </a>
+      <p class="text-sm text-fg-muted">
+        <a href="/me" class="text-neon-cyan underline-offset-2 hover:underline">
+          Anmelden
+        </a>
+        , um deinen Besuch festzuhalten und Daten zu ergänzen.
+      </p>
     );
   }
 
