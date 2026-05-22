@@ -975,10 +975,24 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               </div>
             )}
 
+            <a
+              href="/auth/google"
+              class="mt-6 inline-flex w-full items-center justify-center gap-3 border-2 border-border-hi bg-surface-2 px-3 py-2.5 font-display tracking-wider uppercase text-fg transition-colors hover:border-neon-pink hover:text-neon-pink"
+            >
+              <span aria-hidden="true">▶</span>
+              Mit Google anmelden
+            </a>
+
+            <div class="my-6 flex items-center gap-3 text-xs uppercase tracking-wider text-fg-dim">
+              <span class="h-px flex-1 bg-border" aria-hidden="true" />
+              oder
+              <span class="h-px flex-1 bg-border" aria-hidden="true" />
+            </div>
+
             <form
               action="/auth/magic"
               method="post"
-              class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-stretch"
+              class="flex flex-col gap-3 sm:flex-row sm:items-stretch"
             >
               <label class="flex-1">
                 <span class="sr-only">E-Mail-Adresse</span>
@@ -996,7 +1010,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             </form>
 
             <p class="mt-6 text-xs text-fg-dim">
-              Wir speichern nur deine E-Mail-Adresse. Mehr nicht.
+              Wir speichern nur deine E-Mail-Adresse. Mehr nicht. Mit Google angemeldet, holen wir
+              dein Profilbild dazu — kannst du jederzeit wieder lösen.
             </p>
           </section>
         </Layout>,
