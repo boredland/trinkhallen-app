@@ -18,7 +18,31 @@ const OVERRIDES: Record<string, string> = {
   raucherbereich: "Raucherbereich",
   barrierefrei: "Barrierefrei",
   sonne: "Sonnig",
+  wc: "WC",
+  sitzgelegenheiten: "Sitzgelegenheiten",
+  wlan: "WLAN",
+  geldautomat: "Geldautomat",
 };
+
+/**
+ * Amenity slugs the "Warst du hier?" gap-fill form may add or remove via
+ * `update_tags` reports. The set is intentionally small (≤6) so the chip row
+ * stays scannable on mobile. The server validates incoming add_tags /
+ * remove_tags arrays against this whitelist before persisting the report.
+ */
+export const AMENITY_TAGS = [
+  "wc",
+  "sitzgelegenheiten",
+  "barrierefrei",
+  "draussen",
+  "wlan",
+  "geldautomat",
+] as const;
+export type AmenityTag = (typeof AMENITY_TAGS)[number];
+
+export function isAmenityTag(slug: string): slug is AmenityTag {
+  return (AMENITY_TAGS as readonly string[]).includes(slug);
+}
 
 export function tagLabel(slug: string): string {
   return OVERRIDES[slug] ?? titlecase(slug);

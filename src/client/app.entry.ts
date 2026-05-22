@@ -16,6 +16,7 @@ import "@fontsource/inter/latin-ext-600.css";
 import "@fontsource/inter/latin-ext-700.css";
 import "@fontsource/anton/latin-400.css";
 import "@fontsource/anton/latin-ext-400.css";
+import { installCheckinForm } from "./checkin";
 import { installKioskSheet } from "./sheet";
 
 // ── Theme toggle ────────────────────────────────────────────────────────────
@@ -218,6 +219,11 @@ window.addEventListener("tk:origin-changed", (e) => {
 // Kiosk detail sheet — only attaches if the map-page sheet container is
 // present in the DOM.
 installKioskSheet();
+
+// Check-in button + gap-fill island. Runs on initial paint (covers /k/:id
+// SSR direct access) and re-runs whenever the sheet swaps in fresh content.
+installCheckinForm();
+window.addEventListener("tk:sheet-body-swapped", () => installCheckinForm());
 
 // Service worker — caches assets + tile bytes for fast repeat visits
 // and basic offline (last map view + last viewed pages stay accessible).

@@ -4,6 +4,7 @@ import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, formatStatus } from "../lib/opening-hours";
 import type { Aggregate, RatingRow } from "../lib/ratings";
 import { tagLabel } from "../lib/tags";
+import { CheckinForm } from "./CheckinForm";
 import { RatingBlock } from "./RatingBlock";
 import { ReportForm } from "./ReportForm";
 
@@ -187,6 +188,13 @@ export const KioskDetail: FC<{
           </ul>
         </section>
       )}
+
+      <section class="border-b-2 border-border p-6">
+        <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
+          Warst du hier?
+        </h2>
+        <CheckinForm kiosk={kiosk} isLoggedIn={isLoggedIn} />
+      </section>
 
       <section class="border-b-2 border-border p-6">
         <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">

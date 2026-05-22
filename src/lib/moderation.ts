@@ -384,8 +384,29 @@ function applyReportPatch(
   ) {
     const current = (f.properties["address"] as Record<string, string>) ?? {};
     f.properties["address"] = { ...current, ...(payload["new_address"] as Record<string, string>) };
+  } else if (kind === "wrong_name" && typeof payload["new_name"] === "string") {
+    f.properties["name"] = payload["new_name"];
   } else if (kind === "closed") {
     f.properties["closed"] = true;
+  } else if (
+    kind === "update_payment" &&
+    payload["payment"] &&
+    typeof payload["payment"] === "object"
+  ) {
+    // Conservative: only fill missing keys; never overwrite an existing value.
+    // Mirrors run-gmaps-payment.ts's policy in the data repo — we'd rather
+    // extend than argue with prior data.
+    const current = (f.properties["payment"] as Record<string, string>) ?? {};
+    const next = { ...current };
+    for (const [k, v] of Object.entries(payload["payment"] as Record<string, string>)) {
+      if (!next[k]) next[k] = v;
+    }
+    f.properties["payment"] = next;
+  } else if (kind === "update_tags") {
+    const tags = new Set((f.properties["tags"] as string[] | undefined) ?? []);
+    for (const tag of (payload["add_tags"] as string[] | undefined) ?? []) tags.add(tag);
+    for (const tag of (payload["remove_tags"] as string[] | undefined) ?? []) tags.delete(tag);
+    f.properties["tags"] = [...tags];
   } else {
     throw new Error(`applyReportPatch: unsupported kind ${kind}`);
   }
@@ -399,8 +420,14 @@ function commitMessageForReport(kind: string, name: string): string {
       return `Fix opening hours for ${name}`;
     case "wrong_address":
       return `Fix address for ${name}`;
+    case "wrong_name":
+      return `Fix name for ${name}`;
     case "closed":
       return `Mark ${name} as closed`;
+    case "update_payment":
+      return `Fill in payment methods for ${name}`;
+    case "update_tags":
+      return `Update amenity tags for ${name}`;
     default:
       return `Update ${name} (${kind})`;
   }

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
+import { apiCheckins } from "./routes/api.checkins.tsx";
 import { apiKiosks } from "./routes/api.kiosks.tsx";
 import { apiRatings } from "./routes/api.ratings.tsx";
 import { apiReports } from "./routes/api.reports.tsx";
@@ -44,6 +45,7 @@ app.use(
 app.use("*", attachUser);
 app.route("/", auth);
 app.route("/", apiKiosks);
+app.route("/", apiCheckins);
 app.route("/", apiRatings);
 app.route("/", apiReports);
 app.route("/", apiSubmissions);

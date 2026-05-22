@@ -167,6 +167,9 @@ function attachInBody(): void {
       closeSheet();
     });
   });
+  // Other islands (e.g. CheckinForm in app.entry.ts) hook this to re-bind
+  // their listeners after a sheet swap.
+  window.dispatchEvent(new CustomEvent("tk:sheet-body-swapped"));
 }
 
 // ── installation ────────────────────────────────────────────────────────────
