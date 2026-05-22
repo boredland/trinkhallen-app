@@ -59,7 +59,7 @@ export const CheckinForm: FC<{ kiosk: KioskRecord; isLoggedIn: boolean }> = ({
       <button
         type="button"
         data-checkin-button
-        class="inline-flex items-center gap-2 border-2 border-neon-pink bg-neon-pink px-4 py-2 text-sm font-bold uppercase tracking-wider text-bg shadow-[var(--shadow-glow-pink)] transition-opacity hover:opacity-90 disabled:opacity-60"
+        class="inline-flex cursor-pointer items-center gap-2 border-2 border-neon-pink bg-neon-pink px-4 py-2 text-sm font-bold uppercase tracking-wider text-bg shadow-[var(--shadow-glow-pink)] transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-60"
       >
         <span aria-hidden="true">📍</span>
         Ich war hier
