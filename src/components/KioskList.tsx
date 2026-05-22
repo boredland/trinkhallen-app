@@ -66,11 +66,18 @@ export const KioskList: FC<KioskListProps> = ({
   }
 
   return (
-    // min-h-0 on the outer flex container is required so the inner overflow-y-auto
-    // ul can actually scroll inside a flex parent; without it flex children default
-    // to min-height: auto (content-size) and the list grows past the viewport.
-    <div class={variant === "panel" ? "flex h-full min-h-0 flex-col" : "block"}>
-      <div class="flex items-center justify-between border-b-2 border-border px-4 py-2 text-xs uppercase tracking-wider">
+    // The scrolling parent is `#kiosk-panel` (one level up) — keeping the
+    // overflow there means a single scroll container per device, which
+    // Safari Mobile is happy to drive with native flicks. The count
+    // header stays visually pinned via position: sticky.
+    <div class="block">
+      <div
+        class={
+          variant === "panel"
+            ? "sticky top-0 z-10 flex items-center justify-between border-b-2 border-border bg-surface px-4 py-2 text-xs uppercase tracking-wider"
+            : "flex items-center justify-between border-b-2 border-border px-4 py-2 text-xs uppercase tracking-wider"
+        }
+      >
         <span class={isFiltered ? "text-neon-pink" : "text-fg-dim"}>
           {countLabel}
           {typeof openNowCount === "number" && openNowCount > 0 && (
@@ -87,13 +94,7 @@ export const KioskList: FC<KioskListProps> = ({
           </a>
         )}
       </div>
-      <ul
-        class={
-          variant === "panel"
-            ? "min-h-0 flex-1 divide-y-2 divide-border overflow-y-auto overscroll-contain"
-            : "divide-y-2 divide-border"
-        }
-      >
+      <ul class="divide-y-2 divide-border">
         {kiosks.map((k) => (
           <KioskRow kiosk={k} userAgent={userAgent} origin={origin} />
         ))}

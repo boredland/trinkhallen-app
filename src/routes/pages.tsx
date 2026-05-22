@@ -354,7 +354,7 @@ async function renderMapPage(
           </a>
           <div
             id="kiosk-panel"
-            class="min-h-0 flex-1 overflow-hidden"
+            class="min-h-0 flex-1 overflow-y-auto overscroll-contain [touch-action:pan-y]"
             data-panel-url={`/api/kiosks/panel${initialBbox ? `?bbox=${initialBbox.west},${initialBbox.south},${initialBbox.east},${initialBbox.north}` : ""}`}
           >
             {initialPanel}
