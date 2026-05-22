@@ -33,8 +33,14 @@ export async function getOwnRating(
 }
 
 export async function getAggregate(env: Env, kioskId: string): Promise<Aggregate> {
+  // Shadow-banned authors are excluded from the public aggregate. The banned
+  // user themselves still sees their own row via getOwnRating, which is the
+  // "shadow" part — they don't notice they've been muted.
   const { results } = await env.DB.prepare(
-    `SELECT stars, COUNT(*) AS n FROM ratings WHERE kiosk_id = ? GROUP BY stars`,
+    `SELECT r.stars, COUNT(*) AS n
+       FROM ratings r JOIN users u ON u.id = r.user_id
+       WHERE r.kiosk_id = ? AND u.banned_at IS NULL
+       GROUP BY r.stars`,
   )
     .bind(kioskId)
     .all<{ stars: number; n: number }>();
@@ -83,6 +89,11 @@ export async function deleteRating(env: Env, kioskId: string, userId: string): P
 }
 
 export async function countRatings(env: Env): Promise<number> {
-  const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM ratings`).first<{ n: number }>();
+  // Banned users don't contribute to the public stats counter on /about.
+  const row = await env.DB.prepare(
+    `SELECT COUNT(*) AS n
+       FROM ratings r JOIN users u ON u.id = r.user_id
+       WHERE u.banned_at IS NULL`,
+  ).first<{ n: number }>();
   return row?.n ?? 0;
 }

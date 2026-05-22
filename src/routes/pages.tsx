@@ -18,6 +18,7 @@ import { parseBbox } from "../lib/geo";
 import { computeStatus } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
+import { destroySession } from "../lib/session";
 import { setUsername } from "../lib/usernames";
 
 const ORIGIN = "https://trinkhallen.app";
@@ -1366,6 +1367,57 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const result = await setUsername(c.env.DB, user.id, raw);
     return c.redirect(`/me?username=${result}`);
   });
+
+  // Account deletion. Hard-cascades personal data; anonymizes contributions
+  // that already shipped to trinkhallen-data so the merged PRs stay intact
+  // but the link back to the real person is severed.
+  app.post("/me/delete", async (c) => {
+    const user = c.get("user");
+    if (!user) return c.redirect("/me");
+    const form = await c.req.formData();
+    if ((form.get("confirm") ?? "").toString() !== "yes") {
+      return c.redirect("/me?delete=unconfirmed");
+    }
+    await deleteAccount(c.env.DB, user.id, user.email);
+    await destroySession(c);
+    // Purge the SW runtime cache before the client navigates, same trick as
+    // logout — otherwise the cached logged-in shell flashes back.
+    return c.redirect("/?deleted=ok");
+  });
+}
+
+const DELETED_USER_SENTINEL = "00000000-0000-0000-0000-000000000000";
+
+async function deleteAccount(db: D1Database, userId: string, email: string): Promise<void> {
+  // 1. Anonymize contributions that have already escaped D1 (a PR was opened
+  //    or merged on trinkhallen-data). We can't unmerge those, but we can
+  //    sever the user_id link so the audit trail no longer identifies anyone.
+  await db
+    .prepare(
+      `UPDATE reports SET user_id = ?
+         WHERE user_id = ? AND status IN ('pr_opened', 'merged')`,
+    )
+    .bind(DELETED_USER_SENTINEL, userId)
+    .run();
+  await db
+    .prepare(
+      `UPDATE submissions SET user_id = ?
+         WHERE user_id = ? AND status IN ('pr_opened', 'merged')`,
+    )
+    .bind(DELETED_USER_SENTINEL, userId)
+    .run();
+  // 2. Hard-delete the remaining personal data. Ratings, sessions, and
+  //    check-ins CASCADE on the users row, but we explicit-delete them too
+  //    so the order is unambiguous and resilient if a later migration
+  //    changes the FK shape.
+  await db.prepare(`DELETE FROM reports WHERE user_id = ?`).bind(userId).run();
+  await db.prepare(`DELETE FROM submissions WHERE user_id = ?`).bind(userId).run();
+  await db.prepare(`DELETE FROM ratings WHERE user_id = ?`).bind(userId).run();
+  await db.prepare(`DELETE FROM checkins WHERE user_id = ?`).bind(userId).run();
+  await db.prepare(`DELETE FROM sessions WHERE user_id = ?`).bind(userId).run();
+  await db.prepare(`DELETE FROM magic_links WHERE email = ?`).bind(email).run();
+  // 3. Finally the users row itself.
+  await db.prepare(`DELETE FROM users WHERE id = ?`).bind(userId).run();
 }
 
 interface ReportListRow {
@@ -1640,6 +1692,53 @@ async function renderProfile(
             ))}
           </ul>
         )}
+      </section>
+
+      <section class="mt-12 border-2 border-danger/40 bg-surface p-6">
+        <h2 class="font-display text-xl tracking-wide text-danger">Konto löschen</h2>
+        <p class="mt-2 text-fg-muted">
+          Löscht dein Konto unwiderruflich: E-Mail, Username, Profil, Sitzungen, Bewertungen,
+          Check-ins und offene Vorschläge oder Korrekturen werden entfernt. Korrekturen und
+          Vorschläge, die bereits als PR im{" "}
+          <a
+            class="text-neon-cyan underline-offset-2 hover:underline"
+            href="https://github.com/boredland/trinkhallen-data"
+          >
+            Datensatz
+          </a>{" "}
+          gelandet sind, bleiben dort bestehen — der Verweis auf dein Konto wird anonymisiert.
+        </p>
+        {c.req.query("delete") === "unconfirmed" && (
+          <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
+            Bitte das Häkchen setzen, um die Löschung zu bestätigen.
+          </p>
+        )}
+        <details class="mt-4">
+          <summary class="cursor-pointer text-sm uppercase tracking-wider text-fg-muted hover:text-danger">
+            Konto wirklich löschen…
+          </summary>
+          <form action="/me/delete" method="post" class="mt-4 space-y-3" data-logout-form>
+            <label class="flex items-start gap-2 text-sm text-fg-muted">
+              <input
+                type="checkbox"
+                name="confirm"
+                value="yes"
+                required
+                class="mt-1 accent-danger"
+              />
+              <span>
+                Ich verstehe, dass diese Aktion endgültig ist und meine Daten nicht
+                wiederhergestellt werden können.
+              </span>
+            </label>
+            <button
+              type="submit"
+              class="cursor-pointer border-2 border-danger px-3 py-1.5 font-display text-sm tracking-wide text-danger transition-colors hover:bg-danger hover:text-bg"
+            >
+              Konto unwiderruflich löschen
+            </button>
+          </form>
+        </details>
       </section>
     </Layout>,
   );

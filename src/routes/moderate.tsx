@@ -54,12 +54,25 @@ interface PendingReportRow {
   user_display_name: string | null;
   user_email: string;
 }
+interface UserRow {
+  id: string;
+  email: string;
+  username: string | null;
+  display_name: string | null;
+  role: "user" | "moderator" | "admin";
+  banned_at: number | null;
+  created_at: number;
+  ratings_count: number;
+  reports_count: number;
+  submissions_count: number;
+  checkins_count: number;
+}
 
 moderate.get("/moderate", async (c) => {
   const user = c.get("user")!;
-  const tab = (c.req.query("tab") ?? "submissions") as "submissions" | "reports";
+  const tab = (c.req.query("tab") ?? "submissions") as "submissions" | "reports" | "users";
 
-  const [subs, reports] = await Promise.all([
+  const [subs, reports, users] = await Promise.all([
     c.env.DB.prepare(
       `SELECT s.*, u.display_name AS user_display_name, u.email AS user_email
          FROM submissions s LEFT JOIN users u ON u.id = s.user_id
@@ -71,6 +84,19 @@ moderate.get("/moderate", async (c) => {
          LEFT JOIN users u ON u.id = r.user_id
          WHERE r.status = 'open' ORDER BY r.created_at ASC LIMIT 100`,
     ).all<Omit<PendingReportRow, "kiosk_name">>(),
+    c.env.DB.prepare(
+      `SELECT
+          u.id, u.email, u.username, u.display_name, u.role,
+          u.banned_at, u.created_at,
+          (SELECT COUNT(*) FROM ratings    r WHERE r.user_id = u.id) AS ratings_count,
+          (SELECT COUNT(*) FROM reports    r WHERE r.user_id = u.id) AS reports_count,
+          (SELECT COUNT(*) FROM submissions s WHERE s.user_id = u.id) AS submissions_count,
+          (SELECT COUNT(*) FROM checkins   c WHERE c.user_id = u.id) AS checkins_count
+         FROM users u
+         WHERE u.id != '00000000-0000-0000-0000-000000000000'
+         ORDER BY u.banned_at IS NULL ASC, u.created_at DESC
+         LIMIT 200`,
+    ).all<UserRow>(),
   ]);
 
   const reportKioskNames = new Map<string, string>();
@@ -103,13 +129,16 @@ moderate.get("/moderate", async (c) => {
           active={tab === "reports"}
           label={`Korrekturen (${reportRows.length})`}
         />
+        <TabLink
+          href="/moderate?tab=users"
+          active={tab === "users"}
+          label={`Konten (${users.results.length})`}
+        />
       </nav>
 
-      {tab === "submissions" ? (
-        <SubmissionQueue rows={subs.results} />
-      ) : (
-        <ReportQueue rows={reportRows} />
-      )}
+      {tab === "submissions" && <SubmissionQueue rows={subs.results} />}
+      {tab === "reports" && <ReportQueue rows={reportRows} />}
+      {tab === "users" && <UsersQueue rows={users.results} />}
     </Layout>,
   );
 });
@@ -276,6 +305,60 @@ function EmptyQueue({ label }: { label: string }) {
   );
 }
 
+function UsersQueue({ rows }: { rows: UserRow[] }) {
+  if (rows.length === 0) return <EmptyQueue label="Keine Konten." />;
+  const fmt = (n: number) => new Date(n * 1000).toLocaleDateString("de-DE");
+  return (
+    <ul class="divide-y-2 divide-border border-2 border-border bg-surface">
+      {rows.map((u) => {
+        const banned = u.banned_at !== null;
+        return (
+          <li class={`flex flex-wrap items-center gap-4 p-4 ${banned ? "bg-danger/5" : ""}`}>
+            <div class="min-w-0 flex-1">
+              <p class="font-display text-sm tracking-wide text-fg">
+                {u.username ? (
+                  <span class="font-mono text-neon-cyan">@{u.username}</span>
+                ) : (
+                  (u.display_name ?? u.email)
+                )}
+                {u.role !== "user" && (
+                  <span class="ml-2 border border-border-hi px-1.5 py-0.5 text-xs uppercase tracking-wider text-fg-muted">
+                    {u.role}
+                  </span>
+                )}
+                {banned && (
+                  <span class="ml-2 border-2 border-danger bg-danger/10 px-1.5 py-0.5 text-xs uppercase tracking-wider text-danger">
+                    banned · {fmt(u.banned_at!)}
+                  </span>
+                )}
+              </p>
+              <p class="mt-1 text-xs text-fg-dim">
+                {u.email} · seit {fmt(u.created_at)}
+              </p>
+              <p class="mt-1 text-xs font-mono tabular-nums text-fg-muted">
+                ratings={u.ratings_count} · reports={u.reports_count} · submissions=
+                {u.submissions_count} · checkins={u.checkins_count}
+              </p>
+            </div>
+            <form action={`/api/moderate/users/${u.id}/${banned ? "unban" : "ban"}`} method="post">
+              <button
+                type="submit"
+                class={
+                  banned
+                    ? "cursor-pointer border-2 border-neon-cyan px-3 py-1.5 font-display text-sm tracking-wide text-neon-cyan hover:bg-neon-cyan hover:text-bg"
+                    : "cursor-pointer border-2 border-danger px-3 py-1.5 font-display text-sm tracking-wide text-danger hover:bg-danger hover:text-bg"
+                }
+              >
+                {banned ? "Entbannen" : "Shadow-bannen"}
+              </button>
+            </form>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 // ── decision endpoints ──────────────────────────────────────────────────────
 
 moderate.post("/api/moderate/submissions/:id/approve", async (c) => {
@@ -374,4 +457,24 @@ moderate.post("/api/moderate/reports/:id/reject", async (c) => {
   if (!row) return c.text("report not pending", 404);
   await rejectReport(c.env, row, moderator, note);
   return c.redirect("/moderate?tab=reports");
+});
+
+// ── shadow-ban ──────────────────────────────────────────────────────────────
+
+const DELETED_USER_SENTINEL = "00000000-0000-0000-0000-000000000000";
+
+moderate.post("/api/moderate/users/:id/ban", async (c) => {
+  const id = c.req.param("id");
+  if (id === DELETED_USER_SENTINEL) return c.text("cannot ban sentinel", 400);
+  const now = Math.floor(Date.now() / 1000);
+  await c.env.DB.prepare(`UPDATE users SET banned_at = ? WHERE id = ? AND banned_at IS NULL`)
+    .bind(now, id)
+    .run();
+  return c.redirect("/moderate?tab=users");
+});
+
+moderate.post("/api/moderate/users/:id/unban", async (c) => {
+  const id = c.req.param("id");
+  await c.env.DB.prepare(`UPDATE users SET banned_at = NULL WHERE id = ?`).bind(id).run();
+  return c.redirect("/moderate?tab=users");
 });
