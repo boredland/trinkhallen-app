@@ -29,6 +29,10 @@ export interface SessionUser {
   displayName: string | null;
   avatarUrl: string | null;
   role: "user" | "moderator" | "admin";
+  /** True iff the row was created via magic-link and the user hasn't linked
+   *  Google yet (google_sub still has the synthetic "email:<addr>" prefix).
+   *  Used by /me to surface a "Connect Google" affordance. */
+  isMagicLinkOnly: boolean;
 }
 
 const encoder = new TextEncoder();
@@ -66,7 +70,8 @@ export async function loadSession(c: Context<{ Bindings: Env }>): Promise<Sessio
 
   const row = await c.env.DB.prepare(
     `SELECT s.id AS sid, s.expires_at AS expires_at,
-              u.id AS user_id, u.email, u.username, u.display_name, u.avatar_url, u.role
+              u.id AS user_id, u.email, u.username, u.display_name, u.avatar_url, u.role,
+              u.google_sub
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.id = ?`,
   )
@@ -80,6 +85,7 @@ export async function loadSession(c: Context<{ Bindings: Env }>): Promise<Sessio
       display_name: string | null;
       avatar_url: string | null;
       role: "user" | "moderator" | "admin";
+      google_sub: string;
     }>();
 
   if (!row) return null;
@@ -114,6 +120,7 @@ export async function loadSession(c: Context<{ Bindings: Env }>): Promise<Sessio
     displayName: row.display_name,
     avatarUrl: row.avatar_url,
     role: row.role,
+    isMagicLinkOnly: row.google_sub.startsWith("email:"),
   };
 }
 

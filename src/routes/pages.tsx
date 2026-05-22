@@ -1056,6 +1056,7 @@ interface ProfileUser {
   displayName: string | null;
   avatarUrl: string | null;
   role: "user" | "moderator" | "admin";
+  isMagicLinkOnly: boolean;
 }
 
 async function renderProfile(
@@ -1133,10 +1134,25 @@ async function renderProfile(
           <Stat n={reports.length} label="Korrekturen" />
           <Stat n={submissions.length} label="Vorschläge" />
         </dl>
+        {user.isMagicLinkOnly && (
+          <div class="mt-6 border-2 border-border-hi bg-surface-2 p-4">
+            <p class="text-sm text-fg-muted">
+              Du bist mit E-Mail angemeldet. Mit Google verbinden, um schneller anzumelden — wir
+              ergänzen dein Profilbild und behalten alle deine Bewertungen und Korrekturen.
+            </p>
+            <a
+              href="/auth/google"
+              class="mt-3 inline-flex items-center gap-2 border-2 border-neon-cyan bg-transparent px-3 py-1.5 font-display tracking-wider uppercase text-neon-cyan transition-colors hover:bg-neon-cyan hover:text-bg"
+            >
+              <span aria-hidden="true">▶</span>
+              Google verbinden
+            </a>
+          </div>
+        )}
         <form action="/auth/logout" method="post" class="mt-6">
           <button
             type="submit"
-            class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg-muted transition-colors hover:border-neon-pink hover:text-neon-pink"
+            class="cursor-pointer border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg-muted transition-colors hover:border-neon-pink hover:text-neon-pink"
           >
             Abmelden
           </button>

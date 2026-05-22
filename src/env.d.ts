@@ -28,6 +28,7 @@ declare module "hono" {
       displayName: string | null;
       avatarUrl: string | null;
       role: "user" | "moderator" | "admin";
+      isMagicLinkOnly: boolean;
     };
   }
 }

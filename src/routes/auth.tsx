@@ -174,6 +174,7 @@ export async function attachUser(
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
       role: user.role,
+      isMagicLinkOnly: user.isMagicLinkOnly,
     });
   }
   await next();
