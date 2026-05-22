@@ -48,12 +48,15 @@ async function renderFragmentOrRedirect(
   kioskId: string,
   userId: string,
 ) {
-  const wantsHtml = (c.req.header("accept") ?? "").includes("text/html");
+  // Client island sends `X-Tk-Fragment: 1` and swaps `#rating-block` in place.
+  // A plain form submit (no JS) lacks the header and falls through to the
+  // redirect so the full kiosk page re-renders with the new rating.
+  const wantsFragment = c.req.header("X-Tk-Fragment") === "1";
   const [aggregate, own] = await Promise.all([
     getAggregate(c.env, kioskId),
     getOwnRating(c.env, kioskId, userId),
   ]);
-  if (wantsHtml) {
+  if (wantsFragment) {
     return c.html(
       <RatingBlock kioskId={kioskId} aggregate={aggregate} own={own} isLoggedIn={true} />,
     );

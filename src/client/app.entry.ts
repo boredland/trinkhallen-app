@@ -18,6 +18,7 @@ import "@fontsource/anton/latin-400.css";
 import "@fontsource/anton/latin-ext-400.css";
 import { installCheckinForm } from "./checkin";
 import { installLogoutForm } from "./logout";
+import { installRatingForm } from "./rating";
 import { installKioskSheet } from "./sheet";
 
 // ── Theme toggle ────────────────────────────────────────────────────────────
@@ -229,6 +230,9 @@ window.addEventListener("tk:sheet-body-swapped", () => installCheckinForm());
 // Logout — intercepts the form submit so we can drop the SW runtime cache
 // before navigating; otherwise the cached logged-in shell flashes back.
 installLogoutForm();
+
+// Star rating + form submit interception for the kiosk detail page.
+installRatingForm();
 
 // Service worker — caches assets + tile bytes for fast repeat visits
 // and basic offline (last map view + last viewed pages stay accessible).
