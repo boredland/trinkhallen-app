@@ -257,6 +257,24 @@ async function renderMapPage(
           data-focus-lng={focusLng !== undefined ? String(focusLng) : undefined}
           data-focus-lat={focusLat !== undefined ? String(focusLat) : undefined}
         />
+        {/* Legal footer overlay — fullBleed hides the global Footer, but TMG
+            §5 expects the Impressum to be reachable from every page. Sits
+            bottom-left so it doesn't collide with MapLibre's attribution
+            control at bottom-right. */}
+        <nav class="pointer-events-none absolute bottom-2 left-2 z-10 flex gap-3 text-xs text-fg-dim/80">
+          <a
+            class="pointer-events-auto bg-bg/70 px-1.5 py-0.5 backdrop-blur-sm hover:text-neon-cyan"
+            href="/impressum"
+          >
+            Impressum
+          </a>
+          <a
+            class="pointer-events-auto bg-bg/70 px-1.5 py-0.5 backdrop-blur-sm hover:text-neon-cyan"
+            href="/datenschutz"
+          >
+            Datenschutz
+          </a>
+        </nav>
         {/* Backdrop is a sibling of the sheet (transform ancestor would make
             position: fixed resolve to its bounds, not the viewport). */}
         <div
