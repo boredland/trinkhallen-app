@@ -1455,7 +1455,7 @@ async function renderProfile(
   const submittedFlag = c.req.query("submitted");
   const usernameFlag = c.req.query("username");
 
-  const [reportsRes, submissionsRes, ratingsCountRow] = await Promise.all([
+  const [reportsRes, submissionsRes, ratingsCountRow, checkinsCountRow] = await Promise.all([
     c.env.DB.prepare(
       `SELECT r.id, r.kiosk_id, r.kind, r.status, r.pr_url, r.created_at
          FROM reports r
@@ -1470,6 +1470,9 @@ async function renderProfile(
       .bind(user.id)
       .all<SubmissionListRow>(),
     c.env.DB.prepare(`SELECT COUNT(*) AS n FROM ratings WHERE user_id = ?`)
+      .bind(user.id)
+      .first<{ n: number }>(),
+    c.env.DB.prepare(`SELECT COUNT(*) AS n FROM checkins WHERE user_id = ?`)
       .bind(user.id)
       .first<{ n: number }>(),
   ]);
@@ -1488,6 +1491,7 @@ async function renderProfile(
   }));
   const submissions = submissionsRes.results;
   const ratingsCount = ratingsCountRow?.n ?? 0;
+  const checkinsCount = checkinsCountRow?.n ?? 0;
   const fmtDate = (s: number) => new Date(s * 1000).toLocaleDateString("de-DE");
 
   return c.html(
@@ -1517,7 +1521,8 @@ async function renderProfile(
             <p class="mt-1 text-xs uppercase tracking-wider text-fg-dim">Rolle: {user.role}</p>
           </div>
         </div>
-        <dl class="mt-6 grid grid-cols-3 gap-3 text-center">
+        <dl class="mt-6 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
+          <Stat n={checkinsCount} label="Check-ins" />
           <Stat n={ratingsCount} label="Bewertungen" />
           <Stat n={reports.length} label="Korrekturen" />
           <Stat n={submissions.length} label="Vorschläge" />
