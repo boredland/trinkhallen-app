@@ -51,7 +51,10 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
 }) => {
   const fullTitle = title ? `${title} · ${SITE}` : SITE;
   const canonical = canonicalUrl ?? ORIGIN + (nav === "about" ? "/about" : "/");
-  const ogImage = `${ORIGIN}/apple-touch-icon.svg`;
+  // 1200×630 PNG — Slack/Discord/Twitter/LinkedIn all want this aspect
+  // ratio for a proper preview card. Generated from the brand wordmark
+  // via scripts/og-render.ts → public/og-1200x630.png.
+  const ogImage = `${ORIGIN}/og-1200x630.png`;
   const isMapPage = clientEntries.includes("map") || clientEntries.includes("pick");
   const jsonLdBlocks = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
@@ -69,8 +72,15 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonical} />
         <meta property="og:image" content={ogImage} />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta
+          property="og:image:alt"
+          content="trinkhallen.app — Karte deutscher Trinkhallen, Wasserhäuschen und Spätis"
+        />
         <meta property="og:locale" content="de_DE" />
-        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={fullTitle} />
         <meta name="twitter:description" content={description} />
         <meta name="twitter:image" content={ogImage} />
