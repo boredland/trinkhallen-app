@@ -569,8 +569,15 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 Kommentar auf jeder Detailseite (Login nötig).
               </li>
               <li>
-                <span class="font-display text-fg">Korrigieren:</span> „Daten falsch?"-Knopf auf der
-                Detailseite → öffnet ein GitHub-Issue zur Moderation.
+                <span class="font-display text-fg">Warst du hier?</span> Auf der Detailseite mit
+                einem Tap einchecken — wenn Daten fehlen (Öffnungszeiten, Zahlung, Sitzen, WC, …),
+                fragt das Formular kurz nach. Antworten gehen durch Moderation und landen als PR im
+                Datensatz.
+              </li>
+              <li>
+                <span class="font-display text-fg">Korrigieren:</span> „Daten falsch?"-Bereich deckt
+                geschlossen, doppelter Eintrag, falsche Adresse usw. ab. Moderation öffnet eine PR
+                (oder ein Issue für Fälle, die nicht automatisch patchbar sind).
               </li>
               <li>
                 <span class="font-display text-fg">Vorschlagen:</span>{" "}
@@ -596,11 +603,17 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <section>
             <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Stack</h2>
             <ul class="mt-3 space-y-1.5 text-sm text-fg-muted">
-              <li>Cloudflare Workers · Hono · TypeScript · D1 (SQLite)</li>
-              <li>MapLibre GL JS · OSM-Raster (PMTiles folgt)</li>
-              <li>Tailwind CSS v4 · Anton / Inter · keine Tracker</li>
-              <li>Auth: Magic-Link via Cloudflare Email Sending, Google SSO</li>
-              <li>Weekly OSM-Ingest via GitHub Actions + Overpass API</li>
+              <li>Cloudflare Workers · Hono SSR · TypeScript · D1 (SQLite)</li>
+              <li>MapLibre GL JS · OpenFreeMap (Vektor-Tiles, ohne API-Key)</li>
+              <li>Tailwind CSS v4 · Anton / Inter · keine Tracker, kein Analytics</li>
+              <li>
+                Auth: Magic-Link per Mail (Cloudflare Email Routing) oder Google SSO — mit
+                automatischem Merge der beiden bei gleicher Adresse.
+              </li>
+              <li>
+                Wöchentliches OSM-Ingest + Daten-Anreicherung (Öffnungszeiten, Zahlung, Place-IDs)
+                per GitHub Actions Pipeline.
+              </li>
             </ul>
           </section>
 

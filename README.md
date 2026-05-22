@@ -13,16 +13,19 @@ client. Kiosk data is **static**: the trinkhallen-data repo is shallow-cloned
 at build time and its per-region `data/<state>/<city>.geojson` files are
 copied into `dist/static/data/`, served via the Workers Assets binding. The
 client picks the files intersecting the viewport from a manifest and unions
-them; below zoom 9 a single `_summary.geojson` renders one bubble per region.
+them; below zoom 9 four pre-baked supercluster snapshots
+(`_summary_z5..z8.geojson`) drive a refined per-zoom overview without
+loading any region files.
 
 D1 stays small and holds only **user-generated content**:
 
 | Table | What |
 |---|---|
-| `users`, `sessions`, `magic_links` | Auth (Google SSO + magic-link fallback) |
+| `users`, `sessions`, `magic_links` | Auth — Google SSO + magic-link, set-once `username`, transparent linking |
 | `ratings` | 1–5 stars + optional comment, one per user per kiosk |
+| `reports` | Edit requests (`wrong_hours`, `wrong_address`, `wrong_name`, `closed`, `update_payment`, `update_tags`, `duplicate`, `other`) |
 | `submissions` | Proposed new kiosks (form → moderator approval → PR) |
-| `reports` | Edit requests on existing kiosks (form → moderator → PR or Issue) |
+| `checkins` | "Ich war hier" event log — per (kiosk, user, day) UNIQUE, `verified` if geolocation matched within 100 m. No UI reads it yet; captured for a future leaderboard. |
 
 There is **no** `kiosks` table any more — the map, side panel, `/k/:id`, and
 the `nearest`/bbox APIs all read from the static assets via
@@ -92,30 +95,39 @@ src/
   index.ts                Hono entry, middleware, route registration
   env.d.ts                Cloudflare bindings + Hono context types
   routes/
-    pages.tsx             SSR pages (/, /about, /k/:id, /me, /add, /moderate)
+    pages.tsx             SSR pages (/, /about, /stadt/:slug, /k/:id, /add,
+                          /me, /me/username, /moderate, /impressum, /datenschutz)
     api.kiosks.tsx        Legacy fallback API — map reads /data/* directly
     api.ratings.tsx       Stars + comment writeback
-    api.reports.tsx       "Daten falsch?" submission
+    api.reports.tsx       Gap-fill + "Daten falsch?" submissions (eight kinds)
     api.submissions.tsx   "Späti vorschlagen" submission
-    auth.tsx              Google SSO + magic-link, session middleware
+    api.checkins.tsx      Silent "Ich war hier" event log
+    auth.tsx              Google SSO + magic-link, transparent merge by email
     moderate.tsx          /moderate UI + approve/reject endpoints
   lib/
     asset-kiosks.ts       Reads /data/*.geojson via env.ASSETS.fetch, caches per isolate
     db.ts                 KioskRecord shape (no D1 queries any more)
     filters.ts            Query-string ⇄ KioskFilter, applies on the server side
-    ratings.ts, magic.ts, session.ts, moderation.ts, github*.ts, …
+    checkins.ts           recordCheckin + region-slug derivation
+    usernames.ts          Validation + reserved-slug list + set-once UPDATE
+    moderation.ts         Approve/reject → auto-PR / Issue via GitHub App
+    ratings.ts, magic.ts, session.ts, github*.ts, …
   client/
-    map.entry.ts          MapLibre island
-    region-store.ts       Fetches manifest + per-region geojsons, caches
+    map.entry.ts          MapLibre island (per-zoom summary layers + clusters)
+    region-store.ts       Fetches manifest + per-region geojsons + summaries, caches
     client-filters.ts     Client-side mirror of lib/filters.ts (fuse + opening_hours bundled)
-    app.entry.ts          Alpine + filter form + sidebar collapse
+    app.entry.ts          Theme + filter form + sidebar + island installers
+    checkin.ts            "Ich war hier" + gap-fill form interceptor
+    logout.ts             Clears SW runtime cache before redirecting
+    sheet.ts              Slide-over kiosk-detail sheet
     pick.entry.ts         /add flow's pickable map
 public/
   _headers                Cache-Control rules consumed by Workers Assets
-  sw.js                   Service worker (4 caches: static, tiles, data, runtime)
-  manifest.webmanifest, marker-kiosk.svg, …
+  sw.js                   Service worker (4 caches; /me, /moderate, /add, /auth pass through)
+  logo-{180,512,1024}.png, manifest.webmanifest, …
 scripts/
-  import-data.ts          Build-time data import from trinkhallen-data
+  import-data.ts          Build-time data import from trinkhallen-data,
+                          generates per-zoom supercluster snapshots
   write-asset-manifest.ts Vite hashed-asset manifest → src/lib/manifest.generated.ts
 migrations/
   0001_init.sql           users, sessions, ratings, reports, submissions
@@ -123,6 +135,8 @@ migrations/
   0003_moderation.sql     approved_by / approved_at / moderator_note
   0004_drop_kiosks.sql    Kiosks moved to static assets
   0005_indexes.sql        users(email), ratings(user_id)
+  0006_checkins.sql       checkins table + extend reports.kind CHECK
+  0007_username.sql       users.username + case-insensitive UNIQUE index
 ```
 
 ## Caching
