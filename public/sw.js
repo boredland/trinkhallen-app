@@ -26,7 +26,7 @@
  * Bump VERSION below to invalidate everything.
  */
 
-const VERSION = "v4";
+const VERSION = "v5";
 const STATIC_CACHE = `tk-static-${VERSION}`;
 const TILES_CACHE = `tk-tiles-${VERSION}`;
 const DATA_CACHE = `tk-data-${VERSION}`;
@@ -35,13 +35,19 @@ const ALL_CACHES = [STATIC_CACHE, TILES_CACHE, DATA_CACHE, RUNTIME_CACHE];
 
 const TILES_HOSTS = new Set(["tiles.openfreemap.org"]);
 const STATIC_PATH_PREFIXES = ["/assets/", "/favicon.svg", "/apple-touch-icon.svg"];
+// Per-user / auth-sensitive paths — never cache these. The HTML differs
+// per session (logged-in chrome, profile data, moderation queue) and a
+// stale-while-revalidate snapshot would flash the wrong state on the
+// first paint after any auth transition.
+const PRIVATE_PATH_PREFIXES = ["/me", "/moderate", "/add", "/auth"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   // Pre-warm the app shell so the first offline visit lands on something.
+  // `/me` is intentionally NOT pre-warmed — it's a per-user page.
   event.waitUntil(
     caches.open(RUNTIME_CACHE).then((cache) =>
-      cache.addAll(["/", "/about", "/me"]).catch(() => {
+      cache.addAll(["/", "/about"]).catch(() => {
         // best-effort; offline-during-install is fine
       }),
     ),
@@ -110,7 +116,16 @@ self.addEventListener("fetch", (event) => {
   // the cached SSR HTML instantly, then refresh in the background. The
   // SSR is cheap (single-digit ms) so users on a fresh deploy see new
   // HTML within one navigation.
+  // EXCEPT per-user / auth-sensitive paths: those bypass the SW entirely
+  // so the user sees their actual current state, not a leftover snapshot
+  // from a prior session.
   if (req.mode === "navigate") {
+    if (
+      url.origin === self.location.origin &&
+      PRIVATE_PATH_PREFIXES.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`))
+    ) {
+      return; // pass through to the network
+    }
     event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
     return;
   }
