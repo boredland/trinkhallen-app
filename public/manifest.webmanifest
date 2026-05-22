@@ -41,5 +41,21 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Karte mit Filtern und Kiosk-Liste — bundesweite Übersicht."
+    },
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "824x1830",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Detailseite eines Spätis mit Öffnungszeiten, Adresse und Navigation."
+    }
   ]
 }
