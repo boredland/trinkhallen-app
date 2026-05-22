@@ -25,6 +25,7 @@ export const SESSION_TTL_SEC = 30 * 24 * 60 * 60;
 export interface SessionUser {
   id: string;
   email: string;
+  username: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   role: "user" | "moderator" | "admin";
@@ -65,7 +66,7 @@ export async function loadSession(c: Context<{ Bindings: Env }>): Promise<Sessio
 
   const row = await c.env.DB.prepare(
     `SELECT s.id AS sid, s.expires_at AS expires_at,
-              u.id AS user_id, u.email, u.display_name, u.avatar_url, u.role
+              u.id AS user_id, u.email, u.username, u.display_name, u.avatar_url, u.role
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.id = ?`,
   )
@@ -75,6 +76,7 @@ export async function loadSession(c: Context<{ Bindings: Env }>): Promise<Sessio
       expires_at: number;
       user_id: string;
       email: string;
+      username: string | null;
       display_name: string | null;
       avatar_url: string | null;
       role: "user" | "moderator" | "admin";
@@ -108,6 +110,7 @@ export async function loadSession(c: Context<{ Bindings: Env }>): Promise<Sessio
   return {
     id: row.user_id,
     email: row.email,
+    username: row.username,
     displayName: row.display_name,
     avatarUrl: row.avatar_url,
     role: row.role,

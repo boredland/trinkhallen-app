@@ -170,6 +170,7 @@ export async function attachUser(
     c.set("user", {
       id: user.id,
       email: user.email,
+      username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
       role: user.role,
@@ -209,6 +210,7 @@ async function upsertUser(
     now: number;
   },
 ): Promise<string> {
+  // 1. Already-linked account — direct google_sub hit.
   const existing = await db
     .prepare(`SELECT id FROM users WHERE google_sub = ?`)
     .bind(args.googleSub)
@@ -221,6 +223,32 @@ async function upsertUser(
       .run();
     return existing.id;
   }
+
+  // 2. Magic-link signup being linked to Google. Both Google and our own
+  //    magic-link have verified this email, so transparently upgrading the
+  //    row is safe. Guard on `email:` prefix so a real Google sub belonging
+  //    to a different person sharing the email never gets clobbered.
+  //    COALESCE keeps any display_name/avatar_url the user set themselves
+  //    over the Google profile fields.
+  const byEmail = await db
+    .prepare(`SELECT id, google_sub FROM users WHERE email = ?`)
+    .bind(args.email)
+    .first<{ id: string; google_sub: string }>();
+  if (byEmail?.google_sub.startsWith("email:")) {
+    await db
+      .prepare(
+        `UPDATE users
+            SET google_sub = ?,
+                display_name = COALESCE(display_name, ?),
+                avatar_url = COALESCE(avatar_url, ?)
+          WHERE id = ?`,
+      )
+      .bind(args.googleSub, args.displayName, args.avatarUrl, byEmail.id)
+      .run();
+    return byEmail.id;
+  }
+
+  // 3. Brand-new user.
   const id = crypto.randomUUID();
   await db
     .prepare(

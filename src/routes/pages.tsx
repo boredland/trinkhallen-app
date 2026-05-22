@@ -18,6 +18,7 @@ import { parseBbox } from "../lib/geo";
 import { computeStatus } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
+import { setUsername } from "../lib/usernames";
 
 const ORIGIN = "https://trinkhallen.app";
 
@@ -1003,6 +1004,17 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     }
     return renderProfile(c, user);
   });
+
+  // Set-once username. The handler enforces validation + UNIQUE + IS NULL at
+  // the SQL layer; the form on /me only renders when the column is null.
+  app.post("/me/username", async (c) => {
+    const user = c.get("user");
+    if (!user) return c.redirect("/me");
+    if (user.username) return c.redirect("/me?username=already_set");
+    const raw = ((await c.req.formData()).get("username") ?? "").toString();
+    const result = await setUsername(c.env.DB, user.id, raw);
+    return c.redirect(`/me?username=${result}`);
+  });
 }
 
 interface ReportListRow {
@@ -1025,6 +1037,7 @@ interface SubmissionListRow {
 interface ProfileUser {
   id: string;
   email: string;
+  username: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   role: "user" | "moderator" | "admin";
@@ -1036,6 +1049,7 @@ async function renderProfile(
 ): Promise<Response> {
   const reportedFlag = c.req.query("reported");
   const submittedFlag = c.req.query("submitted");
+  const usernameFlag = c.req.query("username");
 
   const [reportsRes, submissionsRes, ratingsCountRow] = await Promise.all([
     c.env.DB.prepare(
@@ -1092,9 +1106,10 @@ async function renderProfile(
           )}
           <div>
             <h1 class="font-display text-3xl tracking-wide text-fg">
-              {user.displayName ?? user.email}
+              {user.displayName ?? user.username ?? user.email}
             </h1>
             <p class="text-fg-muted">{user.email}</p>
+            {user.username && <p class="mt-1 font-mono text-sm text-neon-cyan">@{user.username}</p>}
             <p class="mt-1 text-xs uppercase tracking-wider text-fg-dim">Rolle: {user.role}</p>
           </div>
         </div>
@@ -1121,6 +1136,63 @@ async function renderProfile(
       {reportedFlag === "ok" && (
         <div class="mt-6 border-2 border-success/60 bg-success/10 p-4 text-success">
           ▶▶▶ Hinweis gespeichert. Danke!
+        </div>
+      )}
+
+      {!user.username && (
+        <section class="mt-6 border-2 border-border bg-surface p-6">
+          <h2 class="font-display text-xl tracking-wide text-fg">Username wählen</h2>
+          <p class="mt-2 text-fg-muted">
+            Wähl dir einen Handle — 3–24 Zeichen, Kleinbuchstaben, Zahlen, Unterstrich. Einmal
+            gewählt, nicht änderbar.
+          </p>
+          {usernameFlag === "invalid" && (
+            <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
+              Nur Kleinbuchstaben, Zahlen, Unterstrich. 3–24 Zeichen.
+            </p>
+          )}
+          {usernameFlag === "reserved" && (
+            <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
+              Dieser Username ist reserviert. Wähl einen anderen.
+            </p>
+          )}
+          {usernameFlag === "taken" && (
+            <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
+              Schon vergeben. Wähl einen anderen.
+            </p>
+          )}
+          <form
+            action="/me/username"
+            method="post"
+            class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-stretch"
+          >
+            <label class="flex-1">
+              <span class="sr-only">Username</span>
+              <input
+                type="text"
+                name="username"
+                required
+                minLength={3}
+                maxLength={24}
+                pattern="[a-z0-9_]{3,24}"
+                placeholder="z.B. jonas_s"
+                class="w-full border-2 border-border-hi bg-surface-2 px-3 py-2.5 font-mono text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
+              />
+            </label>
+            <button type="submit" class="btn-neon shrink-0">
+              ▶ Username setzen
+            </button>
+          </form>
+        </section>
+      )}
+      {user.username && usernameFlag === "ok" && (
+        <div class="mt-6 border-2 border-success/60 bg-success/10 p-4 text-success">
+          ▶▶▶ Username gesetzt: <span class="font-mono">@{user.username}</span>
+        </div>
+      )}
+      {usernameFlag === "already_set" && (
+        <div class="mt-6 border-2 border-danger/60 bg-danger/10 p-4 text-danger">
+          Username ist schon gesetzt — Änderungen sind nicht möglich.
         </div>
       )}
 
