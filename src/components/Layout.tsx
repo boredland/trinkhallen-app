@@ -5,6 +5,7 @@ import { asset, type ClientEntry } from "../lib/assets";
 export interface LayoutUser {
   id: string;
   email: string;
+  username: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   role: "user" | "moderator" | "admin";
@@ -187,26 +188,7 @@ const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | und
           <span data-theme-icon>☾</span>
         </button>
         {user ? (
-          <a
-            href="/me"
-            class="flex items-center gap-2 border-2 border-border-hi px-2 py-1 font-display text-sm tracking-wide text-fg transition-colors hover:border-neon-pink hover:text-neon-pink"
-          >
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt=""
-                width="24"
-                height="24"
-                class="rounded-full"
-                referrerpolicy="no-referrer"
-              />
-            ) : (
-              <span class="grid h-6 w-6 place-items-center bg-neon-pink/20 text-xs text-neon-pink">
-                {initials(user)}
-              </span>
-            )}
-            <span class="hidden sm:inline">{shortName(user)}</span>
-          </a>
+          <UserButton user={user} />
         ) : (
           <a
             href="/me"
@@ -220,18 +202,110 @@ const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | und
   </header>
 );
 
-function shortName(user: LayoutUser): string {
-  if (user.displayName) return user.displayName.split(" ")[0]!;
-  return user.email.split("@")[0]!;
+type HeaderIdentity =
+  | { kind: "handle"; username: string; avatarUrl: string | null }
+  | { kind: "named"; firstName: string; avatarUrl: string | null }
+  | { kind: "anonymous" };
+
+/**
+ * Pick the strongest identity signal the user actually owns. The email
+ * local-part is intentionally absent — it's a system address half, not a
+ * name. A user-set `username` outranks the auto-populated `display_name`
+ * because the user deliberately chose it.
+ */
+function identifyForHeader(user: LayoutUser): HeaderIdentity {
+  if (user.username) {
+    return { kind: "handle", username: user.username, avatarUrl: user.avatarUrl };
+  }
+  if (user.displayName) {
+    return {
+      kind: "named",
+      firstName: user.displayName.split(/\s+/)[0] ?? user.displayName,
+      avatarUrl: user.avatarUrl,
+    };
+  }
+  return { kind: "anonymous" };
 }
-function initials(user: LayoutUser): string {
-  const name = user.displayName ?? user.email;
-  const parts = name.split(/\s+|@/).filter(Boolean);
-  return parts
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join("");
-}
+
+const UserButton: FC<{ user: LayoutUser }> = ({ user }) => {
+  const id = identifyForHeader(user);
+
+  if (id.kind === "handle") {
+    return (
+      <a
+        href="/me"
+        class="group inline-flex items-center gap-2 border-2 border-border-hi px-2 py-1 transition-colors hover:border-neon-pink"
+        aria-label={`Profil von @${id.username}`}
+      >
+        {id.avatarUrl ? (
+          <img
+            src={id.avatarUrl}
+            alt=""
+            width="24"
+            height="24"
+            class="h-6 w-6 object-cover"
+            referrerpolicy="no-referrer"
+          />
+        ) : (
+          <span class="grid h-6 w-6 place-items-center bg-neon-pink/15 font-display text-xs text-neon-pink">
+            {id.username[0]!.toUpperCase()}
+          </span>
+        )}
+        <span class="hidden font-mono text-sm lowercase text-neon-cyan transition-colors group-hover:text-neon-pink sm:inline">
+          @{id.username}
+        </span>
+      </a>
+    );
+  }
+
+  if (id.kind === "named") {
+    return (
+      <a
+        href="/me"
+        class="group inline-flex items-center gap-2 border-2 border-border-hi px-2 py-1 transition-colors hover:border-neon-pink"
+        aria-label={`Profil von ${id.firstName}`}
+      >
+        {id.avatarUrl ? (
+          <img
+            src={id.avatarUrl}
+            alt=""
+            width="24"
+            height="24"
+            class="h-6 w-6 object-cover"
+            referrerpolicy="no-referrer"
+          />
+        ) : (
+          <span class="grid h-6 w-6 place-items-center bg-neon-pink/15 font-display text-xs text-neon-pink">
+            {id.firstName[0]!.toUpperCase()}
+          </span>
+        )}
+        <span class="hidden font-display text-sm tracking-wide uppercase text-fg transition-colors group-hover:text-neon-pink sm:inline">
+          {id.firstName}
+        </span>
+      </a>
+    );
+  }
+
+  // Anonymous: magic-link signup who hasn't picked a username yet. Sober
+  // "Profil" label, neutral glyph badge, single amber square in the corner
+  // as the only contrast — a quiet "incomplete" cue, not a notification dot.
+  return (
+    <a
+      href="/me"
+      class="group relative inline-flex items-center gap-2 border-2 border-border-hi px-2 py-1 transition-colors hover:border-neon-pink"
+      title="Username noch nicht gewählt"
+      aria-label="Profil — Username noch nicht gewählt"
+    >
+      <span class="relative grid h-6 w-6 place-items-center border border-border bg-bg font-display text-xs text-fg-muted transition-colors group-hover:border-neon-pink group-hover:text-neon-pink">
+        <span aria-hidden="true">◉</span>
+        <span class="-top-px -right-px absolute h-1.5 w-1.5 bg-neon-amber" aria-hidden="true" />
+      </span>
+      <span class="hidden font-display text-sm tracking-wide uppercase text-fg-muted transition-colors group-hover:text-neon-pink sm:inline">
+        Profil
+      </span>
+    </a>
+  );
+};
 
 const NavLink: FC<{ href: string; active: boolean; label: string }> = ({ href, active, label }) => (
   <a
