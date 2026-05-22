@@ -320,23 +320,27 @@ const NavLink: FC<{ href: string; active: boolean; label: string }> = ({ href, a
 
 const Footer: FC = () => (
   <footer class="mt-16 border-t-2 border-border">
-    <div class="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-fg-dim sm:flex-row sm:justify-between">
+    <div class="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-fg-dim sm:flex-row sm:items-center sm:justify-between">
       <p>
         Daten: CC BY-NC 4.0 ·{" "}
         <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="/about">
           Über &amp; Mitwirken
         </a>
       </p>
-      <p>
-        Inspiriert von{" "}
+      <nav class="flex flex-wrap gap-x-4 gap-y-1">
+        <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="/impressum">
+          Impressum
+        </a>
+        <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="/datenschutz">
+          Datenschutz
+        </a>
         <a
           class="underline-offset-2 hover:text-neon-cyan hover:underline"
           href="https://app.hopfenstop.de/"
         >
           HopfenStop
         </a>
-        · OSM &amp; Mitwirkende
-      </p>
+      </nav>
     </div>
   </footer>
 );

@@ -650,6 +650,311 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     );
   });
 
+  app.get("/impressum", (c) =>
+    c.html(
+      <Layout
+        title="Impressum"
+        description="Impressum von trinkhallen.app — Angaben gemäß §5 TMG."
+        canonicalUrl="https://trinkhallen.app/impressum"
+        nav="about"
+        user={c.get("user")}
+      >
+        <article class="space-y-8">
+          <header>
+            <h1 class="font-display text-4xl tracking-wide text-fg sm:text-5xl">Impressum</h1>
+            <p class="mt-3 text-fg-muted">Angaben gemäß § 5 TMG</p>
+          </header>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Betreiber</h2>
+            <address class="mt-3 not-italic text-fg-muted">
+              Jonas Strassel
+              <br />
+              Am Kappelgarten 24
+              <br />
+              60389 Frankfurt am Main
+              <br />
+              Deutschland
+            </address>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Kontakt</h2>
+            <p class="mt-3 text-fg-muted">
+              E-Mail:{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="mailto:feedback@trinkhallen.app"
+              >
+                feedback@trinkhallen.app
+              </a>
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">
+              Verantwortlich für den Inhalt
+            </h2>
+            <p class="mt-3 text-fg-muted">
+              Jonas Strassel (Anschrift wie oben). trinkhallen.app ist ein nicht-kommerzielles
+              Open-Source-Projekt; der Datensatz lebt in einem öffentlichen{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://github.com/boredland/trinkhallen-data"
+              >
+                GitHub-Repository
+              </a>{" "}
+              und wird von der Community gepflegt.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Haftung für Inhalte</h2>
+            <p class="mt-3 text-fg-muted">
+              Die Inhalte dieser Seite wurden mit größtmöglicher Sorgfalt erstellt. Für die
+              Richtigkeit, Vollständigkeit und Aktualität der Kiosk-Daten (Öffnungszeiten,
+              Zahlungsmethoden, Standort etc.) kann jedoch keine Gewähr übernommen werden — sie
+              stammen aus offenen Quellen (OpenStreetMap, Community-Beiträge) und können veraltet
+              sein.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Haftung für Links</h2>
+            <p class="mt-3 text-fg-muted">
+              Diese Seite enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen
+              Einfluss haben. Für diese fremden Inhalte ist stets der jeweilige Anbieter
+              verantwortlich. Bei Bekanntwerden von Rechtsverletzungen werden entsprechende Links
+              umgehend entfernt.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Urheberrecht</h2>
+            <p class="mt-3 text-fg-muted">
+              Der Quellcode dieser Anwendung steht unter{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://www.gnu.org/licenses/agpl-3.0.de.html"
+              >
+                AGPL-3.0-or-later
+              </a>
+              , der Datensatz unter{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://creativecommons.org/licenses/by-nc/4.0/deed.de"
+              >
+                CC BY-NC 4.0
+              </a>
+              . Kartendaten © OpenStreetMap-Mitwirkende (
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://www.openstreetmap.org/copyright"
+              >
+                ODbL
+              </a>
+              ).
+            </p>
+          </section>
+        </article>
+      </Layout>,
+    ),
+  );
+
+  app.get("/datenschutz", (c) =>
+    c.html(
+      <Layout
+        title="Datenschutz"
+        description="Datenschutzerklärung von trinkhallen.app — welche Daten wir verarbeiten, warum, und wie du deine Rechte ausübst."
+        canonicalUrl="https://trinkhallen.app/datenschutz"
+        nav="about"
+        user={c.get("user")}
+      >
+        <article class="space-y-8">
+          <header>
+            <h1 class="font-display text-4xl tracking-wide text-fg sm:text-5xl">
+              Datenschutzerklärung
+            </h1>
+            <p class="mt-3 text-fg-muted">
+              Wir speichern so wenig wie möglich. Keine Tracker, kein Analytics, keine Werbung. Was
+              wir verarbeiten und warum, steht hier vollständig.
+            </p>
+          </header>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Verantwortlicher</h2>
+            <address class="mt-3 not-italic text-fg-muted">
+              Jonas Strassel
+              <br />
+              Am Kappelgarten 24
+              <br />
+              60389 Frankfurt am Main
+              <br />
+              E-Mail:{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="mailto:feedback@trinkhallen.app"
+              >
+                feedback@trinkhallen.app
+              </a>
+            </address>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Anonyme Nutzung der Karte</h2>
+            <p class="mt-3 text-fg-muted">
+              Du kannst die Karte vollständig anonym benutzen — ohne Konto, ohne Login. Beim Aufruf
+              der Seite werden technisch unvermeidbare Daten (IP-Adresse, User-Agent, angeforderte
+              URL) in den Server-Logs unseres Hosters Cloudflare protokolliert. Rechtsgrundlage:
+              Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an Betrieb und Sicherheit der
+              Seite). Speicherdauer: maximal 30 Tage.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">
+              Login per E-Mail (Magic Link)
+            </h2>
+            <p class="mt-3 text-fg-muted">
+              Wenn du dich per Magic-Link anmeldest, speichern wir deine E-Mail-Adresse, eine
+              gehashte Version des Einmal-Tokens sowie IP-Adresse und User-Agent (für
+              Missbrauchsschutz). Der Token wird nach Einlösung oder spätestens 15 Minuten ungültig.
+              Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Durchführung des Nutzungsverhältnisses).
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Login per Google</h2>
+            <p class="mt-3 text-fg-muted">
+              Wenn du dich per Google anmeldest, erhalten wir von Google deine E-Mail-Adresse,
+              deinen Namen, dein Profilbild und eine stabile interne ID. Bei der Weiterleitung zu
+              Google teilt dein Browser deine IP-Adresse mit Google. Wir verarbeiten die Daten
+              ausschließlich, um dich wiederzuerkennen und dir deine Inhalte (Bewertungen,
+              Korrekturen, Check-ins) zuzuordnen. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO; die
+              Datenübermittlung an Google erfolgt nur, wenn du den Login aktiv anstößt.
+            </p>
+            <p class="mt-3 text-fg-muted">
+              Anbieter: Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland.
+              Datenschutz:{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://policies.google.com/privacy"
+              >
+                policies.google.com/privacy
+              </a>
+              .
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Sitzungs-Cookie</h2>
+            <p class="mt-3 text-fg-muted">
+              Bist du eingeloggt, setzen wir ein einziges Sitzungs-Cookie (
+              <code class="font-mono">__Host-tk_sess</code>
+              ), das eine zufällige, kryptographisch signierte ID enthält. Es ist
+              <code class="font-mono"> HttpOnly</code>, <code class="font-mono">Secure</code> und
+              läuft nach 30 Tagen ohne Aktivität ab. Wir verwenden keine Tracking- oder
+              Marketing-Cookies. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (für den Betrieb
+              technisch notwendig).
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Eigene Beiträge</h2>
+            <p class="mt-3 text-fg-muted">
+              Bewertungen, Daten-Korrekturen, Späti-Vorschläge und Check-ins werden mit deinem
+              Nutzerkonto verknüpft gespeichert. Freigegebene Korrekturen und Vorschläge werden
+              außerdem als Pull-Request in das öffentliche{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://github.com/boredland/trinkhallen-data"
+              >
+                trinkhallen-data
+              </a>
+              -Repository übernommen und sind dort dauerhaft Teil der offenen Geschichte. Der dort
+              vermerkte „user-id" ist ein zufälliger UUID-Wert ohne Personenbezug für Außenstehende.
+              Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">
+              Drittanbieter &amp; Datenübermittlung
+            </h2>
+            <ul class="mt-3 space-y-3 text-fg-muted">
+              <li>
+                <strong class="text-fg">Cloudflare</strong> (Workers, D1-Datenbank, Edge-Cache):
+                Hosting der Anwendung. Standort: weltweit. Auftragsverarbeitungsvertrag (DPA) und
+                Standardvertragsklauseln liegen vor.
+              </li>
+              <li>
+                <strong class="text-fg">Google</strong>: nur wenn du den Google-Login nutzt (siehe
+                oben).
+              </li>
+              <li>
+                <strong class="text-fg">OpenFreeMap</strong>: liefert die Kartenkacheln. Beim
+                Anzeigen der Karte teilt dein Browser deine IP-Adresse mit OpenFreeMap, um die
+                Kacheln auszuliefern. Anbieter:{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://openfreemap.org/"
+                >
+                  openfreemap.org
+                </a>
+                .
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Speicherdauer</h2>
+            <p class="mt-3 text-fg-muted">
+              Konto- und Beitragsdaten bleiben gespeichert, solange dein Konto besteht. Lösche dein
+              Konto, indem du eine kurze Mail an die oben genannte Adresse schickst — wir löschen es
+              innerhalb von 14 Tagen. Server-Logs werden nach maximal 30 Tagen automatisch
+              verworfen. Magic-Link-Token sind nach Einlösung oder 15 Minuten ungültig.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Deine Rechte</h2>
+            <p class="mt-3 text-fg-muted">
+              Du hast jederzeit das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16),
+              Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit
+              (Art. 20) und Widerspruch (Art. 21). Eine kurze Mail an{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="mailto:feedback@trinkhallen.app"
+              >
+                feedback@trinkhallen.app
+              </a>{" "}
+              reicht.
+            </p>
+            <p class="mt-3 text-fg-muted">
+              Außerdem hast du das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren
+              — für uns zuständig:{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://datenschutz.hessen.de/"
+              >
+                Der Hessische Beauftragte für Datenschutz und Informationsfreiheit
+              </a>
+              .
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Änderungen</h2>
+            <p class="mt-3 text-fg-muted">
+              Diese Erklärung kann sich ändern, wenn wir das Angebot weiterentwickeln. Der jeweils
+              aktuelle Stand steht hier. Wesentliche Änderungen kündigen wir vor Inkrafttreten an.
+            </p>
+          </section>
+        </article>
+      </Layout>,
+    ),
+  );
+
   app.get("/k/:id", async (c) => {
     const id = c.req.param("id");
     const user = c.get("user");

@@ -170,6 +170,8 @@ function main(): void {
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     `  <url><loc>${base}/</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq></url>`,
     `  <url><loc>${base}/about</loc><lastmod>${today}</lastmod></url>`,
+    `  <url><loc>${base}/impressum</loc><lastmod>${today}</lastmod></url>`,
+    `  <url><loc>${base}/datenschutz</loc><lastmod>${today}</lastmod></url>`,
     // Per-city directory pages (one per region in the manifest).
     ...manifest.map(
       (r) =>
