@@ -100,9 +100,9 @@ export function formatHoursTable(
     const rows: { days: string; hours: string }[] = [];
     let i = 0;
     while (i < 7) {
-      const key = daySlots[i]!.join(", ");
+      const hoursStr = daySlots[i]!.join(", ");
       let j = i + 1;
-      while (j < 7 && daySlots[j]!.join(", ") === key) j++;
+      while (j < 7 && daySlots[j]!.join(", ") === hoursStr) j++;
 
       const count = j - i;
       // i and j-1 are both in [0,6]; DAY_LABELS_DE has exactly 7 entries.
@@ -113,7 +113,7 @@ export function formatHoursTable(
             ? `${DAY_LABELS_DE[i]!}, ${DAY_LABELS_DE[j - 1]!}`
             : DAY_LABELS_DE[i]!;
 
-      rows.push({ days: dayLabel, hours: key || "geschlossen" });
+      rows.push({ days: dayLabel, hours: hoursStr || "geschlossen" });
       i = j;
     }
 
