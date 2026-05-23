@@ -420,21 +420,30 @@ moderate.post("/api/moderate/reports/:id/approve", async (c) => {
   if (!row) return c.text("report not actionable", 404);
   const kiosk = await getKioskById(c.env, row.kiosk_id);
   if (!kiosk) return c.text("report kiosk not found in dataset", 404);
-  await approveReport(
-    c.env,
-    {
-      id: row.id,
-      kiosk_id: row.kiosk_id,
-      user_id: row.user_id,
-      kind: row.kind,
-      payload: row.payload,
-      status: row.status,
-      pr_url: row.pr_url,
-      created_at: row.created_at,
-    },
-    { id: kiosk.id, region: kiosk.region, name: kiosk.name },
-    moderator,
-  );
+  try {
+    await approveReport(
+      c.env,
+      {
+        id: row.id,
+        kiosk_id: row.kiosk_id,
+        user_id: row.user_id,
+        kind: row.kind,
+        payload: row.payload,
+        status: row.status,
+        pr_url: row.pr_url,
+        created_at: row.created_at,
+      },
+      { id: kiosk.id, region: kiosk.region, name: kiosk.name },
+      moderator,
+    );
+  } catch (err) {
+    // Surface the underlying failure (GitHub API non-2xx, branch conflict,
+    // missing feature, …) so the moderator UI shows something actionable
+    // instead of a generic 500. Logs to wrangler tail too.
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`approveReport(${row.id}) failed:`, msg);
+    return c.text(`approve failed: ${msg}`, 500);
+  }
   return c.redirect("/moderate?tab=reports");
 });
 
