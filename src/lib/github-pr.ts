@@ -51,6 +51,14 @@ async function getBranchSha(token: string, branch: string): Promise<string> {
   return data.object.sha;
 }
 
+/**
+ * Read a file from a ref.
+ *
+ * The Contents API caps inline `content` at 1MB — files larger than that
+ * come back with `encoding: "none"` and an empty `content` field, with the
+ * blob SHA on the side. For those we fetch the actual bytes via the Git
+ * Data API's blob endpoint (limit: 100MB, plenty for our geojsons).
+ */
 async function getFile(token: string, path: string, ref: string): Promise<FileGet | null> {
   const resp = await authedFetch(
     token,
@@ -59,45 +67,135 @@ async function getFile(token: string, path: string, ref: string): Promise<FileGe
   if (resp.status === 404) return null;
   if (!resp.ok) throw new Error(`getFile ${path}: HTTP ${resp.status}`);
   const data = (await resp.json()) as { content: string; encoding: string; sha: string };
-  if (data.encoding !== "base64") throw new Error(`unexpected encoding ${data.encoding}`);
-  return { content: atobUtf8(data.content), sha: data.sha };
-}
-
-async function createBranch(token: string, branch: string, fromSha: string): Promise<void> {
-  const resp = await authedFetch(token, `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/git/refs`, {
-    method: "POST",
-    body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: fromSha }),
-  });
-  if (!resp.ok && resp.status !== 422) {
-    // 422 = ref already exists; we recover by using the existing branch.
-    throw new Error(`createBranch ${branch}: HTTP ${resp.status}`);
+  if (data.encoding === "base64") return { content: atobUtf8(data.content), sha: data.sha };
+  if (data.encoding === "none") {
+    const content = await getBlobContent(token, data.sha);
+    return { content, sha: data.sha };
   }
+  throw new Error(`getFile ${path}: unexpected encoding ${data.encoding}`);
 }
 
-async function putFile(args: {
+async function getBlobContent(token: string, blobSha: string): Promise<string> {
+  const resp = await authedFetch(
+    token,
+    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/git/blobs/${blobSha}`,
+  );
+  if (!resp.ok) throw new Error(`getBlob ${blobSha}: HTTP ${resp.status}`);
+  const data = (await resp.json()) as { content: string; encoding: string };
+  if (data.encoding !== "base64") {
+    throw new Error(`getBlob ${blobSha}: unexpected encoding ${data.encoding}`);
+  }
+  return atobUtf8(data.content);
+}
+
+/**
+ * Write a file change on a fresh branch using the Git Data API.
+ *
+ * The Contents PUT endpoint has the same 1MB limit as the Contents GET, so
+ * for our larger region files we drop down to the explicit blob → tree →
+ * commit → ref dance. Trade-off: 4 round-trips instead of 1, but unconstrained
+ * by file size and avoids the size-class branching that would otherwise have
+ * to live in every caller.
+ */
+async function commitFileOnNewBranch(args: {
   token: string;
   path: string;
   branch: string;
+  baseCommitSha: string;
   content: string;
-  sha: string;
   message: string;
 }): Promise<void> {
-  const resp = await authedFetch(
+  // 1. Upload the new file content as a blob.
+  const blobResp = await authedFetch(
     args.token,
-    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/contents/${encodeURIComponent(args.path)}`,
+    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/git/blobs`,
     {
-      method: "PUT",
+      method: "POST",
+      body: JSON.stringify({ content: args.content, encoding: "utf-8" }),
+    },
+  );
+  if (!blobResp.ok) {
+    const txt = await blobResp.text().catch(() => "");
+    throw new Error(`createBlob: HTTP ${blobResp.status}: ${txt.slice(0, 200)}`);
+  }
+  const blob = (await blobResp.json()) as { sha: string };
+
+  // 2. Get the base commit's tree SHA so we can build a delta tree.
+  const baseCommitResp = await authedFetch(
+    args.token,
+    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/git/commits/${args.baseCommitSha}`,
+  );
+  if (!baseCommitResp.ok) {
+    throw new Error(`getCommit ${args.baseCommitSha}: HTTP ${baseCommitResp.status}`);
+  }
+  const baseCommit = (await baseCommitResp.json()) as { tree: { sha: string } };
+
+  // 3. Create a tree that's `base_tree` plus our single-file change.
+  const treeResp = await authedFetch(
+    args.token,
+    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/git/trees`,
+    {
+      method: "POST",
       body: JSON.stringify({
-        message: args.message,
-        content: btoaUtf8(args.content),
-        sha: args.sha,
-        branch: args.branch,
+        base_tree: baseCommit.tree.sha,
+        tree: [{ path: args.path, mode: "100644", type: "blob", sha: blob.sha }],
       }),
     },
   );
-  if (!resp.ok) {
-    const txt = await resp.text().catch(() => "");
-    throw new Error(`putFile ${args.path}: HTTP ${resp.status}: ${txt.slice(0, 200)}`);
+  if (!treeResp.ok) {
+    const txt = await treeResp.text().catch(() => "");
+    throw new Error(`createTree: HTTP ${treeResp.status}: ${txt.slice(0, 200)}`);
+  }
+  const tree = (await treeResp.json()) as { sha: string };
+
+  // 4. Wrap that tree in a commit, parented on the base commit.
+  const commitResp = await authedFetch(
+    args.token,
+    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/git/commits`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        message: args.message,
+        tree: tree.sha,
+        parents: [args.baseCommitSha],
+      }),
+    },
+  );
+  if (!commitResp.ok) {
+    const txt = await commitResp.text().catch(() => "");
+    throw new Error(`createCommit: HTTP ${commitResp.status}: ${txt.slice(0, 200)}`);
+  }
+  const commit = (await commitResp.json()) as { sha: string };
+
+  // 5. Create the branch ref pointing at the new commit. 422 = ref already
+  //    exists from a prior failed attempt; force-update it so retries don't
+  //    leave us stuck with stale state.
+  const refResp = await authedFetch(
+    args.token,
+    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/git/refs`,
+    {
+      method: "POST",
+      body: JSON.stringify({ ref: `refs/heads/${args.branch}`, sha: commit.sha }),
+    },
+  );
+  if (!refResp.ok) {
+    if (refResp.status === 422) {
+      const patchResp = await authedFetch(
+        args.token,
+        `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/git/refs/heads/${args.branch}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ sha: commit.sha, force: true }),
+        },
+      );
+      if (!patchResp.ok) {
+        const txt = await patchResp.text().catch(() => "");
+        throw new Error(`updateRef ${args.branch}: HTTP ${patchResp.status}: ${txt.slice(0, 200)}`);
+      }
+      return;
+    }
+    const txt = await refResp.text().catch(() => "");
+    throw new Error(`createRef ${args.branch}: HTTP ${refResp.status}: ${txt.slice(0, 200)}`);
   }
 }
 
@@ -178,30 +276,20 @@ export async function proposeChange(
   const next = args.mutate(file.content);
   if (next === file.content) return null;
 
-  const baseSha = await getBranchSha(token, DEFAULT_BRANCH);
-  await createBranch(token, args.branch, baseSha);
-
-  // The file SHA on the new branch matches main's at this point.
-  await putFile({
+  const baseCommitSha = await getBranchSha(token, DEFAULT_BRANCH);
+  await commitFileOnNewBranch({
     token,
     path: args.path,
     branch: args.branch,
+    baseCommitSha,
     content: next,
-    sha: file.sha,
     message: args.commitMessage,
   });
 
   return openPr({ token, branch: args.branch, title: args.prTitle, body: args.prBody });
 }
 
-// ── base64 helpers that survive non-ASCII ───────────────────────────────────
-
-function btoaUtf8(s: string): string {
-  const bytes = new TextEncoder().encode(s);
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]!);
-  return btoa(bin);
-}
+// ── base64 helper that survives non-ASCII (German umlauts in the data) ──────
 
 function atobUtf8(b64: string): string {
   const bin = atob(b64.replace(/\s+/g, ""));
