@@ -3,6 +3,7 @@ import type { KioskRecord } from "../lib/db";
 import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, formatHoursTable, formatStatus } from "../lib/opening-hours";
 import type { Aggregate, RatingRow } from "../lib/ratings";
+import type { UserKioskReport } from "../lib/reports";
 import { tagLabel } from "../lib/tags";
 import { CheckinForm } from "./CheckinForm";
 import { RatingBlock } from "./RatingBlock";
@@ -35,7 +36,8 @@ export const KioskDetail: FC<{
   ownRating: RatingRow | null;
   isLoggedIn: boolean;
   nearby?: NearbyKiosk[];
-}> = ({ kiosk, userAgent, aggregate, ownRating, isLoggedIn, nearby }) => {
+  userReports?: UserKioskReport[];
+}> = ({ kiosk, userAgent, aggregate, ownRating, isLoggedIn, nearby, userReports = [] }) => {
   const status = computeStatus(kiosk.hours?.raw);
   const statusLabel = formatStatus(status);
   const hoursTable = formatHoursTable(kiosk.hours?.raw);
@@ -200,7 +202,7 @@ export const KioskDetail: FC<{
         <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
           Warst du hier?
         </h2>
-        <CheckinForm kiosk={kiosk} isLoggedIn={isLoggedIn} />
+        <CheckinForm kiosk={kiosk} isLoggedIn={isLoggedIn} userReports={userReports} />
       </section>
 
       <section class="border-b-2 border-border p-6">
@@ -219,7 +221,12 @@ export const KioskDetail: FC<{
         <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
           Daten falsch?
         </h2>
-        <ReportForm kioskId={kiosk.id} isLoggedIn={isLoggedIn} currentHoursRaw={kiosk.hours?.raw} />
+        <ReportForm
+          kioskId={kiosk.id}
+          isLoggedIn={isLoggedIn}
+          currentHoursRaw={kiosk.hours?.raw}
+          userReports={userReports}
+        />
       </section>
 
       {nearby && nearby.length > 0 && (

@@ -18,6 +18,7 @@ import { parseBbox } from "../lib/geo";
 import { computeStatus } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
+import { getUserReports, kindLabel } from "../lib/reports";
 import { destroySession } from "../lib/session";
 import { setUsername } from "../lib/usernames";
 import { countUsers } from "../lib/users";
@@ -1011,10 +1012,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         404,
       );
     }
-    const [aggregate, ownRating, nearbyHits] = await Promise.all([
+    const [aggregate, ownRating, nearbyHits, userReports] = await Promise.all([
       getAggregate(c.env, kiosk.id),
       user ? getOwnRating(c.env, kiosk.id, user.id) : Promise.resolve(null),
       findNearbyKiosks(c.env, { lat: kiosk.lat, lng: kiosk.lng }, kiosk.id, 5),
+      user ? getUserReports(c.env, kiosk.id, user.id) : Promise.resolve([]),
     ]);
     const nearby = nearbyHits.map(({ record, distance }) => ({
       id: record.id,
@@ -1032,6 +1034,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         ownRating={ownRating}
         isLoggedIn={!!user}
         nearby={nearby}
+        userReports={userReports}
       />
     );
     // ?partial=1 → bare HTML the client sheet fetches when an in-app
@@ -1751,17 +1754,6 @@ async function renderProfile(
       </section>
     </Layout>,
   );
-}
-
-const KIND_LABEL_DE: Record<string, string> = {
-  wrong_hours: "Öffnungszeiten",
-  wrong_address: "Adresse",
-  closed: "Geschlossen",
-  duplicate: "Duplikat",
-  other: "Sonstiges",
-};
-function kindLabel(k: string): string {
-  return KIND_LABEL_DE[k] ?? k;
 }
 
 function Stat({ n, label }: { n: number; label: string }) {

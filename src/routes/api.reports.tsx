@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
+import { hasBlockingReport } from "../lib/reports";
 import { AMENITY_TAGS, isAmenityTag } from "../lib/tags";
 
 export const apiReports = new Hono<{ Bindings: Env }>();
@@ -30,6 +31,13 @@ apiReports.post("/api/reports", async (c) => {
 
   const kiosk = await getKioskById(c.env, kioskId);
   if (!kiosk) return c.text("Kiosk nicht gefunden", 404);
+
+  // One report per (user, kiosk, kind) at a time. The UI already filters
+  // out kinds the user has in flight, but a stale tab + a fresh submit can
+  // still race — reject here too.
+  if (await hasBlockingReport(c.env, kioskId, user.id, kind)) {
+    return c.text("Du hast diese Kategorie für diesen Späti bereits gemeldet.", 409);
+  }
 
   // Capture per-kind structured payload so moderators see a one-glance diff.
   const payload: Record<string, unknown> = {};

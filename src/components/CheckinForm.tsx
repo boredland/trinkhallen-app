@@ -1,5 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
+import { kindLabel, statusLabel, type UserKioskReport } from "../lib/reports";
 import { AMENITY_TAGS, tagLabel } from "../lib/tags";
 
 /**
@@ -36,10 +37,11 @@ const AMENITY_ICONS: Record<string, string> = {
   geldautomat: "🏧",
 };
 
-export const CheckinForm: FC<{ kiosk: KioskRecord; isLoggedIn: boolean }> = ({
-  kiosk,
-  isLoggedIn,
-}) => {
+export const CheckinForm: FC<{
+  kiosk: KioskRecord;
+  isLoggedIn: boolean;
+  userReports?: UserKioskReport[];
+}> = ({ kiosk, isLoggedIn, userReports = [] }) => {
   if (!isLoggedIn) {
     return (
       <p class="text-sm text-fg-muted">
@@ -53,6 +55,11 @@ export const CheckinForm: FC<{ kiosk: KioskRecord; isLoggedIn: boolean }> = ({
 
   const hoursMissing = !kiosk.hours?.raw;
   const missingPayment = PAYMENT_ORDER.filter((k) => !kiosk.payment?.[k]);
+  // A group is "answered" by this user when there's a non-rejected report
+  // of that kind in flight — hide the form, swap in a "Danke!" stub
+  // mirroring what client/checkin.ts renders right after a fresh submit.
+  const reportByKind = new Map(userReports.map((r) => [r.kind, r]));
+  const isAnswered = (kind: string): boolean => reportByKind.has(kind);
 
   return (
     <div data-checkin data-kiosk-id={kiosk.id} class="space-y-4">
@@ -70,14 +77,53 @@ export const CheckinForm: FC<{ kiosk: KioskRecord; isLoggedIn: boolean }> = ({
           Was hat gefehlt? Jede Antwort hilft. Du kannst auch nichts angeben.
         </p>
 
-        {hoursMissing && <HoursGroup kioskId={kiosk.id} />}
-        {missingPayment.length > 0 && <PaymentGroup kioskId={kiosk.id} missing={missingPayment} />}
-        <AmenitiesGroup kioskId={kiosk.id} present={new Set(kiosk.tags)} />
-        <NameGroup kioskId={kiosk.id} currentName={kiosk.name} />
+        {hoursMissing &&
+          (isAnswered("wrong_hours") ? (
+            <AnsweredStub report={reportByKind.get("wrong_hours")!} />
+          ) : (
+            <HoursGroup kioskId={kiosk.id} />
+          ))}
+        {missingPayment.length > 0 &&
+          (isAnswered("update_payment") ? (
+            <AnsweredStub report={reportByKind.get("update_payment")!} />
+          ) : (
+            <PaymentGroup kioskId={kiosk.id} missing={missingPayment} />
+          ))}
+        {isAnswered("update_tags") ? (
+          <AnsweredStub report={reportByKind.get("update_tags")!} />
+        ) : (
+          <AmenitiesGroup kioskId={kiosk.id} present={new Set(kiosk.tags)} />
+        )}
+        {isAnswered("wrong_name") ? (
+          <AnsweredStub report={reportByKind.get("wrong_name")!} />
+        ) : (
+          <NameGroup kioskId={kiosk.id} currentName={kiosk.name} />
+        )}
       </div>
     </div>
   );
 };
+
+const AnsweredStub: FC<{ report: UserKioskReport }> = ({ report }) => (
+  <p class="border-2 border-border bg-bg p-4 text-sm text-fg-muted">
+    <span class="font-display text-xs tracking-wider uppercase text-fg-dim">
+      {kindLabel(report.kind)} —{" "}
+    </span>
+    {report.pr_url ? (
+      <a
+        class="text-neon-cyan underline-offset-2 hover:underline"
+        href={report.pr_url}
+        target="_blank"
+        rel="noopener"
+      >
+        {statusLabel(report.status)} →
+      </a>
+    ) : (
+      <span>{statusLabel(report.status)}</span>
+    )}
+    . Danke!
+  </p>
+);
 
 // ── group components ─────────────────────────────────────────────────────────
 

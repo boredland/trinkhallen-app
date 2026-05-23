@@ -80,7 +80,14 @@ async function onFormSubmit(form: HTMLFormElement): Promise<void> {
       body: new FormData(form),
     });
     if (!resp.ok) {
-      // Light-touch failure UX: re-enable the submit so the user can retry.
+      // 409 = duplicate report (same user, kiosk, kind). Server returns a
+      // German message; surface it so the user sees why their submit didn't
+      // land instead of staring at a silently re-enabled button.
+      if (resp.status === 409) {
+        const msg = (await resp.text()).trim() || "Bereits gemeldet.";
+        form.outerHTML = `<p class="border-2 border-border bg-bg p-4 text-sm italic text-fg-muted">${escapeHtml(msg)}</p>`;
+        return;
+      }
       if (submitBtn) submitBtn.disabled = false;
       return;
     }
@@ -89,6 +96,15 @@ async function onFormSubmit(form: HTMLFormElement): Promise<void> {
   } catch {
     if (submitBtn) submitBtn.disabled = false;
   }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function tryGeolocate(): Promise<{ lat: number; lng: number } | null> {
