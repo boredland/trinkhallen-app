@@ -14,7 +14,7 @@
 import type { Env } from "../env";
 import { hasGithubAppCreds } from "./github-app";
 import { openIssueViaPr, proposeChange } from "./github-pr";
-import { resolveRegionByCoords, resolveRegionByPath } from "./regions";
+import { resolveRegionByCoords, resolveRegionBySlug } from "./regions";
 
 const APP_ORIGIN = "https://trinkhallen.app";
 
@@ -242,10 +242,14 @@ export async function approveReport(
     return openReportAsIssue(env, report, kiosk, moderator, payload);
   }
 
-  // Map the kiosk's stored region back to a Region entry. The stored region
-  // string carries the file's `data/<...>` path (set in seed/sync).
-  const region =
-    resolveRegionByPath(`${kiosk.region}.geojson`) ?? resolveRegionByPath(kiosk.region) ?? null;
+  // Map the kiosk's stored region slug back to a Region entry.
+  // `kiosk.region` is a slug like "frankfurt" — set by asset-kiosks.ts when
+  // it materialises a feature into a KioskRecord. Earlier this code looked
+  // up by *path*, which never matched (slug ≠ path) → every report fell
+  // through to openReportAsIssue and produced a GitHub issue instead of a
+  // PR. resolveRegionBySlug carries the path back so proposeChange can
+  // target the correct geojson file.
+  const region = resolveRegionBySlug(kiosk.region);
   if (!region) {
     return openReportAsIssue(env, report, kiosk, moderator, payload);
   }
