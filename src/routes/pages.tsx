@@ -20,6 +20,7 @@ import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
 import { destroySession } from "../lib/session";
 import { setUsername } from "../lib/usernames";
+import { countUsers } from "../lib/users";
 
 const ORIGIN = "https://trinkhallen.app";
 
@@ -494,7 +495,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 
   app.get("/about", async (c) => {
-    const [total, ratings] = await Promise.all([countKiosks(c.env), countRatings(c.env)]);
+    const [total, ratings, users] = await Promise.all([
+      countKiosks(c.env),
+      countRatings(c.env),
+      countUsers(c.env),
+    ]);
     return c.html(
       <Layout
         title="Über trinkhallen.app"
@@ -514,9 +519,10 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             </p>
           </header>
 
-          <section class="grid grid-cols-2 gap-4 sm:gap-6">
+          <section class="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3">
             <Metric value={total} label="Trinkhallen kartiert" />
             <Metric value={ratings} label="Bewertungen abgegeben" />
+            <Metric value={users} label="Registrierte Personen" />
           </section>
 
           <section>
