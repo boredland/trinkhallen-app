@@ -1,7 +1,7 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
 import { buildNavigateTargets } from "../lib/navigate";
-import { computeStatus, formatStatus } from "../lib/opening-hours";
+import { computeStatus, formatHoursTable, formatStatus } from "../lib/opening-hours";
 import type { Aggregate, RatingRow } from "../lib/ratings";
 import { tagLabel } from "../lib/tags";
 import { CheckinForm } from "./CheckinForm";
@@ -38,6 +38,7 @@ export const KioskDetail: FC<{
 }> = ({ kiosk, userAgent, aggregate, ownRating, isLoggedIn, nearby }) => {
   const status = computeStatus(kiosk.hours?.raw);
   const statusLabel = formatStatus(status);
+  const hoursTable = formatHoursTable(kiosk.hours?.raw);
   const nav = buildNavigateTargets({
     name: kiosk.name,
     lat: kiosk.lat,
@@ -158,7 +159,18 @@ export const KioskDetail: FC<{
           <h2 class="mb-2 font-display text-sm tracking-wider uppercase text-fg-muted">
             Öffnungszeiten
           </h2>
-          <p class="font-mono text-fg">{kiosk.hours.raw}</p>
+          {hoursTable ? (
+            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-sm">
+              {hoursTable.map(({ days, hours }) => (
+                <>
+                  <dt class="text-fg-dim">{days}</dt>
+                  <dd class={hours === "geschlossen" ? "text-fg-muted" : "text-fg"}>{hours}</dd>
+                </>
+              ))}
+            </dl>
+          ) : (
+            <p class="font-mono text-fg">{kiosk.hours.raw}</p>
+          )}
         </section>
       )}
 
