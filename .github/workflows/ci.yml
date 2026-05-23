@@ -1,0 +1,29 @@
+name: ci
+
+# Lints, typechecks, and runs the test suite. Same checks lefthook runs on
+# commit — this is the safety net for direct pushes / external PRs.
+#
+# Cloudflare Workers Builds handles the actual deploy on every push to main;
+# this workflow exists to surface red checks before that runs.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun test

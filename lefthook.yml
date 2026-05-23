@@ -13,3 +13,11 @@ pre-commit:
     - name: typecheck
       glob: "*.{ts,tsx}"
       run: bunx tsc --noEmit
+
+    # Run the unit tests on every commit. `bun test` discovers *.test.ts
+    # files anywhere under src/. Fast enough (~50ms) that we don't gate it
+    # on which files changed — a passing suite per commit is worth more
+    # than the saved ms.
+    - name: test
+      glob: "*.{ts,tsx}"
+      run: bun test
