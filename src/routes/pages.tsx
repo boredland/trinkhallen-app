@@ -1767,10 +1767,14 @@ function kindLabel(k: string): string {
 }
 
 function Stat({ n, label }: { n: number; label: string }) {
+  // `text-status-open` is the theme-flippable amber (bright in dark mode,
+  // a darker amber in light mode) — neon-amber alone washes out over the
+  // warm-white surface-2 in light theme. Label moves up from fg-dim to
+  // fg-muted for the same reason.
   return (
     <div class="border-2 border-border bg-surface-2 py-3">
-      <div class="font-display text-3xl text-neon-amber tabular-nums">{n}</div>
-      <div class="text-xs uppercase tracking-wider text-fg-dim">{label}</div>
+      <div class="font-display text-3xl text-status-open tabular-nums">{n}</div>
+      <div class="text-xs uppercase tracking-wider text-fg-muted">{label}</div>
     </div>
   );
 }
