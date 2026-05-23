@@ -76,7 +76,6 @@ if (mount instanceof HTMLElement) {
     attributionControl: { compact: true },
   });
 
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
   const geolocate = new maplibregl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true, timeout: 8000 },
     trackUserLocation: false,
