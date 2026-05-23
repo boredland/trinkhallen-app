@@ -387,7 +387,13 @@ function applyReportPatch(
   } else if (kind === "wrong_name" && typeof payload["new_name"] === "string") {
     f.properties["name"] = payload["new_name"];
   } else if (kind === "closed") {
-    f.properties["closed"] = true;
+    // "Dauerhaft geschlossen" = the kiosk no longer exists. Remove the
+    // feature from the FeatureCollection. Setting a `closed: true` flag
+    // would silently fail the data repo's schema validation
+    // (additionalProperties: false) and nothing on the app side reads it
+    // anyway — the kiosk would keep showing up on the map.
+    doc.features.splice(idx, 1);
+    return `${JSON.stringify(doc, null, 2)}\n`;
   } else if (
     kind === "update_payment" &&
     payload["payment"] &&
@@ -423,7 +429,7 @@ function commitMessageForReport(kind: string, name: string): string {
     case "wrong_name":
       return `Fix name for ${name}`;
     case "closed":
-      return `Mark ${name} as closed`;
+      return `Delete ${name} (permanently closed)`;
     case "update_payment":
       return `Fill in payment methods for ${name}`;
     case "update_tags":
