@@ -326,9 +326,9 @@ async function renderMapPage(
         <aside
           data-sidebar
           data-collapsed="false"
-          class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex max-h-[80dvh] flex-col border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out data-[collapsed=true]:translate-y-full sm:top-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
+          class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 max-h-[80dvh] overflow-y-auto overscroll-contain border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out [touch-action:pan-y] data-[collapsed=true]:translate-y-full sm:top-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
         >
-          <div class="relative border-b-2 border-border p-3 pr-10">
+          <div class="sticky top-0 z-10 border-b-2 border-border bg-surface p-3 pr-10">
             <FilterChips filter={filter} formAction="/" />
             {/* Direction-aware glyph: ← on desktop (sidebar slides off left),
                 ↓ on mobile (sidebar slides off bottom). Ghost styling keeps
@@ -355,7 +355,6 @@ async function renderMapPage(
           </a>
           <div
             id="kiosk-panel"
-            class="min-h-0 flex-1 overflow-y-auto overscroll-contain [touch-action:pan-y]"
             data-panel-url={`/api/kiosks/panel${initialBbox ? `?bbox=${initialBbox.west},${initialBbox.south},${initialBbox.east},${initialBbox.north}` : ""}`}
           >
             {initialPanel}
@@ -477,7 +476,6 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             totalInBbox={total}
             filteredCount={total}
             openNowCount={openNowCount}
-            variant="page"
             userAgent={c.req.header("user-agent") ?? null}
           />
 

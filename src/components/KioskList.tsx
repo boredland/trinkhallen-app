@@ -20,8 +20,6 @@ export interface KioskListProps {
   openNowCount?: number;
   /** When set, list items render a distance label. Sorting happens upstream. */
   origin?: LatLng | undefined;
-  /** Wraps the list — defaults to a vertical scroll. The /list page uses block. */
-  variant?: "panel" | "page";
   /** When true, render a "× Filter zurücksetzen" link in the count row. */
   filterActive?: boolean;
   /** Where the reset link points; usually the host page sans query. */
@@ -34,7 +32,6 @@ export const KioskList: FC<KioskListProps> = ({
   totalInBbox,
   filteredCount,
   openNowCount,
-  variant = "panel",
   filterActive = false,
   resetHref,
   origin,
@@ -66,18 +63,13 @@ export const KioskList: FC<KioskListProps> = ({
   }
 
   return (
-    // The scrolling parent is `#kiosk-panel` (one level up) — keeping the
-    // overflow there means a single scroll container per device, which
-    // Safari Mobile is happy to drive with native flicks. The count
-    // header stays visually pinned via position: sticky.
+    // The scrolling parent is the `<aside data-sidebar>` two levels up:
+    // a single scroll container per device, which Safari Mobile is happy
+    // to drive with native flicks. The aside also owns its own sticky
+    // chip-header, so this count row stays inline (a second sticky in
+    // the same scroll container would just overlap the chip header).
     <div class="block">
-      <div
-        class={
-          variant === "panel"
-            ? "sticky top-0 z-10 flex items-center justify-between border-b-2 border-border bg-surface px-4 py-2 text-xs uppercase tracking-wider"
-            : "flex items-center justify-between border-b-2 border-border px-4 py-2 text-xs uppercase tracking-wider"
-        }
-      >
+      <div class="flex items-center justify-between border-b-2 border-border px-4 py-2 text-xs uppercase tracking-wider">
         <span class={isFiltered ? "text-neon-pink" : "text-fg-dim"}>
           {countLabel}
           {typeof openNowCount === "number" && openNowCount > 0 && (
