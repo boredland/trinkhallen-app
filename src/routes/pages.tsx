@@ -1461,6 +1461,7 @@ async function renderProfile(
   const reportedFlag = c.req.query("reported");
   const submittedFlag = c.req.query("submitted");
   const usernameFlag = c.req.query("username");
+  const linkFlag = c.req.query("link");
 
   const [reportsRes, submissionsRes, ratingsCountRow, checkinsCountRow] = await Promise.all([
     c.env.DB.prepare(
@@ -1567,6 +1568,17 @@ async function renderProfile(
       {reportedFlag === "ok" && (
         <div class="mt-6 border-2 border-success/60 bg-success/10 p-4 text-success">
           ▶▶▶ Hinweis gespeichert. Danke!
+        </div>
+      )}
+      {linkFlag === "ok" && (
+        <div class="mt-6 border-2 border-success/60 bg-success/10 p-4 text-success">
+          ▶▶▶ Google-Konto verknüpft.
+        </div>
+      )}
+      {linkFlag === "conflict" && (
+        <div class="mt-6 border-2 border-danger/60 bg-danger/10 p-4 text-danger">
+          ✗ Dieses Google-Konto ist bereits mit einem anderen Profil hier verbunden. Melde dich dort
+          an oder schreib uns, wenn wir die Konten zusammenführen sollen.
         </div>
       )}
 

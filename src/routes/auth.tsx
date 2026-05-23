@@ -70,6 +70,32 @@ auth.get("/auth/google/callback", async (c) => {
   }
 
   const now = Math.floor(Date.now() / 1000);
+  const currentUser = c.get("user");
+
+  // Already logged in and starting Google OAuth from /me → link mode. We
+  // trust the current session's identity (verified once via magic-link)
+  // and Google's identity (verified just now via OAuth), so attach the
+  // Google sub to the existing row regardless of whether the email
+  // addresses agree. The two halves of the merge are each independently
+  // verified, which is the security invariant that matters.
+  if (currentUser) {
+    const outcome = await linkGoogleToCurrentUser(c.env.DB, {
+      userId: currentUser.id,
+      googleSub: profile.id,
+      googleEmail: profile.email,
+      displayName: profile.name ?? profile.given_name ?? null,
+      avatarUrl: profile.picture ?? null,
+    });
+    if (outcome === "conflict") {
+      // Google sub is already attached to some *other* row. Refuse to
+      // re-point it — the user would need to sign in as that other
+      // account first if they want to consolidate.
+      return c.redirect("/me?link=conflict");
+    }
+    return c.redirect("/me?link=ok");
+  }
+
+  // Plain Google sign-in (no existing session).
   const userId = await upsertUser(c.env.DB, {
     googleSub: profile.id,
     email: profile.email,
@@ -178,6 +204,51 @@ export async function attachUser(
     });
   }
   await next();
+}
+
+/**
+ * Attach a Google identity to the currently-logged-in user. Used by the
+ * /me "Google verbinden" flow, where the security model is:
+ *   - The user proved they own this row in the past (magic-link email or
+ *     prior Google login), and the session cookie carries that.
+ *   - Google just freshly verified that the same browser controls a
+ *     Google account with sub=profile.id.
+ * Linking them is safe regardless of email match, so don't gate on it.
+ *
+ * Returns "ok" on success, "conflict" if the Google sub is already
+ * attached to a different account (which would need a separate
+ * consolidation flow to resolve safely).
+ */
+async function linkGoogleToCurrentUser(
+  db: D1Database,
+  args: {
+    userId: string;
+    googleSub: string;
+    googleEmail: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  },
+): Promise<"ok" | "conflict"> {
+  // Reject if Google sub already lives on a different row.
+  const other = await db
+    .prepare(`SELECT id FROM users WHERE google_sub = ? AND id != ?`)
+    .bind(args.googleSub, args.userId)
+    .first<{ id: string }>();
+  if (other) return "conflict";
+
+  // COALESCE keeps display_name/avatar_url the user already had (they
+  // may have come from a previous Google login, or be hand-set later).
+  await db
+    .prepare(
+      `UPDATE users
+          SET google_sub = ?,
+              display_name = COALESCE(display_name, ?),
+              avatar_url = COALESCE(avatar_url, ?)
+        WHERE id = ?`,
+    )
+    .bind(args.googleSub, args.displayName, args.avatarUrl, args.userId)
+    .run();
+  return "ok";
 }
 
 async function upsertUserByEmail(db: D1Database, email: string): Promise<string> {
