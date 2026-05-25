@@ -986,6 +986,34 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </section>
 
           <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">
+              Android-App (Trusted Web Activity)
+            </h2>
+            <p class="mt-3 text-fg-muted">
+              Die Android-App im Google Play Store (
+              <code class="font-mono">app.trinkhallen.twa</code>) ist eine{" "}
+              <em>Trusted Web Activity</em> — technisch lädt sie ausschließlich diese Website in
+              einem Vollbild-Browser-Container von Chrome. Es gibt keinen separaten App-Datenpfad,
+              keine zusätzlichen Tracker und keine über die oben beschriebenen Datenflüsse
+              hinausgehende Verarbeitung. Alle hier genannten Regeln zu Logging, Login, Cookies und
+              Beiträgen gelten für die App identisch.
+            </p>
+            <p class="mt-3 text-fg-muted">
+              Unabhängig davon erhebt Google Play beim Installieren, Aktualisieren oder
+              Deinstallieren der App technische Telemetrie (Geräte- und Android-Version, Land,
+              optionale Absturzberichte). Auf diese Daten haben wir keinen direkten Zugriff; sie
+              unterliegen den{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://policies.google.com/privacy"
+              >
+                Google-Datenschutzbestimmungen
+              </a>
+              . Push-Benachrichtigungen sind aktuell nicht aktiviert.
+            </p>
+          </section>
+
+          <section>
             <h2 class="font-display text-xl tracking-wide text-fg">Änderungen</h2>
             <p class="mt-3 text-fg-muted">
               Diese Erklärung kann sich ändern, wenn wir das Angebot weiterentwickeln. Der jeweils

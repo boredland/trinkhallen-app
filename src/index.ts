@@ -10,6 +10,7 @@ import { apiSubmissions } from "./routes/api.submissions.tsx";
 import { attachUser, auth } from "./routes/auth.tsx";
 import { moderate } from "./routes/moderate.tsx";
 import { registerPageRoutes } from "./routes/pages";
+import { wellKnown } from "./routes/well-known.tsx";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -50,6 +51,7 @@ app.route("/", apiRatings);
 app.route("/", apiReports);
 app.route("/", apiSubmissions);
 app.route("/", moderate);
+app.route("/", wellKnown);
 registerPageRoutes(app);
 
 app.notFound((c) => c.text("404 — Hier gibt's nix.", 404));

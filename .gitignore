@@ -29,3 +29,18 @@ pnpm-debug.log*
 .tmp/
 tmp/
 *.pem
+
+# Android / TWA build artifacts
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/app/*.iml
+android/store_icon.png
+*.keystore
+*.jks
+*.aab
+*.apk
+*.idsig
