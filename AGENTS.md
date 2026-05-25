@@ -34,8 +34,10 @@ package.json). On every `git commit`:
 - **biome check --write --files-ignore-unknown** on staged TS/TSX/JS/JSON,
   re-stages auto-fixes.
 - **tsc --noEmit** on the whole project.
+- **bun test** — discovers `*.test.ts` under `src/`, ~50 ms today, so it
+  runs unconditionally rather than guarding on changed files.
 
-Both run in parallel; total overhead ~3s. To bypass in an emergency:
+All three run in parallel; total overhead ~3s. To bypass in an emergency:
 `git commit --no-verify`.
 
 Biome config is in `biome.json`. Rule deviations vs. the recommended set
@@ -79,6 +81,16 @@ bun run db:migrate:remote
   `tiles.openfreemap.org`, no API key. If they go down, the map breaks
   with no fallback today. Adding a fallback would be a Workers KV /
   in-Assets style JSON that points at a raster source.
+- **`/.well-known/*` is served via Hono, not static assets.** New
+  well-known files (`assetlinks.json` today, anything else tomorrow) go
+  into `src/routes/well-known.tsx`. Don't drop files into
+  `public/.well-known/` — Workers Assets has special handling for
+  dot-prefixed directories that's easy to misconfigure, and serving via
+  Hono lets us set the right `content-type` + cache headers explicitly.
+- **`android/` is a generated TWA wrapper**, not hand-edited source. Most
+  changes flow from edits to `android/twa-manifest.json` → re-running
+  `bubblewrap update` (which regenerates the Gradle project). The Java
+  files there are scaffolding; treat them as read-only.
 
 ## Don'ts
 
