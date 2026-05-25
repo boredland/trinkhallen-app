@@ -948,6 +948,19 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 </a>
                 .
               </li>
+              <li>
+                <strong class="text-fg">Photon (Komoot)</strong>: füllt auf <code>/add</code> die
+                Adresse aus deiner gewählten Kartenposition vor. Dein Browser sendet die Koordinaten
+                an Photon (basiert auf OpenStreetMap-Daten), die IP-Adresse ist technisch
+                unvermeidbar. Anbieter: Komoot GmbH;{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://photon.komoot.io/"
+                >
+                  photon.komoot.io
+                </a>
+                .
+              </li>
             </ul>
           </section>
 
@@ -1160,7 +1173,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             <div id="pick-map" class="h-72 w-full border-2 border-border-hi bg-bg sm:h-96" />
             <p class="text-xs text-fg-dim">
               ▶ Klick auf die Karte, um die genaue Position zu setzen. Geolokalisierung
-              (Pfeil-Symbol oben rechts) füllt automatisch ein.
+              (Pfeil-Symbol oben rechts) füllt automatisch ein. Adresse wird aus der Kartenposition
+              vorbefüllt — du kannst sie überschreiben.
             </p>
             <div class="grid grid-cols-2 gap-3">
               <label>

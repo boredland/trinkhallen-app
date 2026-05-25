@@ -37,7 +37,9 @@ app.use(
       scriptSrc: ["'self'", "'unsafe-inline'"],
       workerSrc: ["'self'", "blob:"],
       // OpenFreeMap: style JSON + vector tiles + sprite metadata.
-      connectSrc: ["'self'", "https://tiles.openfreemap.org"],
+      // Photon: reverse-geocoding on /add to autofill the address from the
+      // user's picked coordinates.
+      connectSrc: ["'self'", "https://tiles.openfreemap.org", "https://photon.komoot.io"],
       frameAncestors: ["'none'"],
     },
   }),
