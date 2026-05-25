@@ -183,6 +183,37 @@ describe("applyReportPatch", () => {
     expect(doc.features[0]!.properties.tags).toEqual(["wc"]);
   });
 
+  it("appends `; PH open` to hours on ph_open_observed", () => {
+    const out = applyReportPatch(buildDoc(), "tk_fr_0042", "ph_open_observed", {
+      observation_date: "2026-10-03",
+      verified: true,
+    });
+    const doc = JSON.parse(out) as { features: Array<{ properties: Record<string, unknown> }> };
+    expect((doc.features[0]!.properties["hours"] as { raw: string }).raw).toBe(
+      "Mo-Fr 08:00-22:00; PH open",
+    );
+  });
+
+  it("refuses to double-write a PH rule on ph_open_observed", () => {
+    expect(() =>
+      applyReportPatch(
+        buildDoc({ hours: { raw: "Mo-Fr 08:00-22:00; PH off" } }),
+        "tk_fr_0042",
+        "ph_open_observed",
+        { observation_date: "2026-10-03", verified: true },
+      ),
+    ).toThrow(/already declares a PH rule/);
+  });
+
+  it("refuses ph_open_observed when target has no hours at all", () => {
+    expect(() =>
+      applyReportPatch(buildDoc({ hours: undefined }), "tk_fr_0042", "ph_open_observed", {
+        observation_date: "2026-10-03",
+        verified: true,
+      }),
+    ).toThrow(/no opening_hours/);
+  });
+
   it("throws for unknown kinds", () => {
     expect(() => applyReportPatch(buildDoc(), "tk_fr_0042", "made_up", {})).toThrow(
       /unsupported kind/,

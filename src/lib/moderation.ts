@@ -428,6 +428,21 @@ export function applyReportPatch(
     for (const tag of (payload["add_tags"] as string[] | undefined) ?? []) tags.add(tag);
     for (const tag of (payload["remove_tags"] as string[] | undefined) ?? []) tags.delete(tag);
     f.properties["tags"] = [...tags];
+  } else if (kind === "ph_open_observed") {
+    // Auto-filed by api.checkins when someone with a verified geolocation
+    // checks in on a Bundesland public holiday at a kiosk whose hours
+    // carry no PH rule. We append `; PH open` rather than inheriting the
+    // weekday hours because a single check-in only proves "open at some
+    // point during this PH", not the full opening window.
+    const currentHours = (f.properties["hours"] as { raw?: string } | undefined)?.raw ?? "";
+    if (!currentHours) {
+      throw new Error("ph_open_observed: target feature has no opening_hours to extend");
+    }
+    if (/(^|[\s,;])PH(\b|,)/.test(currentHours)) {
+      throw new Error("ph_open_observed: target already declares a PH rule, nothing to add");
+    }
+    const trimmed = currentHours.trim().replace(/;+\s*$/, "");
+    f.properties["hours"] = { raw: `${trimmed}; PH open` };
   } else {
     throw new Error(`applyReportPatch: unsupported kind ${kind}`);
   }
@@ -449,6 +464,8 @@ function commitMessageForReport(kind: string, name: string): string {
       return `Fill in payment methods for ${name}`;
     case "update_tags":
       return `Update amenity tags for ${name}`;
+    case "ph_open_observed":
+      return `Mark ${name} as open on public holidays`;
     default:
       return `Update ${name} (${kind})`;
   }

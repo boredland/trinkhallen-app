@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { computeStatus, kioskLocation } from "./opening-hours";
+import { computeStatus, hasPHToken, isPublicHolidayToday, kioskLocation } from "./opening-hours";
 
 const FRANKFURT = { region: "frankfurt", lat: 50.11, lng: 8.68 };
 
@@ -41,5 +41,47 @@ describe("kioskLocation", () => {
 
   it("returns undefined for an unknown region slug", () => {
     expect(kioskLocation({ region: "atlantis", lat: 0, lng: 0 })).toBeUndefined();
+  });
+});
+
+describe("isPublicHolidayToday", () => {
+  it("returns true on a national PH (Tag der Deutschen Einheit) with location", () => {
+    expect(isPublicHolidayToday(kioskLocation(FRANKFURT), PH_NOON)).toBe(true);
+  });
+
+  it("returns false on a regular Saturday", () => {
+    expect(isPublicHolidayToday(kioskLocation(FRANKFURT), NON_PH_NOON)).toBe(false);
+  });
+
+  it("returns false without a location (can't resolve the holiday DB)", () => {
+    expect(isPublicHolidayToday(undefined, PH_NOON)).toBe(false);
+  });
+});
+
+describe("hasPHToken", () => {
+  it("detects PH off", () => {
+    expect(hasPHToken("Mo-Sa 06:00-22:00; PH off")).toBe(true);
+  });
+
+  it("detects PH HH:MM-HH:MM", () => {
+    expect(hasPHToken("Mo-Sa 06:00-22:00; PH 10:00-14:00")).toBe(true);
+  });
+
+  it("detects compound day-spec like PH,Su", () => {
+    expect(hasPHToken("PH,Su 12:00-20:00")).toBe(true);
+  });
+
+  it("ignores PHP / PHARMACY / other PH-prefixed words", () => {
+    expect(hasPHToken("PHARMACY hours: Mo-Fr 08:00-18:00")).toBe(false);
+  });
+
+  it("returns false on plain weekday rules", () => {
+    expect(hasPHToken("Mo-Sa 06:00-22:00")).toBe(false);
+  });
+
+  it("returns false for empty / null", () => {
+    expect(hasPHToken("")).toBe(false);
+    expect(hasPHToken(null)).toBe(false);
+    expect(hasPHToken(undefined)).toBe(false);
   });
 });

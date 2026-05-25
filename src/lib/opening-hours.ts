@@ -51,6 +51,39 @@ export function kioskLocation(
   return { lat: kiosk.lat, lon: kiosk.lng, state };
 }
 
+/**
+ * Is the supplied date a public holiday for the kiosk's Bundesland?
+ *
+ * We instantiate a synthetic `PH`-only ruleset and ask `opening_hours.js`
+ * whether the date matches — that pushes the holiday-DB lookup into the
+ * library we already ship. Returns `false` when no location is available
+ * (we'd rather under-flag than mis-flag).
+ */
+export function isPublicHolidayToday(
+  location: OpeningHoursLocation | undefined,
+  now = new Date(),
+): boolean {
+  const nominatim = buildNominatim(location);
+  if (!nominatim) return false;
+  try {
+    return new OpeningHours("PH", nominatim).getState(now);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * True when the raw OSM string declares any rule scoped to `PH` (public
+ * holidays) — either `PH off`, `PH 10:00-14:00`, or a multi-token rule
+ * like `PH,Su …`. Used to decide whether to auto-file a PH observation
+ * (we only do it for kiosks that *lack* PH info).
+ */
+export function hasPHToken(raw: string | null | undefined): boolean {
+  if (!raw) return false;
+  // Word-boundary match avoids false positives in arbitrary comments.
+  return /(^|[\s,;])PH(\b|,)/.test(raw);
+}
+
 export function computeStatus(
   raw: string | null | undefined,
   now = new Date(),

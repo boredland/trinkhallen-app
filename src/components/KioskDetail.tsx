@@ -1,7 +1,14 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
 import { buildNavigateTargets } from "../lib/navigate";
-import { computeStatus, formatHoursTable, formatStatus, kioskLocation } from "../lib/opening-hours";
+import {
+  computeStatus,
+  formatHoursTable,
+  formatStatus,
+  hasPHToken,
+  isPublicHolidayToday,
+  kioskLocation,
+} from "../lib/opening-hours";
 import type { Aggregate, RatingRow } from "../lib/ratings";
 import type { UserKioskReport } from "../lib/reports";
 import { tagLabel } from "../lib/tags";
@@ -39,9 +46,17 @@ export const KioskDetail: FC<{
   userReports?: UserKioskReport[];
 }> = ({ kiosk, userAgent, aggregate, ownRating, isLoggedIn, nearby, userReports = [] }) => {
   const loc = kioskLocation(kiosk);
-  const status = computeStatus(kiosk.hours?.raw, new Date(), loc);
+  const now = new Date();
+  const status = computeStatus(kiosk.hours?.raw, now, loc);
   const statusLabel = formatStatus(status);
   const hoursTable = formatHoursTable(kiosk.hours?.raw, loc);
+  // PH banner condition: today is a Bundesland holiday AND the kiosk has
+  // some opening_hours AND those hours carry no explicit PH rule. The
+  // status displayed above stays as-is; we don't override it — Spätis are
+  // often the holiday exception in BE/NRW so guessing either way is wrong
+  // half the time.
+  const showPHBanner =
+    !!kiosk.hours?.raw && !hasPHToken(kiosk.hours.raw) && isPublicHolidayToday(loc, now);
   const nav = buildNavigateTargets({
     name: kiosk.name,
     lat: kiosk.lat,
@@ -162,6 +177,13 @@ export const KioskDetail: FC<{
           <h2 class="mb-2 font-display text-sm tracking-wider uppercase text-fg-muted">
             Öffnungszeiten
           </h2>
+          {showPHBanner && (
+            <p class="mb-3 border border-neon-amber/60 bg-neon-amber/10 px-3 py-2 text-sm text-fg">
+              Heute ist Feiertag — diese Öffnungszeiten erwähnen keine Feiertagsregel. Die
+              tatsächlichen Zeiten können abweichen. Ein verifizierter Check-in heute meldet uns
+              automatisch, dass dieser Laden geöffnet hat.
+            </p>
+          )}
           {hoursTable ? (
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-sm">
               {hoursTable.map(({ days, hours }) => (

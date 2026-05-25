@@ -64,6 +64,7 @@ export const KIND_LABEL_DE: Record<string, string> = {
   duplicate: "Duplikat",
   update_payment: "Zahlungsarten",
   update_tags: "Ausstattung",
+  ph_open_observed: "Feiertags-Öffnung beobachtet",
   other: "Sonstiges",
 };
 

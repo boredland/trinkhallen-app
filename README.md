@@ -23,7 +23,7 @@ D1 stays small and holds only **user-generated content**:
 |---|---|
 | `users`, `sessions`, `magic_links` | Auth — Google SSO + magic-link, set-once `username`, transparent linking. `users.banned_at` non-NULL shadow-bans ratings. A sentinel row `00000000-0000-0000-0000-000000000000` ("Gelöschtes Konto") inherits already-merged contributions when a real account is deleted. |
 | `ratings` | 1–5 stars + optional comment, one per user per kiosk. `kiosk_id` is a plain TEXT (no FK target — the `kiosks` table was dropped in 0004; 0009 rebuilt `ratings` to match). |
-| `reports` | Edit requests (`wrong_hours`, `wrong_address`, `wrong_name`, `closed`, `update_payment`, `update_tags`, `duplicate`, `other`) |
+| `reports` | Edit requests (`wrong_hours`, `wrong_address`, `wrong_name`, `closed`, `update_payment`, `update_tags`, `ph_open_observed`, `duplicate`, `other`). `ph_open_observed` is auto-filed by the check-in handler when a verified check-in lands on a Bundesland public holiday at a kiosk whose hours carry no PH rule. |
 | `submissions` | Proposed new kiosks (form → moderator approval → PR) |
 | `checkins` | "Ich war hier" event log — per (kiosk, user, day) UNIQUE, `verified` if geolocation matched within 100 m. No UI reads it yet; captured for a future leaderboard. |
 
@@ -165,6 +165,8 @@ migrations/
   0007_username.sql          users.username + case-insensitive UNIQUE index
   0008_delete_ban.sql        Deletion sentinel user + users.banned_at shadow-ban
   0009_fix_ratings_kiosks_fk Rebuild ratings without the dangling kiosks FK
+  0010_ph_observed_kind.sql  Rebuild reports with `ph_open_observed` kind +
+                             allow status='approved' in CHECK
 ```
 
 ## Caching
