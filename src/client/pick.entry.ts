@@ -30,6 +30,9 @@ interface PhotonProperties {
 
 const PHOTON_URL = "https://photon.komoot.io/reverse";
 const RG_DEBOUNCE_MS = 350;
+// Provenance marker: present when the value was written by Photon and the
+// user hasn't touched it since. Cleared on any manual `input` event.
+const PHOTON_FILLED_ATTR = "data-photon-filled";
 
 const mount = document.getElementById("pick-map");
 if (mount instanceof HTMLElement) {
@@ -41,6 +44,11 @@ if (mount instanceof HTMLElement) {
     postalcode: document.querySelector("input[name=postalcode]"),
     city: document.querySelector("input[name=city]"),
   };
+  // Any manual keypress / paste / autofill clears the Photon marker so a
+  // subsequent pin update can't clobber what the user typed.
+  for (const input of Object.values(addrInputs)) {
+    input?.addEventListener("input", () => input.removeAttribute(PHOTON_FILLED_ATTR));
+  }
   const initialLat = parseFloat(latInput?.value ?? "");
   const initialLng = parseFloat(lngInput?.value ?? "");
   const hasInitial = Number.isFinite(initialLat) && Number.isFinite(initialLng);
@@ -149,18 +157,29 @@ async function reverseGeocode(
   }
   const props = json.features?.[0]?.properties;
   if (!props) return;
-  fillIfEmpty(inputs.street, props.street);
-  fillIfEmpty(inputs.number, props.housenumber);
-  fillIfEmpty(inputs.postalcode, props.postcode);
+  applyPhotonValue(inputs.street, props.street);
+  applyPhotonValue(inputs.number, props.housenumber);
+  applyPhotonValue(inputs.postalcode, props.postcode);
   // Photon labels small German municipalities `town` / `village` rather
   // than `city`. Walk through the candidates by descending specificity.
-  fillIfEmpty(inputs.city, props.city ?? props.town ?? props.village ?? props.county);
+  applyPhotonValue(inputs.city, props.city ?? props.town ?? props.village ?? props.county);
 }
 
-function fillIfEmpty(input: HTMLInputElement | null, value: string | undefined): void {
+/**
+ * Writes a Photon-supplied value into an input when:
+ *   - the input is empty, OR
+ *   - the input currently holds a previous Photon value (no user edits)
+ * After writing, the input is tagged so future user keystrokes can switch
+ * it back to "user-owned" via the `input` listener wired during init.
+ */
+function applyPhotonValue(input: HTMLInputElement | null, value: string | undefined): void {
   if (!input || !value) return;
-  if (input.value.trim()) return;
+  const isPhotonOwned = input.hasAttribute(PHOTON_FILLED_ATTR);
+  const isEmpty = !input.value.trim();
+  if (!isEmpty && !isPhotonOwned) return;
+  if (input.value === value) return;
   input.value = value;
+  input.setAttribute(PHOTON_FILLED_ATTR, "");
 }
 
 function pinFeature(coords: [number, number] | null): GeoJSON.FeatureCollection {
