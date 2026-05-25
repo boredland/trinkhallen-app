@@ -502,7 +502,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     return c.html(
       <Layout
         title="Über trinkhallen.app"
-        description="trinkhallen.app listet Trinkhallen, Spätis und Wasserhäuschen in ganz Deutschland — mit Öffnungszeiten, Kartenzahlung-Filter und Direktnavigation. Daten aus OpenStreetMap und der Community, offen auf GitHub."
+        description="trinkhallen.app ist der offene Nachfolger von HopfenStop — Trinkhallen, Spätis und Wasserhäuschen in ganz Deutschland mit Öffnungszeiten, Kartenzahlung-Filter und Direktnavigation. Daten aus OpenStreetMap und der Community, offen auf GitHub."
         canonicalUrl="https://trinkhallen.app/about"
         nav="about"
         user={c.get("user")}
@@ -528,15 +528,20 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Was ist das?</h2>
             <p class="mt-3 text-fg-muted">
               Du suchst einen Späti mit Kartenzahlung, der gerade offen hat, und willst direkt hin
-              navigieren? Genau dafür ist trinkhallen.app gebaut. Das Projekt ist von{" "}
+              navigieren? Genau dafür ist trinkhallen.app gebaut.
+            </p>
+            <p class="mt-3 text-fg-muted">
+              trinkhallen.app ist der offene Nachfolger von{" "}
               <a
                 class="text-neon-cyan underline-offset-2 hover:underline"
                 href="https://app.hopfenstop.de/"
               >
                 HopfenStop
-              </a>{" "}
-              inspiriert und erweitert dessen Frankfurter Datensatz um eine offene Beitrags-Pipeline
-              und Daten für ganz Deutschland aus OpenStreetMap.
+              </a>
+              . Der sorgfältig kuratierte Frankfurter Datensatz von HopfenStop bildet die Basis und
+              lebt hier weiter — ergänzt um OpenStreetMap-Daten für ganz Deutschland, eine
+              transparente Beitrags-Pipeline auf GitHub und Pflege durch die Community statt durch
+              eine einzelne Person.
             </p>
           </section>
 
