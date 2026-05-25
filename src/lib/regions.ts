@@ -319,3 +319,42 @@ export function resolveRegionByPath(path: string): Region | null {
 export function resolveRegionBySlug(slug: string): Region | null {
   return REGIONS.find((r) => r.slug === slug) ?? null;
 }
+
+/**
+ * Maps the ASCII Bundesland slug used in data-repo paths to the full
+ * German state name expected by `opening_hours.js`. The library uses this
+ * to resolve `PH` (public holidays) against date-holidays' DB; without it,
+ * any rule containing `PH` is silently dropped (in our try/catch wrapper).
+ */
+const BUNDESLAND_BY_SLUG: Record<string, string> = {
+  "baden-wuerttemberg": "Baden-Württemberg",
+  bayern: "Bayern",
+  berlin: "Berlin",
+  brandenburg: "Brandenburg",
+  bremen: "Bremen",
+  hamburg: "Hamburg",
+  hessen: "Hessen",
+  "mecklenburg-vorpommern": "Mecklenburg-Vorpommern",
+  niedersachsen: "Niedersachsen",
+  "nordrhein-westfalen": "Nordrhein-Westfalen",
+  "rheinland-pfalz": "Rheinland-Pfalz",
+  saarland: "Saarland",
+  sachsen: "Sachsen",
+  "sachsen-anhalt": "Sachsen-Anhalt",
+  "schleswig-holstein": "Schleswig-Holstein",
+  thueringen: "Thüringen",
+};
+
+/**
+ * Returns the full German state name for a region slug. Reads the third
+ * path segment of `data/de/<bundesland>/<city>.geojson`. Used to feed
+ * `opening_hours.js` the country/state context it needs for PH evaluation.
+ */
+export function getBundeslandForRegion(regionSlug: string): string | null {
+  const region = resolveRegionBySlug(regionSlug);
+  if (!region) return null;
+  const segments = region.path.split("/");
+  const bundeslandSlug = segments[2];
+  if (!bundeslandSlug) return null;
+  return BUNDESLAND_BY_SLUG[bundeslandSlug] ?? null;
+}

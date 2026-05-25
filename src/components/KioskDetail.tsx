@@ -1,7 +1,7 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
 import { buildNavigateTargets } from "../lib/navigate";
-import { computeStatus, formatHoursTable, formatStatus } from "../lib/opening-hours";
+import { computeStatus, formatHoursTable, formatStatus, kioskLocation } from "../lib/opening-hours";
 import type { Aggregate, RatingRow } from "../lib/ratings";
 import type { UserKioskReport } from "../lib/reports";
 import { tagLabel } from "../lib/tags";
@@ -38,9 +38,10 @@ export const KioskDetail: FC<{
   nearby?: NearbyKiosk[];
   userReports?: UserKioskReport[];
 }> = ({ kiosk, userAgent, aggregate, ownRating, isLoggedIn, nearby, userReports = [] }) => {
-  const status = computeStatus(kiosk.hours?.raw);
+  const loc = kioskLocation(kiosk);
+  const status = computeStatus(kiosk.hours?.raw, new Date(), loc);
   const statusLabel = formatStatus(status);
-  const hoursTable = formatHoursTable(kiosk.hours?.raw);
+  const hoursTable = formatHoursTable(kiosk.hours?.raw, loc);
   const nav = buildNavigateTargets({
     name: kiosk.name,
     lat: kiosk.lat,

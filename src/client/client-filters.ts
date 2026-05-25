@@ -10,7 +10,8 @@
  */
 
 import Fuse from "fuse.js";
-import { computeStatus } from "../lib/opening-hours";
+import { computeStatus, type OpeningHoursLocation } from "../lib/opening-hours";
+import { getBundeslandForRegion, resolveRegionByCoords } from "../lib/regions";
 import type { Feature, FeatureCollection } from "./region-store";
 
 export interface ClientFilter {
@@ -37,6 +38,20 @@ interface FeatureProps {
   hours?: { raw?: string };
   tags?: string[];
   payment?: Record<string, "yes" | "no" | "unknown">;
+}
+
+/**
+ * Resolves a feature's Bundesland from its coordinates so PH evaluation
+ * matches the server. Mirrors `kioskLocation` from lib/opening-hours.ts
+ * but operates on the GeoJSON Point shape the client renders against.
+ */
+function featureLocation(feat: Feature): OpeningHoursLocation | undefined {
+  const [lng, lat] = feat.geometry.coordinates;
+  const region = resolveRegionByCoords(lng, lat);
+  if (!region) return undefined;
+  const state = getBundeslandForRegion(region.slug);
+  if (!state) return undefined;
+  return { lat, lon: lng, state };
 }
 
 export function parseFilterFromQuery(qs: URLSearchParams): ClientFilter {
@@ -155,7 +170,7 @@ export function applyFilters(
     }
     if (f.payment.cash && p.payment?.["cash"] !== "yes") return false;
     if (f.openNow) {
-      const s = computeStatus(p.hours?.raw, now);
+      const s = computeStatus(p.hours?.raw, now, featureLocation(feat));
       if (s.kind !== "open") return false;
     }
     if (f.needsHours && p.hours?.raw) return false;

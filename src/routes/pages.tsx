@@ -15,7 +15,7 @@ import {
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox } from "../lib/geo";
-import { computeStatus } from "../lib/opening-hours";
+import { computeStatus, kioskLocation } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
 import { getUserReports, kindLabel } from "../lib/reports";
@@ -211,8 +211,9 @@ async function renderMapPage(
     const all = await queryKiosksInBbox(c.env, initialBbox, 5000);
     const filtered = applyFilters(all, filter);
     filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
+    const now = new Date();
     const openNowCount = filtered.reduce(
-      (n, r) => (computeStatus(r.hours?.raw).kind === "open" ? n + 1 : n),
+      (n, r) => (computeStatus(r.hours?.raw, now, kioskLocation(r)).kind === "open" ? n + 1 : n),
       0,
     );
     initialPanel = (
@@ -400,8 +401,10 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const city = cityDisplayName(slug);
     const total = kiosks.length;
     const sorted = [...kiosks].sort((a, b) => a.name.localeCompare(b.name, "de"));
+    const cityNow = new Date();
     const openNowCount = sorted.reduce(
-      (n, r) => (computeStatus(r.hours?.raw).kind === "open" ? n + 1 : n),
+      (n, r) =>
+        computeStatus(r.hours?.raw, cityNow, kioskLocation(r)).kind === "open" ? n + 1 : n,
       0,
     );
     const visible = sorted.slice(0, 100);

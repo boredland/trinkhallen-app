@@ -2,7 +2,7 @@ import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
 import { formatDistance, haversineMeters, type LatLng } from "../lib/geo";
 import { buildNavigateTargets } from "../lib/navigate";
-import { computeStatus, formatStatus } from "../lib/opening-hours";
+import { computeStatus, formatStatus, kioskLocation } from "../lib/opening-hours";
 
 // Row indicators surface things a user scans for at a glance: can I pay
 // with a card (girocard counts; see lib/filters.ts), is there a toilet.
@@ -100,7 +100,7 @@ const KioskRow: FC<{
   userAgent: string | null;
   origin?: LatLng | undefined;
 }> = ({ kiosk, userAgent, origin }) => {
-  const status = computeStatus(kiosk.hours?.raw);
+  const status = computeStatus(kiosk.hours?.raw, new Date(), kioskLocation(kiosk));
   const nav = buildNavigateTargets({
     name: kiosk.name,
     lat: kiosk.lat,

@@ -6,17 +6,59 @@
  * gracefully degrade — bad upstream data shouldn't 500 the detail page.
  */
 
-import OpeningHours from "opening_hours";
+import OpeningHours, { type nominatim_object } from "opening_hours";
+import type { KioskRecord } from "./db";
+import { getBundeslandForRegion } from "./regions";
 
 export type Status =
   | { kind: "open"; until: Date | null }
   | { kind: "closed"; until: Date | null }
   | { kind: "unknown" };
 
-export function computeStatus(raw: string | null | undefined, now = new Date()): Status {
+/**
+ * Location context for `PH` (public holiday) resolution. Without it,
+ * `opening_hours.js` cannot decide whether today is a Bundesland holiday
+ * and rules like `Mo-Fr 06:00-22:00; PH off` either throw or
+ * mis-evaluate. `state` is the full German state name (e.g. "Hessen");
+ * see `getBundeslandForRegion` in lib/regions.ts.
+ */
+export interface OpeningHoursLocation {
+  lat: number;
+  lon: number;
+  state: string;
+}
+
+function buildNominatim(loc: OpeningHoursLocation | undefined): nominatim_object | null {
+  if (!loc) return null;
+  return {
+    lat: loc.lat,
+    lon: loc.lon,
+    address: { country_code: "de", state: loc.state },
+  };
+}
+
+/**
+ * Derives the location context for a kiosk so callers can pass a single
+ * argument through to `computeStatus` / `formatHoursTable`. Returns
+ * `undefined` when the region is unknown (data-repo addition we haven't
+ * mirrored yet) — better to evaluate without state than with a wrong one.
+ */
+export function kioskLocation(
+  kiosk: Pick<KioskRecord, "region" | "lat" | "lng">,
+): OpeningHoursLocation | undefined {
+  const state = getBundeslandForRegion(kiosk.region);
+  if (!state) return undefined;
+  return { lat: kiosk.lat, lon: kiosk.lng, state };
+}
+
+export function computeStatus(
+  raw: string | null | undefined,
+  now = new Date(),
+  location?: OpeningHoursLocation,
+): Status {
   if (!raw) return { kind: "unknown" };
   try {
-    const oh = new OpeningHours(raw);
+    const oh = new OpeningHours(raw, buildNominatim(location));
     const open = oh.getState(now);
     const next = oh.getNextChange(now);
     return open ? { kind: "open", until: next ?? null } : { kind: "closed", until: next ?? null };
@@ -62,10 +104,11 @@ function fmtUtcTime(d: Date): string {
  */
 export function formatHoursTable(
   raw: string | null | undefined,
+  location?: OpeningHoursLocation,
 ): { days: string; hours: string }[] | null {
   if (!raw) return null;
   try {
-    const oh = new OpeningHours(raw);
+    const oh = new OpeningHours(raw, buildNominatim(location));
     const intervals = oh.getOpenIntervals(WEEK_START, WEEK_END);
 
     // Collect per-day time-range strings; Mon=0 … Sun=6
