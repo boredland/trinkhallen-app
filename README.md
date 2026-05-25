@@ -150,7 +150,6 @@ scripts/
   import-data.ts            Build-time data import from trinkhallen-data,
                             generates per-zoom supercluster snapshots
   write-asset-manifest.ts   Vite hashed-asset manifest → src/lib/manifest.generated.ts
-  debug-map.ts, probe-*.ts, verify-static-map.ts   Playwright-driven smoke harnesses
 android/
   Bubblewrap-generated Trusted Web Activity wrapper (package
   `app.trinkhallen.twa`). See android/PLAY_STORE.md for the Play Store
