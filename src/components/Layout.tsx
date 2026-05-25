@@ -91,6 +91,13 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
         <link rel="manifest" href="/manifest.webmanifest" />
 
+        {/* iOS only honours these — without them, "Add to Home Screen" still
+            shows Safari chrome. The translucent status bar matches the
+            #0A0A0A theme-color above. */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="trinkhallen" />
+
         {isMapPage && (
           <>
             <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin="" />

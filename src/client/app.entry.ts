@@ -17,6 +17,7 @@ import "@fontsource/inter/latin-ext-700.css";
 import "@fontsource/anton/latin-400.css";
 import "@fontsource/anton/latin-ext-400.css";
 import { installCheckinForm } from "./checkin";
+import { setupIosInstallPrompt } from "./install-prompt";
 import { installLogoutForm } from "./logout";
 import { installRatingForm } from "./rating";
 import { installKioskSheet } from "./sheet";
@@ -233,6 +234,11 @@ installLogoutForm();
 
 // Star rating + form submit interception for the kiosk detail page.
 installRatingForm();
+
+// iOS Safari has no native install prompt — lazy-load a custom one that
+// teaches the user the Share Sheet → "Add to Home Screen" flow. Bails out
+// instantly on non-iOS / already-installed / recently-dismissed visits.
+void setupIosInstallPrompt();
 
 // Service worker — caches assets + tile bytes for fast repeat visits
 // and basic offline (last map view + last viewed pages stay accessible).

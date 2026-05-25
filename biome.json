@@ -7,6 +7,7 @@
       "!node_modules",
       "!.wrangler",
       "!.tmp",
+      "!tmp",
       "!.vite",
       "!android",
       "!src/lib/manifest.generated.ts",
