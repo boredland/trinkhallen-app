@@ -62,7 +62,11 @@ export const CheckinForm: FC<{
   }
 
   const hoursMissing = !kiosk.hours?.raw;
-  const missingPayment = PAYMENT_ORDER.filter((k) => !kiosk.payment?.[k]);
+  // A settled yes/no answers the question; absent *and* "unknown" are gaps the
+  // check-in should crowdsource (enrichment writes "unknown" placeholders).
+  const missingPayment = PAYMENT_ORDER.filter(
+    (k) => kiosk.payment?.[k] !== "yes" && kiosk.payment?.[k] !== "no",
+  );
   // A group is "answered" by this user when there's a non-rejected report
   // of that kind in flight — hide the form, swap in a "Danke!" stub
   // mirroring what client/checkin.ts renders right after a fresh submit.
