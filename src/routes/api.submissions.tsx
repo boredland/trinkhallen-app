@@ -47,7 +47,7 @@ apiSubmissions.post("/add", async (c) => {
   if (tags.length) properties["tags"] = tags.slice(0, 30);
 
   const payment: Record<string, "yes" | "no" | "unknown"> = {};
-  for (const key of ["cash", "cards", "contactless", "girocard", "mobile"] as const) {
+  for (const key of ["cash", "cards", "contactless", "girocard"] as const) {
     const v = trim(form.get(`pay_${key}`));
     if (v === "yes" || v === "no" || v === "unknown") payment[key] = v;
   }

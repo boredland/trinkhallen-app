@@ -17,7 +17,7 @@ const ALLOWED_KINDS = new Set([
   "other",
 ]);
 
-const PAYMENT_KEYS = ["cash", "cards", "contactless", "girocard", "mobile"] as const;
+const PAYMENT_KEYS = ["cash", "cards", "contactless", "girocard"] as const;
 const PAYMENT_STATES = new Set(["yes", "no", "unknown"]);
 
 apiReports.post("/api/reports", async (c) => {

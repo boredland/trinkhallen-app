@@ -24,9 +24,8 @@ const PAYMENT_LABELS: Record<string, { de: string; icon: string }> = {
   cards: { de: "Karte", icon: "💳" },
   contactless: { de: "Kontaktlos", icon: "📲" },
   girocard: { de: "Girocard", icon: "🟦" },
-  mobile: { de: "Apple/Google Pay", icon: "📱" },
 };
-const PAYMENT_ORDER = ["cash", "cards", "contactless", "girocard", "mobile"] as const;
+const PAYMENT_ORDER = ["cash", "cards", "contactless", "girocard"] as const;
 
 const TAG_ICONS: Record<string, string> = {
   backwaren: "🥨",

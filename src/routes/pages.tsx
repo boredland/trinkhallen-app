@@ -67,7 +67,6 @@ const PAYMENT_TO_SCHEMA: Record<string, string> = {
   cards: "CreditCard",
   girocard: "DebitCard",
   contactless: "ContactlessPayment",
-  mobile: "GooglePay",
 };
 
 function kioskBreadcrumbJsonLd(kiosk: KioskRecord): object {
@@ -1382,7 +1381,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               Zahlung
             </legend>
             <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {(["cash", "cards", "contactless", "girocard", "mobile"] as const).map((key) => (
+              {(["cash", "cards", "contactless", "girocard"] as const).map((key) => (
                 <label class="flex items-center gap-2 border-2 border-border bg-surface-2 px-2 py-1.5 text-sm">
                   <span class="flex-1 capitalize text-fg-muted">{key}</span>
                   <select name={`pay_${key}`} class="bg-transparent text-fg focus:outline-none">
