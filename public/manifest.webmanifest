@@ -9,7 +9,7 @@
   "orientation": "any",
   "background_color": "#0A0A0A",
   "theme_color": "#0A0A0A",
-  "categories": ["maps", "lifestyle", "food"],
+  "categories": ["navigation", "travel", "food", "shopping"],
   "lang": "de",
   "prefer_related_applications": false,
   "related_applications": [
@@ -83,7 +83,7 @@
       "src": "/apple-touch-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "screenshots": [
@@ -92,13 +92,23 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
+      "platform": "windows",
       "label": "Karte mit Filtern und Kiosk-Liste — bundesweite Übersicht."
     },
     {
       "src": "/screenshot-narrow.png",
-      "sizes": "824x1830",
+      "sizes": "1290x2796",
       "type": "image/png",
       "form_factor": "narrow",
+      "platform": "android",
+      "label": "Karte mit Filtern und nächstgelegenen Spätis — Frankfurt am Main."
+    },
+    {
+      "src": "/screenshot-narrow-2.png",
+      "sizes": "1290x2796",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "platform": "android",
       "label": "Detailseite eines Spätis mit Öffnungszeiten, Adresse und Navigation."
     }
   ]
