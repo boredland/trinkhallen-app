@@ -10,6 +10,7 @@
       "!tmp",
       "!.vite",
       "!android",
+      "!ios",
       "!src/lib/manifest.generated.ts",
       "!**/*.css"
     ]

@@ -44,3 +44,15 @@ android/store_icon.png
 *.aab
 *.apk
 *.idsig
+
+# iOS / Xcode build artifacts
+ios/Pods/
+ios/build/
+ios/DerivedData/
+ios/xcuserdata/
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
+ios/**/*.xcuserdatad/
+ios/*.ipa
+ios/*.dSYM
+ios/*.dSYM.zip
