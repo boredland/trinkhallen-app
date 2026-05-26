@@ -9,7 +9,7 @@ import {
   isPublicHolidayToday,
   kioskLocation,
 } from "../lib/opening-hours";
-import type { Aggregate, RatingRow } from "../lib/ratings";
+import type { Aggregate, RatingComment, RatingRow } from "../lib/ratings";
 import type { UserKioskReport } from "../lib/reports";
 import { isReportableTag, tagLabel } from "../lib/tags";
 import { CheckinForm } from "./CheckinForm";
@@ -40,10 +40,20 @@ export const KioskDetail: FC<{
   userAgent: string | null;
   aggregate: Aggregate;
   ownRating: RatingRow | null;
+  ratingComments: RatingComment[];
   isLoggedIn: boolean;
   nearby?: NearbyKiosk[];
   userReports?: UserKioskReport[];
-}> = ({ kiosk, userAgent, aggregate, ownRating, isLoggedIn, nearby, userReports = [] }) => {
+}> = ({
+  kiosk,
+  userAgent,
+  aggregate,
+  ownRating,
+  ratingComments,
+  isLoggedIn,
+  nearby,
+  userReports = [],
+}) => {
   const loc = kioskLocation(kiosk);
   const now = new Date();
   const status = computeStatus(kiosk.hours?.raw, now, loc);
@@ -239,6 +249,7 @@ export const KioskDetail: FC<{
           kioskId={kiosk.id}
           aggregate={aggregate}
           own={ownRating}
+          comments={ratingComments}
           isLoggedIn={isLoggedIn}
         />
       </section>

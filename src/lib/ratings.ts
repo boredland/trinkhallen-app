@@ -62,6 +62,36 @@ export async function getAggregate(env: Env, kioskId: string): Promise<Aggregate
   };
 }
 
+export interface RatingComment {
+  author: string;
+  stars: number;
+  comment: string;
+  updatedAt: number;
+}
+
+/** Ratings that carry a written comment, newest first. Banned authors are
+ *  excluded (same shadow-ban policy as the aggregate). */
+export async function listComments(
+  env: Env,
+  kioskId: string,
+  limit = 50,
+): Promise<RatingComment[]> {
+  const { results } = await env.DB.prepare(
+    `SELECT COALESCE(NULLIF(u.username, ''), NULLIF(u.display_name, ''), 'Anonym') AS author,
+            r.stars AS stars, r.comment AS comment, r.updated_at AS updatedAt
+       FROM ratings r JOIN users u ON u.id = r.user_id
+       WHERE r.kiosk_id = ?
+         AND u.banned_at IS NULL
+         AND r.comment IS NOT NULL
+         AND TRIM(r.comment) != ''
+       ORDER BY r.updated_at DESC
+       LIMIT ?`,
+  )
+    .bind(kioskId, limit)
+    .all<RatingComment>();
+  return results;
+}
+
 export async function upsertRating(
   env: Env,
   args: { kioskId: string; userId: string; stars: number; comment: string | null },

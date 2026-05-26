@@ -1,26 +1,65 @@
 import type { FC } from "hono/jsx";
-import type { Aggregate, RatingRow } from "../lib/ratings";
+import type { Aggregate, RatingComment, RatingRow } from "../lib/ratings";
 
 export interface RatingBlockProps {
   kioskId: string;
   aggregate: Aggregate;
   own: RatingRow | null;
+  comments: RatingComment[];
   isLoggedIn: boolean;
 }
 
 /**
- * Renders the aggregate + (when logged in) the interactive star form.
- * `id="rating-block"` is the HTMX swap target — POST /api/ratings returns the
- * exact same fragment to replace it.
+ * Renders the aggregate + written comments + (when logged in) the interactive
+ * star form. `id="rating-block"` is the HTMX swap target — POST /api/ratings
+ * returns the exact same fragment to replace it.
  */
-export const RatingBlock: FC<RatingBlockProps> = ({ kioskId, aggregate, own, isLoggedIn }) => {
+export const RatingBlock: FC<RatingBlockProps> = ({
+  kioskId,
+  aggregate,
+  own,
+  comments,
+  isLoggedIn,
+}) => {
   return (
     <div id="rating-block" class="space-y-5">
       <AggregateView aggregate={aggregate} />
+      <CommentsList comments={comments} />
       {isLoggedIn ? <OwnRatingForm kioskId={kioskId} own={own} /> : <LoggedOutCta />}
     </div>
   );
 };
+
+const CommentsList: FC<{ comments: RatingComment[] }> = ({ comments }) => {
+  if (comments.length === 0) return null;
+  return (
+    <ul class="space-y-3 border-t-2 border-border pt-4">
+      {comments.map((c) => (
+        <li class="space-y-1">
+          <div class="flex flex-wrap items-center gap-x-2 text-sm">
+            <span aria-label={`${c.stars} von 5 Sternen`}>
+              <span class="text-neon-amber">{"★".repeat(c.stars)}</span>
+              <span class="text-fg-dim">{"★".repeat(5 - c.stars)}</span>
+            </span>
+            <span class="font-display text-xs tracking-wider uppercase text-fg-muted">
+              {c.author}
+            </span>
+            <span class="ml-auto text-xs text-fg-dim">{fmtDate(c.updatedAt)}</span>
+          </div>
+          <p class="whitespace-pre-line text-sm text-fg">{c.comment}</p>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+function fmtDate(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
 const AggregateView: FC<{ aggregate: Aggregate }> = ({ aggregate }) => {
   if (aggregate.count === 0) {

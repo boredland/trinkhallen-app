@@ -17,7 +17,7 @@ import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filte
 import { parseBbox, parseLatLng } from "../lib/geo";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
-import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
+import { countRatings, getAggregate, getOwnRating, listComments } from "../lib/ratings";
 import { getUserReports, kindLabel } from "../lib/reports";
 import { destroySession } from "../lib/session";
 import { setUsername } from "../lib/usernames";
@@ -1157,9 +1157,10 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         404,
       );
     }
-    const [aggregate, ownRating, nearbyHits, userReports] = await Promise.all([
+    const [aggregate, ownRating, ratingComments, nearbyHits, userReports] = await Promise.all([
       getAggregate(c.env, kiosk.id),
       user ? getOwnRating(c.env, kiosk.id, user.id) : Promise.resolve(null),
+      listComments(c.env, kiosk.id),
       findNearbyKiosks(c.env, { lat: kiosk.lat, lng: kiosk.lng }, kiosk.id, 5),
       user ? getUserReports(c.env, kiosk.id, user.id) : Promise.resolve([]),
     ]);
@@ -1177,6 +1178,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         userAgent={c.req.header("user-agent") ?? null}
         aggregate={aggregate}
         ownRating={ownRating}
+        ratingComments={ratingComments}
         isLoggedIn={!!user}
         nearby={nearby}
         userReports={userReports}

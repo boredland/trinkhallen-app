@@ -2,7 +2,13 @@ import { Hono } from "hono";
 import { RatingBlock } from "../components/RatingBlock";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
-import { deleteRating, getAggregate, getOwnRating, upsertRating } from "../lib/ratings";
+import {
+  deleteRating,
+  getAggregate,
+  getOwnRating,
+  listComments,
+  upsertRating,
+} from "../lib/ratings";
 
 export const apiRatings = new Hono<{ Bindings: Env }>();
 
@@ -52,13 +58,20 @@ async function renderFragmentOrRedirect(
   // A plain form submit (no JS) lacks the header and falls through to the
   // redirect so the full kiosk page re-renders with the new rating.
   const wantsFragment = c.req.header("X-Tk-Fragment") === "1";
-  const [aggregate, own] = await Promise.all([
+  const [aggregate, own, comments] = await Promise.all([
     getAggregate(c.env, kioskId),
     getOwnRating(c.env, kioskId, userId),
+    listComments(c.env, kioskId),
   ]);
   if (wantsFragment) {
     return c.html(
-      <RatingBlock kioskId={kioskId} aggregate={aggregate} own={own} isLoggedIn={true} />,
+      <RatingBlock
+        kioskId={kioskId}
+        aggregate={aggregate}
+        own={own}
+        comments={comments}
+        isLoggedIn={true}
+      />,
     );
   }
   return c.redirect(`/k/${kioskId}`);
