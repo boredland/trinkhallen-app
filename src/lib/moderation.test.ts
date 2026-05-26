@@ -205,24 +205,24 @@ describe("applyReportPatch", () => {
     );
   });
 
-  it("refuses to double-write a PH rule on ph_open_observed", () => {
-    expect(() =>
-      applyReportPatch(
-        buildDoc({ hours: { raw: "Mo-Fr 08:00-22:00; PH off" } }),
-        "tk_fr_0042",
-        "ph_open_observed",
-        { observation_date: "2026-10-03", verified: true },
-      ),
-    ).toThrow(/already declares a PH rule/);
-  });
-
-  it("refuses ph_open_observed when target has no hours at all", () => {
-    expect(() =>
-      applyReportPatch(buildDoc({ hours: undefined }), "tk_fr_0042", "ph_open_observed", {
+  it("is a no-op when the target already declares a PH rule (won't override)", () => {
+    const doc = buildDoc({ hours: { raw: "Mo-Fr 08:00-22:00; PH off" } });
+    expect(
+      applyReportPatch(doc, "tk_fr_0042", "ph_open_observed", {
         observation_date: "2026-10-03",
         verified: true,
       }),
-    ).toThrow(/no opening_hours/);
+    ).toBe(doc);
+  });
+
+  it("is a no-op when the target has no hours to extend", () => {
+    const doc = buildDoc({ hours: undefined });
+    expect(
+      applyReportPatch(doc, "tk_fr_0042", "ph_open_observed", {
+        observation_date: "2026-10-03",
+        verified: true,
+      }),
+    ).toBe(doc);
   });
 
   it("throws for unknown kinds", () => {

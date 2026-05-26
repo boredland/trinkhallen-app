@@ -451,12 +451,13 @@ export function applyReportPatch(
     // weekday hours because a single check-in only proves "open at some
     // point during this PH", not the full opening window.
     const currentHours = (f.properties["hours"] as { raw?: string } | undefined)?.raw ?? "";
-    if (!currentHours) {
-      throw new Error("ph_open_observed: target feature has no opening_hours to extend");
-    }
-    if (/(^|[\s,;])PH(\b|,)/.test(currentHours)) {
-      throw new Error("ph_open_observed: target already declares a PH rule, nothing to add");
-    }
+    // Nothing actionable → no-op (return the file untouched so proposeChange
+    // resolves the report without a PR), matching every other patch kind:
+    //   - no hours to extend (the kiosk lost its opening_hours since filing), or
+    //   - a PH rule already exists — we won't override it (it may be a
+    //     deliberate "PH off"); a moderator can edit the data repo by hand.
+    if (!currentHours) return text;
+    if (/(^|[\s,;])PH(\b|,)/.test(currentHours)) return text;
     const trimmed = currentHours.trim().replace(/;+\s*$/, "");
     f.properties["hours"] = { raw: `${trimmed}; PH open` };
   } else {
