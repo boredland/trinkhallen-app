@@ -178,7 +178,7 @@ const PaymentGroup: FC<{ kioskId: string; missing: readonly string[] }> = ({
             </legend>
             <TriRadio name={`pay_${key}`} value="yes" label="Ja" />
             <TriRadio name={`pay_${key}`} value="no" label="Nein" />
-            <TriRadio name={`pay_${key}`} value="" label="Weiß nicht" defaultChecked />
+            <TriRadio name={`pay_${key}`} value="" label="Weiß nicht" checked tone="neutral" />
           </fieldset>
         );
       })}
@@ -203,18 +203,14 @@ const AmenitiesGroup: FC<{ kioskId: string; present: Set<string> }> = ({ kioskId
               <span aria-hidden="true">{TAG_ICONS[slug] ?? "•"}</span>
               {tagLabel(slug)}
             </legend>
-            <TriRadio
-              name={`tag_${slug}`}
-              value="yes"
-              label="Ja"
-              defaultChecked={present.has(slug)}
-            />
+            <TriRadio name={`tag_${slug}`} value="yes" label="Ja" checked={present.has(slug)} />
             <TriRadio name={`tag_${slug}`} value="no" label="Nein" />
             <TriRadio
               name={`tag_${slug}`}
               value=""
               label="Weiß nicht"
-              defaultChecked={!present.has(slug)}
+              checked={!present.has(slug)}
+              tone="neutral"
             />
           </fieldset>
         ))}
@@ -252,20 +248,25 @@ const NameGroup: FC<{ kioskId: string; currentName: string }> = ({ kioskId, curr
 
 // ── primitives ───────────────────────────────────────────────────────────────
 
+// `tone` softens the selected style for the neutral "Weiß nicht" option so a
+// formful of unanswered defaults doesn't read as a wall of pink — only an
+// affirmative Ja/Nein (or a pre-filled tag) lights up neon.
+const TONE_CHECKED = {
+  affirmative: "has-checked:border-neon-pink has-checked:bg-neon-pink has-checked:text-bg",
+  neutral: "has-checked:border-fg-dim has-checked:bg-surface-2 has-checked:text-fg",
+} as const;
+
 const TriRadio: FC<{
   name: string;
   value: string;
   label: string;
-  defaultChecked?: boolean;
-}> = ({ name, value, label, defaultChecked }) => (
-  <label class="inline-flex cursor-pointer select-none items-center gap-1 border-2 border-border bg-surface px-2 py-1 text-xs font-medium text-fg-dim transition-colors hover:border-border-hi hover:text-fg has-checked:border-neon-pink has-checked:bg-neon-pink has-checked:text-bg">
-    <input
-      type="radio"
-      name={name}
-      value={value}
-      defaultChecked={defaultChecked}
-      class="peer sr-only"
-    />
+  checked?: boolean;
+  tone?: keyof typeof TONE_CHECKED;
+}> = ({ name, value, label, checked, tone = "affirmative" }) => (
+  <label
+    class={`inline-flex cursor-pointer select-none items-center gap-1 border-2 border-border bg-surface px-2 py-1 text-xs font-medium text-fg-dim transition-colors hover:border-border-hi hover:text-fg ${TONE_CHECKED[tone]}`}
+  >
+    <input type="radio" name={name} value={value} checked={checked} class="peer sr-only" />
     <span>{label}</span>
   </label>
 );
