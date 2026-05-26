@@ -70,14 +70,16 @@ export interface RatingComment {
 }
 
 /** Ratings that carry a written comment, newest first. Banned authors are
- *  excluded (same shadow-ban policy as the aggregate). */
+ *  excluded (same shadow-ban policy as the aggregate). Author is the public
+ *  @handle (username); we never expose the SSO display_name (real name), so
+ *  someone who hasn't set a username shows as "Anonym". */
 export async function listComments(
   env: Env,
   kioskId: string,
   limit = 50,
 ): Promise<RatingComment[]> {
   const { results } = await env.DB.prepare(
-    `SELECT COALESCE(NULLIF(u.username, ''), NULLIF(u.display_name, ''), 'Anonym') AS author,
+    `SELECT COALESCE(NULLIF(u.username, ''), 'Anonym') AS author,
             r.stars AS stars, r.comment AS comment, r.updated_at AS updatedAt
        FROM ratings r JOIN users u ON u.id = r.user_id
        WHERE r.kiosk_id = ?
