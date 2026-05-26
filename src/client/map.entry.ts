@@ -379,8 +379,37 @@ if (mount instanceof HTMLElement) {
   // make sure our custom source + layers are present and repopulated.
   map.on("style.load", () => {
     addKioskLayers();
+    boostDarkRoads(map);
     void refresh(map);
   });
+}
+
+/**
+ * OpenFreeMap's `dark` style paints roads almost the same shade as the
+ * base (minor roads #181818, major inner ~#121212), which all but
+ * disappears on our near-black canvas. Bump the road fills + casings to
+ * readable greys while leaving width hierarchy (and railways) intact.
+ * No-op in light mode — positron's roads are already high-contrast.
+ */
+const DARK_ROAD_COLORS: Record<string, string> = {
+  highway_path: "#2f2f2f",
+  highway_minor: "#3d3d3d",
+  highway_major_subtle: "#454545",
+  highway_major_casing: "#5a5a5a",
+  highway_major_inner: "#6a6a6a",
+  highway_motorway_casing: "#6f6f6f",
+  highway_motorway_inner: "#8a8a8a",
+};
+
+function boostDarkRoads(map: MlMap): void {
+  if (document.documentElement.dataset["theme"] === "light") return;
+  for (const [layerId, color] of Object.entries(DARK_ROAD_COLORS)) {
+    // getLayer guards against the upstream style renaming/removing a layer
+    // — a missing road layer should never throw and break the map.
+    if (map.getLayer(layerId)) {
+      map.setPaintProperty(layerId, "line-color", color);
+    }
+  }
 }
 
 async function fitToUserAndNearest(map: MlMap, lat: number, lng: number): Promise<void> {
