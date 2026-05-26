@@ -305,6 +305,8 @@ export async function attachUser(
       avatarUrl: user.avatarUrl,
       role: user.role,
       isMagicLinkOnly: user.isMagicLinkOnly,
+      hasGoogle: user.hasGoogle,
+      hasApple: user.hasApple,
     });
   }
   await next();

@@ -33,6 +33,8 @@ declare module "hono" {
       avatarUrl: string | null;
       role: "user" | "moderator" | "admin";
       isMagicLinkOnly: boolean;
+      hasGoogle: boolean;
+      hasApple: boolean;
     };
   }
 }

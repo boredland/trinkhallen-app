@@ -1601,6 +1601,8 @@ interface ProfileUser {
   avatarUrl: string | null;
   role: "user" | "moderator" | "admin";
   isMagicLinkOnly: boolean;
+  hasGoogle: boolean;
+  hasApple: boolean;
 }
 
 async function renderProfile(
@@ -1684,19 +1686,32 @@ async function renderProfile(
           <Stat n={reports.length} label="Korrekturen" />
           <Stat n={submissions.length} label="Vorschläge" />
         </dl>
-        {user.isMagicLinkOnly && (
-          <div class="mt-6 border-2 border-border-hi bg-surface-2 p-4">
+        {(!user.hasGoogle || !user.hasApple) && (
+          <div class="mt-6 border-2 border-border-hi bg-surface-2 p-4 space-y-3">
             <p class="text-sm text-fg-muted">
-              Du bist mit E-Mail angemeldet. Mit Google verbinden, um schneller anzumelden — wir
-              ergänzen dein Profilbild und behalten alle deine Bewertungen und Korrekturen.
+              Verknüpfe weitere Anmelde-Wege mit deinem Konto — du behältst dabei alle Bewertungen,
+              Korrekturen und Check-ins.
             </p>
-            <a
-              href="/auth/google"
-              class="mt-3 inline-flex items-center gap-2 border-2 border-neon-cyan bg-transparent px-3 py-1.5 font-display tracking-wider uppercase text-neon-cyan transition-colors hover:bg-neon-cyan hover:text-bg"
-            >
-              <span aria-hidden="true">▶</span>
-              Google verbinden
-            </a>
+            <div class="flex flex-wrap gap-2">
+              {!user.hasApple && (
+                <a
+                  href="/auth/apple"
+                  class="inline-flex items-center gap-2 border-2 border-neon-cyan bg-transparent px-3 py-1.5 font-display tracking-wider uppercase text-neon-cyan transition-colors hover:bg-neon-cyan hover:text-bg"
+                >
+                  <span aria-hidden="true">▶</span>
+                  Apple verbinden
+                </a>
+              )}
+              {!user.hasGoogle && (
+                <a
+                  href="/auth/google"
+                  class="inline-flex items-center gap-2 border-2 border-neon-cyan bg-transparent px-3 py-1.5 font-display tracking-wider uppercase text-neon-cyan transition-colors hover:bg-neon-cyan hover:text-bg"
+                >
+                  <span aria-hidden="true">▶</span>
+                  Google verbinden
+                </a>
+              )}
+            </div>
           </div>
         )}
         <form action="/auth/logout" method="post" class="mt-6" data-logout-form>
