@@ -1,0 +1,133 @@
+# iOS release workflow — DISABLED until iOS scaffold + secrets are in place.
+#
+# To activate:
+#   1. Generate the Xcode project via pwabuilder.com (manifest URL =
+#      https://trinkhallen.app/manifest.webmanifest), drop it into `ios/`.
+#      The project's scheme/target name is referenced below as `trinkhallen`
+#      — change if PWABuilder names it differently.
+#   2. Apple Developer Program ($99/yr). Register the bundle id, e.g.
+#      `app.trinkhallen.ios`, and create:
+#         • An iOS Distribution certificate (.p12 export with password)
+#         • A provisioning profile for that bundle id (App Store distribution)
+#         • An App Store Connect API key (.p8) with App Manager role —
+#           used by altool to upload without storing your Apple ID password.
+#   3. Add these repo secrets (Settings → Secrets and variables → Actions):
+#         IOS_BUILD_CERT_BASE64       — base64 of the distribution .p12
+#         IOS_P12_PASSWORD            — password used when exporting the .p12
+#         IOS_MOBILEPROVISION_BASE64  — base64 of the .mobileprovision file
+#         IOS_KEYCHAIN_PASSWORD       — any random string; gates the temp keychain
+#         APPLE_API_KEY_ID            — short key id (10 chars)
+#         APPLE_API_ISSUER_ID         — issuer uuid from App Store Connect
+#         APPLE_API_KEY_P8            — full contents of the .p8 file
+#   4. Rename this file to `ios-release.yml` (drop the .example suffix).
+
+name: iOS release
+
+on:
+  workflow_dispatch:
+    inputs:
+      marketing_version:
+        description: "User-visible version (e.g. 1.0.1). Build number is the run number."
+        required: true
+        default: "1.0.0"
+
+jobs:
+  release:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        # macos-latest tracks current Xcode; pin if you need reproducibility.
+        run: sudo xcode-select -p
+
+      - name: Install signing assets
+        env:
+          BUILD_CERT_BASE64: ${{ secrets.IOS_BUILD_CERT_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+          MOBILEPROVISION_BASE64: ${{ secrets.IOS_MOBILEPROVISION_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT_PATH=$RUNNER_TEMP/build_cert.p12
+          PROFILE_PATH=$RUNNER_TEMP/profile.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          echo "$BUILD_CERT_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "$MOBILEPROVISION_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/"
+
+      - name: Bump versions
+        working-directory: ios
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ inputs.marketing_version }}" trinkhallen/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" trinkhallen/Info.plist
+
+      - name: Archive
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project trinkhallen.xcodeproj \
+            -scheme trinkhallen \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/trinkhallen.xcarchive" \
+            CODE_SIGN_STYLE=Manual \
+            archive
+
+      - name: Export IPA
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>uploadBitcode</key><false/>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/trinkhallen.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Upload to App Store Connect
+        env:
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          API_PRIVATE_KEY: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/private_keys"
+          echo "$API_PRIVATE_KEY" > "$HOME/private_keys/AuthKey_$API_KEY_ID.p8"
+          IPA=$(ls "$RUNNER_TEMP/export"/*.ipa | head -n1)
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA" \
+            --apiKey "$API_KEY_ID" \
+            --apiIssuer "$API_ISSUER_ID"
+
+      - name: Clean keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
+
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trinkhallen-ios-ipa
+          path: ${{ runner.temp }}/export/*.ipa
+          if-no-files-found: warn
