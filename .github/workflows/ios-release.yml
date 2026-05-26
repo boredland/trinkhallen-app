@@ -67,6 +67,13 @@ jobs:
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/"
 
+      - name: Install CocoaPods
+        working-directory: ios
+        # PWABuilder ships a Podfile but not Pods/. xcodebuild errors at
+        # archive-time without the resolved pod sources, so install before
+        # the archive step. The macos-latest runner has cocoapods preinstalled.
+        run: pod install --repo-update
+
       - name: Bump versions
         working-directory: ios
         run: |
