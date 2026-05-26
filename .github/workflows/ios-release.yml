@@ -75,6 +75,11 @@ jobs:
 
       - name: Archive
         working-directory: ios
+        # PWABuilder's project ships with empty DEVELOPMENT_TEAM /
+        # PROVISIONING_PROFILE_SPECIFIER and CODE_SIGN_IDENTITY="Apple
+        # Development" — fine for local dev, wrong for store-signed
+        # archives. Override all four explicitly so xcodebuild picks the
+        # right cert + profile from the temp keychain we installed.
         run: |
           xcodebuild \
             -project trinkhallen.xcodeproj \
@@ -83,9 +88,16 @@ jobs:
             -destination "generic/platform=iOS" \
             -archivePath "$RUNNER_TEMP/trinkhallen.xcarchive" \
             CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=J4QB2F9PJ6 \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="trinkhallen AppStore" \
             archive
 
       - name: Export IPA
+        # provisioningProfiles maps every signed bundle id to a profile
+        # name. teamID + signingCertificate are required when
+        # signingStyle=manual so xcodebuild doesn't try to re-resolve via
+        # the Apple ID account (we have none on the runner).
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -93,7 +105,13 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key><string>app-store</string>
+            <key>teamID</key><string>J4QB2F9PJ6</string>
             <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>app.trinkhallen.ios</key><string>trinkhallen AppStore</string>
+            </dict>
             <key>uploadBitcode</key><false/>
             <key>uploadSymbols</key><true/>
           </dict>
