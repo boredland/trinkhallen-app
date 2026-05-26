@@ -183,6 +183,17 @@ describe("applyReportPatch", () => {
     expect(doc.features[0]!.properties.tags).toEqual(["wc"]);
   });
 
+  it("is a byte-for-byte no-op for a known kind with no actionable data", () => {
+    const doc = buildDoc();
+    // update_payment with no payment, update_tags with no add/remove: must
+    // return the input untouched so proposeChange opens no PR.
+    expect(applyReportPatch(doc, "tk_fr_0042", "update_payment", {})).toBe(doc);
+    expect(applyReportPatch(doc, "tk_fr_0042", "update_tags", {})).toBe(doc);
+    expect(
+      applyReportPatch(doc, "tk_fr_0042", "update_tags", { add_tags: [], remove_tags: [] }),
+    ).toBe(doc);
+  });
+
   it("appends `; PH open` to hours on ph_open_observed", () => {
     const out = applyReportPatch(buildDoc(), "tk_fr_0042", "ph_open_observed", {
       observation_date: "2026-10-03",

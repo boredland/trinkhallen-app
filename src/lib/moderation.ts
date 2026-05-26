@@ -390,16 +390,32 @@ export function applyReportPatch(
   const f = doc.features[idx]!;
   const today = new Date().toISOString().slice(0, 10);
 
-  if (kind === "wrong_hours" && typeof payload["new_hours"] === "string") {
+  const KNOWN_PATCH_KINDS = new Set([
+    "wrong_hours",
+    "wrong_address",
+    "wrong_name",
+    "closed",
+    "update_payment",
+    "update_tags",
+    "ph_open_observed",
+  ]);
+  if (!KNOWN_PATCH_KINDS.has(kind)) {
+    throw new Error(`applyReportPatch: unsupported kind ${kind}`);
+  }
+
+  // A known kind carrying no actionable data is a no-op: return the file
+  // untouched so proposeChange sees no diff and resolves the report without
+  // opening a PR. (api.reports now drops empty reports at submit time, but a
+  // moderator approving one created before that guard mustn't hit an error.)
+  if (kind === "wrong_hours") {
+    if (typeof payload["new_hours"] !== "string") return text;
     f.properties["hours"] = { raw: payload["new_hours"] as string };
-  } else if (
-    kind === "wrong_address" &&
-    payload["new_address"] &&
-    typeof payload["new_address"] === "object"
-  ) {
+  } else if (kind === "wrong_address") {
+    if (!payload["new_address"] || typeof payload["new_address"] !== "object") return text;
     const current = (f.properties["address"] as Record<string, string>) ?? {};
     f.properties["address"] = { ...current, ...(payload["new_address"] as Record<string, string>) };
-  } else if (kind === "wrong_name" && typeof payload["new_name"] === "string") {
+  } else if (kind === "wrong_name") {
+    if (typeof payload["new_name"] !== "string") return text;
     f.properties["name"] = payload["new_name"];
   } else if (kind === "closed") {
     // "Dauerhaft geschlossen" = the kiosk no longer exists. Remove the
@@ -409,11 +425,8 @@ export function applyReportPatch(
     // anyway — the kiosk would keep showing up on the map.
     doc.features.splice(idx, 1);
     return `${JSON.stringify(doc, null, 2)}\n`;
-  } else if (
-    kind === "update_payment" &&
-    payload["payment"] &&
-    typeof payload["payment"] === "object"
-  ) {
+  } else if (kind === "update_payment") {
+    if (!payload["payment"] || typeof payload["payment"] !== "object") return text;
     // Conservative: only fill missing keys; never overwrite an existing value.
     // Mirrors run-gmaps-payment.ts's policy in the data repo — we'd rather
     // extend than argue with prior data.
@@ -424,9 +437,12 @@ export function applyReportPatch(
     }
     f.properties["payment"] = next;
   } else if (kind === "update_tags") {
+    const add = (payload["add_tags"] as string[] | undefined) ?? [];
+    const remove = (payload["remove_tags"] as string[] | undefined) ?? [];
+    if (add.length === 0 && remove.length === 0) return text;
     const tags = new Set((f.properties["tags"] as string[] | undefined) ?? []);
-    for (const tag of (payload["add_tags"] as string[] | undefined) ?? []) tags.add(tag);
-    for (const tag of (payload["remove_tags"] as string[] | undefined) ?? []) tags.delete(tag);
+    for (const tag of add) tags.add(tag);
+    for (const tag of remove) tags.delete(tag);
     f.properties["tags"] = [...tags];
   } else if (kind === "ph_open_observed") {
     // Auto-filed by api.checkins when someone with a verified geolocation

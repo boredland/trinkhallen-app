@@ -83,6 +83,26 @@ apiReports.post("/api/reports", async (c) => {
     if (remove.length) payload["remove_tags"] = remove;
   }
 
+  // Drop no-op reports: a structured kind with nothing to apply (e.g. every
+  // payment/amenity option left at "weiß nicht") would create a report that
+  // can never produce a real diff — either a dead "unsupported kind" approve
+  // or a PR that only bumps the `updated` date. closed/duplicate/other carry
+  // their meaning in the kind + note, so they're always allowed.
+  const STRUCTURED_KEYS: Record<string, readonly string[]> = {
+    wrong_hours: ["new_hours"],
+    wrong_address: ["new_address"],
+    wrong_name: ["new_name"],
+    update_payment: ["payment"],
+    update_tags: ["add_tags", "remove_tags"],
+  };
+  const requiredKeys = STRUCTURED_KEYS[kind];
+  if (requiredKeys && !requiredKeys.some((k) => k in payload)) {
+    if (c.req.header("X-Tk-Fragment") === "1") {
+      return c.html('<p class="text-sm italic text-fg-dim">Danke! Wir prüfen das.</p>');
+    }
+    return c.redirect(`/k/${kioskId}?reported=ok`);
+  }
+
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
   await c.env.DB.prepare(
