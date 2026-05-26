@@ -88,8 +88,11 @@ jobs:
         # archives. Override all four explicitly so xcodebuild picks the
         # right cert + profile from the temp keychain we installed.
         run: |
+          # Use the .xcworkspace (not .xcodeproj) so the Pods project is
+          # included — otherwise Firebase pod modules aren't found and
+          # AppDelegate.swift fails to compile.
           xcodebuild \
-            -project trinkhallen.xcodeproj \
+            -workspace trinkhallen.xcworkspace \
             -scheme trinkhallen \
             -configuration Release \
             -destination "generic/platform=iOS" \
