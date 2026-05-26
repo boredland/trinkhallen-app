@@ -144,8 +144,8 @@ export function formatHoursTable(
     const oh = new OpeningHours(raw, buildNominatim(location));
     const intervals = oh.getOpenIntervals(WEEK_START, WEEK_END);
 
-    // Collect per-day time-range strings; Mon=0 … Sun=6
-    const daySlots: string[][] = Array.from({ length: 7 }, () => []);
+    // Collect per-day [start, end] ranges; Mon=0 … Sun=6.
+    const daySlots: [string, string][][] = Array.from({ length: 7 }, () => []);
 
     for (const [start, end] of intervals) {
       // Split multi-day intervals (e.g. 24/7) into individual day portions.
@@ -166,19 +166,46 @@ export function formatHoursTable(
         // Show 24:00 when the slot ends at midnight of the next day.
         const endStr = slotEnd.getTime() === dayEndMs ? "24:00" : fmtUtcTime(slotEnd);
         // dayOffset is in [0,6] (checked above), so the element always exists.
-        daySlots[dayOffset]!.push(`${fmtUtcTime(slotStart)}–${endStr}`);
+        daySlots[dayOffset]!.push([fmtUtcTime(slotStart), endStr]);
 
         cur = dayEndMs;
       }
     }
 
+    // Fold cross-midnight spillover back into the day it belongs to: a slot
+    // ending at 24:00 whose continuation is the next day's leading "00:00–E"
+    // reads far better as "S–E" (e.g. "08:00–00:30") than split into a
+    // confusing "00:00–00:30" chunk on the following row. Cyclic — Sunday's
+    // tail wraps onto Monday. Full days (00:00–24:00) and 24/7 are left as-is
+    // so they don't collapse into each other.
+    for (let d = 0; d < 7; d++) {
+      const today = daySlots[d]!;
+      const next = daySlots[(d + 1) % 7]!;
+      const last = today.at(-1);
+      const head = next[0];
+      if (
+        last &&
+        head &&
+        last[1] === "24:00" &&
+        last[0] !== "00:00" &&
+        head[0] === "00:00" &&
+        head[1] !== "24:00"
+      ) {
+        last[1] = head[1];
+        next.shift();
+      }
+    }
+
+    const fmtSlots = (slots: [string, string][]): string =>
+      slots.map(([s, e]) => `${s}–${e}`).join(", ");
+
     // Group consecutive days that share the exact same time ranges.
     const rows: { days: string; hours: string }[] = [];
     let i = 0;
     while (i < 7) {
-      const hoursStr = daySlots[i]!.join(", ");
+      const hoursStr = fmtSlots(daySlots[i]!);
       let j = i + 1;
-      while (j < 7 && daySlots[j]!.join(", ") === hoursStr) j++;
+      while (j < 7 && fmtSlots(daySlots[j]!) === hoursStr) j++;
 
       const count = j - i;
       // i and j-1 are both in [0,6]; DAY_LABELS_DE has exactly 7 entries.
