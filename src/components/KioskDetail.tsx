@@ -86,7 +86,10 @@ export const KioskDetail: FC<{
   const managedTags = kiosk.tags.filter(isReportableTag);
 
   const city = addr["city"];
+  // Computed lead sentence — only a fallback. A real, data-provided
+  // description always wins, so we don't show both.
   const intro = (() => {
+    if (kiosk.description) return null;
     if (city && district) return `${kiosk.name} ist ein Späti im Stadtteil ${district} in ${city}.`;
     if (city) return `${kiosk.name} ist ein Späti in ${city}.`;
     return null;
