@@ -20,12 +20,14 @@ import { REPORTABLE_TAG_GROUPS, tagLabel } from "../lib/tags";
  */
 
 const PAYMENT_LABELS: Record<string, { de: string; icon: string }> = {
-  cash: { de: "Bar", icon: "💶" },
   cards: { de: "Karte", icon: "💳" },
   contactless: { de: "Kontaktlos", icon: "📲" },
   girocard: { de: "Girocard", icon: "🟦" },
 };
-const PAYMENT_ORDER = ["cash", "cards", "contactless", "girocard"] as const;
+// Cash is the implicit German default — the enrichment never records it, so
+// asking "Bar?" on every kiosk is just noise. The "can I pay without cash?"
+// signal lives in cards/contactless/girocard.
+const PAYMENT_ORDER = ["cards", "contactless", "girocard"] as const;
 
 const TAG_ICONS: Record<string, string> = {
   backwaren: "🥨",
