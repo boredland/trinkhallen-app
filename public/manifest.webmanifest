@@ -9,7 +9,7 @@
   "orientation": "any",
   "background_color": "#0A0A0A",
   "theme_color": "#0A0A0A",
-  "categories": ["navigation", "travel", "food", "shopping"],
+  "categories": ["navigation", "travel", "food", "shopping", "social"],
   "lang": "de",
   "prefer_related_applications": false,
   "related_applications": [
