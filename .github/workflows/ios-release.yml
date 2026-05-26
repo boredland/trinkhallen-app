@@ -38,9 +38,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode
-        # macos-latest tracks current Xcode; pin if you need reproducibility.
-        run: sudo xcode-select -p
+      - name: Select Xcode 26
+        # Apple requires iOS 26 SDK for App Store uploads since spring
+        # 2026; the runner's default Xcode is sometimes older. Pick the
+        # newest Xcode 26 installed; fail loudly if none is.
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE" ]; then
+            echo "::error::No Xcode 26 installation found on runner."
+            ls /Applications/ | grep -i xcode
+            exit 1
+          fi
+          echo "Selected $XCODE"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
 
       - name: Install signing assets
         env:
