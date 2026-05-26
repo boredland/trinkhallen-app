@@ -26,8 +26,17 @@ async function onSubmit(ev: SubmitEvent): Promise<void> {
   const form = ev.currentTarget as HTMLFormElement;
   const submitBtn = form.querySelector<HTMLButtonElement>("button[type='submit']");
   if (submitBtn) submitBtn.disabled = true;
+  // Serialize the form so handlers that read fields (e.g. /me/delete with
+  // its `confirm=yes` checkbox) actually see them. Previously we POSTed
+  // an empty body, which silently failed /me/delete: the handler rejected
+  // the un-ticked confirm, returned a redirect we ignored, and the client
+  // navigated home as if the deletion succeeded.
   try {
-    await fetch(form.action, { method: "POST", redirect: "manual" });
+    await fetch(form.action, {
+      method: "POST",
+      body: new FormData(form),
+      redirect: "manual",
+    });
   } catch {
     // Fall through to the navigation anyway — the cookie may still be cleared
     // and the next page load will reconcile.
