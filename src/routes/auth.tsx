@@ -20,7 +20,15 @@
 
 import { googleAuth } from "@hono/oauth-providers/google";
 import { Hono } from "hono";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { Env } from "../env";
+import {
+  buildAuthorizeUrl as appleAuthorizeUrl,
+  extractDisplayName as appleDisplayName,
+  appleEnv,
+  exchangeCode as appleExchangeCode,
+  parseCallbackForm as appleParseCallback,
+} from "../lib/apple-auth";
 import { sendEmail } from "../lib/email";
 import { isValidEmail, mintMagicLink, redeemMagicLink } from "../lib/magic";
 import { createSession, destroySession, loadSession } from "../lib/session";
@@ -104,6 +112,102 @@ auth.get("/auth/google/callback", async (c) => {
     now,
   });
 
+  await createSession(c, userId);
+  return c.redirect("/me");
+});
+
+// ── Sign in with Apple ──────────────────────────────────────────────────────
+//
+// Required by App Store Review Guideline 4.8 because our iOS wrapper exposes
+// Google SSO. The flow is form_post-based (Apple POSTs across origins), so
+// state lives in a SameSite=None cookie set on the redirect side. See
+// src/lib/apple-auth.ts for the JWT-signed client_secret + id_token exchange.
+
+const APPLE_STATE_COOKIE = "__tk_apple_state";
+
+function appleCallbackUrl(c: { env: Env }, requestUrl: string): string {
+  const fromEnv = c.env.PUBLIC_ORIGIN;
+  if (fromEnv?.startsWith("http")) return `${fromEnv}/auth/apple/callback`;
+  return new URL("/auth/apple/callback", requestUrl).toString();
+}
+
+auth.get("/auth/apple", async (c) => {
+  const apple = appleEnv(c.env);
+  if (!apple) {
+    return c.text(
+      "Apple SSO is not yet configured on this deployment. The operator needs to set APPLE_SIGN_IN_{SERVICES_ID,TEAM_ID,KEY_ID,PRIVATE_KEY}.",
+      503,
+    );
+  }
+  const state = crypto.randomUUID();
+  // SameSite=None so the cookie survives Apple's cross-site POST back to
+  // /auth/apple/callback. HttpOnly + Secure to keep the value out of JS
+  // and off plaintext networks.
+  setCookie(c, APPLE_STATE_COOKIE, state, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    path: "/auth/apple",
+    maxAge: 600,
+  });
+  return c.redirect(appleAuthorizeUrl(apple, appleCallbackUrl(c, c.req.url), state));
+});
+
+auth.post("/auth/apple/callback", async (c) => {
+  const apple = appleEnv(c.env);
+  if (!apple) return c.text("Apple SSO is not configured.", 503);
+
+  const form = appleParseCallback(await c.req.formData());
+  if (form.error) return c.text(`Apple sign-in error: ${form.error}`, 400);
+  if (!form.code) return c.text("Apple sign-in did not return an authorization code.", 400);
+
+  // CSRF: the state in Apple's POST body must match the one we set in
+  // the cookie when redirecting. One-shot — clear it either way.
+  const expected = getCookie(c, APPLE_STATE_COOKIE);
+  deleteCookie(c, APPLE_STATE_COOKIE, { path: "/auth/apple" });
+  if (!expected || form.state !== expected) {
+    return c.text("Apple sign-in state mismatch (possible CSRF).", 400);
+  }
+
+  let idToken: Awaited<ReturnType<typeof appleExchangeCode>>;
+  try {
+    idToken = await appleExchangeCode(apple, form.code, appleCallbackUrl(c, c.req.url));
+  } catch (err) {
+    console.error("apple token exchange failed", err);
+    return c.text("Apple sign-in could not exchange the code.", 502);
+  }
+
+  if (!idToken.sub) return c.text("Apple sign-in returned no user identifier.", 400);
+  // No email means the user denied the email scope. We can't create an
+  // account without one (magic-link + future contact rely on it).
+  if (!idToken.email) {
+    return c.text(
+      "Apple sign-in returned no email. Re-enable 'Share My Email' on the next try.",
+      400,
+    );
+  }
+
+  const displayName = appleDisplayName(form.user);
+  const now = Math.floor(Date.now() / 1000);
+  const currentUser = c.get("user");
+
+  if (currentUser) {
+    const outcome = await linkAppleToCurrentUser(c.env.DB, {
+      userId: currentUser.id,
+      appleSub: idToken.sub,
+      appleEmail: idToken.email,
+      displayName,
+    });
+    if (outcome === "conflict") return c.redirect("/me?link=conflict");
+    return c.redirect("/me?link=ok");
+  }
+
+  const userId = await upsertUserByApple(c.env.DB, {
+    appleSub: idToken.sub,
+    email: idToken.email,
+    displayName,
+    now,
+  });
   await createSession(c, userId);
   return c.redirect("/me");
 });
@@ -328,6 +432,96 @@ async function upsertUser(
        VALUES (?, ?, ?, ?, ?, 'user', ?)`,
     )
     .bind(id, args.googleSub, args.email, args.displayName, args.avatarUrl, args.now)
+    .run();
+  return id;
+}
+
+/**
+ * Attach an Apple identity to a logged-in user. Mirrors linkGoogleToCurrentUser
+ * — the session already proves they own this row, Apple just freshly proved
+ * sub ownership, link is safe regardless of email match. Conflict only when
+ * apple_sub is already attached to a different account.
+ */
+async function linkAppleToCurrentUser(
+  db: D1Database,
+  args: { userId: string; appleSub: string; appleEmail: string; displayName: string | null },
+): Promise<"ok" | "conflict"> {
+  const other = await db
+    .prepare(`SELECT id FROM users WHERE apple_sub = ? AND id != ?`)
+    .bind(args.appleSub, args.userId)
+    .first<{ id: string }>();
+  if (other) return "conflict";
+  await db
+    .prepare(
+      `UPDATE users
+          SET apple_sub = ?,
+              display_name = COALESCE(display_name, ?)
+        WHERE id = ?`,
+    )
+    .bind(args.appleSub, args.displayName, args.userId)
+    .run();
+  return "ok";
+}
+
+/**
+ * Upsert via Apple. Three branches mirror upsertUser (google):
+ *   1. Already-linked apple_sub → reuse, refresh email/display_name
+ *   2. Magic-link signup with matching email (synthetic `email:` google_sub)
+ *      → attach apple_sub in place, keep the magic-link history
+ *   3. Brand-new user → insert with no google_sub yet (will get one if they
+ *      later sign in with Google too)
+ *
+ * Note that unlike Google, Apple users come in WITHOUT a google_sub initially.
+ * The users.google_sub column is NOT NULL UNIQUE, so we have to synthesise
+ * a placeholder for brand-new Apple users using the `apple:<sub>` prefix —
+ * the same trick the magic-link path uses with `email:<addr>`.
+ */
+async function upsertUserByApple(
+  db: D1Database,
+  args: {
+    appleSub: string;
+    email: string;
+    displayName: string | null;
+    now: number;
+  },
+): Promise<string> {
+  const existing = await db
+    .prepare(`SELECT id FROM users WHERE apple_sub = ?`)
+    .bind(args.appleSub)
+    .first<{ id: string }>();
+  if (existing) {
+    await db
+      .prepare(`UPDATE users SET email = ?, display_name = COALESCE(display_name, ?) WHERE id = ?`)
+      .bind(args.email, args.displayName, existing.id)
+      .run();
+    return existing.id;
+  }
+
+  const byEmail = await db
+    .prepare(`SELECT id, google_sub FROM users WHERE email = ?`)
+    .bind(args.email)
+    .first<{ id: string; google_sub: string }>();
+  if (byEmail?.google_sub.startsWith("email:")) {
+    await db
+      .prepare(
+        `UPDATE users
+            SET apple_sub = ?,
+                display_name = COALESCE(display_name, ?)
+          WHERE id = ?`,
+      )
+      .bind(args.appleSub, args.displayName, byEmail.id)
+      .run();
+    return byEmail.id;
+  }
+
+  const id = crypto.randomUUID();
+  const syntheticGoogleSub = `apple:${args.appleSub}`;
+  await db
+    .prepare(
+      `INSERT INTO users (id, google_sub, apple_sub, email, display_name, avatar_url, role, created_at)
+       VALUES (?, ?, ?, ?, ?, NULL, 'user', ?)`,
+    )
+    .bind(id, syntheticGoogleSub, args.appleSub, args.email, args.displayName, args.now)
     .run();
   return id;
 }

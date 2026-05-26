@@ -1461,8 +1461,16 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             )}
 
             <a
-              href="/auth/google"
+              href="/auth/apple"
               class="mt-6 inline-flex w-full items-center justify-center gap-3 border-2 border-border-hi bg-surface-2 px-3 py-2.5 font-display tracking-wider uppercase text-fg transition-colors hover:border-neon-pink hover:text-neon-pink"
+            >
+              <span aria-hidden="true">▶</span>
+              Mit Apple anmelden
+            </a>
+
+            <a
+              href="/auth/google"
+              class="mt-3 inline-flex w-full items-center justify-center gap-3 border-2 border-border-hi bg-surface-2 px-3 py-2.5 font-display tracking-wider uppercase text-fg transition-colors hover:border-neon-pink hover:text-neon-pink"
             >
               <span aria-hidden="true">▶</span>
               Mit Google anmelden

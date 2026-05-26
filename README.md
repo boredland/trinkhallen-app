@@ -78,6 +78,19 @@ wrangler secret put GITHUB_APP_ID
 wrangler secret put GITHUB_APP_PRIVATE_KEY
 wrangler secret put GITHUB_APP_INSTALLATION_ID
 
+# Apple Sign-In — required by App Store Guideline 4.8 for the iOS wrapper.
+# Setup at developer.apple.com:
+#   1. Identifiers → "+" → Services IDs → e.g. "app.trinkhallen.signin"
+#      → enable Sign In with Apple → Configure: primary App ID =
+#      app.trinkhallen.ios, return URL = https://trinkhallen.app/auth/apple/callback
+#   2. Keys → "+" → name "trinkhallen-signin" → enable Sign In with Apple
+#      → Configure: primary App ID = app.trinkhallen.ios → download the .p8
+#      (one-shot download; back it up like the App Store Connect key)
+wrangler secret put APPLE_SIGN_IN_SERVICES_ID   # e.g. app.trinkhallen.signin
+wrangler secret put APPLE_SIGN_IN_TEAM_ID       # 10-char Developer Team ID
+wrangler secret put APPLE_SIGN_IN_KEY_ID        # 10-char key ID from step 2
+wrangler secret put APPLE_SIGN_IN_PRIVATE_KEY   # paste full .p8 contents
+
 # Promote yourself to moderator (after first login created your user row).
 wrangler d1 execute trinkhallen-prod --remote --command \
   "UPDATE users SET role='moderator' WHERE email='you@example.com'"
@@ -167,6 +180,7 @@ migrations/
   0009_fix_ratings_kiosks_fk Rebuild ratings without the dangling kiosks FK
   0010_ph_observed_kind.sql  Rebuild reports with `ph_open_observed` kind +
                              allow status='approved' in CHECK
+  0011_apple_sub.sql         users.apple_sub UNIQUE for Sign in with Apple
 ```
 
 ## Caching

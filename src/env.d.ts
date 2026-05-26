@@ -17,6 +17,10 @@ export interface Env {
   GITHUB_APP_ID: string;
   GITHUB_APP_PRIVATE_KEY: string;
   GITHUB_APP_INSTALLATION_ID: string;
+  APPLE_SIGN_IN_SERVICES_ID: string;
+  APPLE_SIGN_IN_TEAM_ID: string;
+  APPLE_SIGN_IN_KEY_ID: string;
+  APPLE_SIGN_IN_PRIVATE_KEY: string;
 }
 
 declare module "hono" {
