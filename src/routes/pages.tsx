@@ -14,7 +14,7 @@ import {
 } from "../lib/asset-kiosks";
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
-import { parseBbox } from "../lib/geo";
+import { parseBbox, parseLatLng } from "../lib/geo";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating } from "../lib/ratings";
@@ -195,8 +195,15 @@ async function renderMapPage(
   const focusLng = focused?.kiosk.lng;
   const focusLat = focused?.kiosk.lat;
 
-  // Side-panel bbox: when focused on a kiosk that's outside Frankfurt, use a
-  // box around it so the panel isn't empty on first paint.
+  // Side-panel bbox resolution, in priority order:
+  //   1. focused kiosk → box around it
+  //   2. ?bbox=w,s,e,n → exact (canonical share-URL shape)
+  //   3. ?c=lat,lng → ~5 km box around the centre, so deep links into
+  //      Berlin/Köln/etc render with the right city's kiosks in the
+  //      sidebar instead of the Frankfurt default. Mirrors what
+  //      map.entry.ts does for the map element.
+  //   4. Frankfurt fallback.
+  const centerHint = parseLatLng(url.searchParams.get("c"));
   const initialBbox = focused
     ? {
         west: focused.kiosk.lng - 0.05,
@@ -204,7 +211,15 @@ async function renderMapPage(
         east: focused.kiosk.lng + 0.05,
         north: focused.kiosk.lat + 0.04,
       }
-    : parseBbox(url.searchParams.get("bbox") ?? "8.4,50.0,8.9,50.3");
+    : (parseBbox(url.searchParams.get("bbox")) ??
+      (centerHint
+        ? {
+            west: centerHint.lng - 0.05,
+            south: centerHint.lat - 0.04,
+            east: centerHint.lng + 0.05,
+            north: centerHint.lat + 0.04,
+          }
+        : parseBbox("8.4,50.0,8.9,50.3")));
 
   let initialPanel = <KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />;
   if (initialBbox) {
