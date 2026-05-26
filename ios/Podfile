@@ -14,6 +14,15 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      # Pod static libraries don't get signed and don't carry provisioning
+      # profiles. We pass DEVELOPMENT_TEAM / CODE_SIGN_IDENTITY /
+      # PROVISIONING_PROFILE_SPECIFIER on the xcodebuild command line for
+      # the main app target, but those overrides also reach Pod targets,
+      # where they trigger "does not support provisioning profiles"
+      # errors. Disabling signing on Pods drops the override silently.
+      config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+      config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+      config.build_settings['EXPANDED_CODE_SIGN_IDENTITY'] = ''
     end
   end
 end
