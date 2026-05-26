@@ -272,6 +272,22 @@ if (mount instanceof HTMLElement) {
   map.on("load", () => {
     addKioskLayers();
 
+    // Auto-locate: when the URL pins no location and the user has already
+    // granted geolocation, zoom to their position exactly as a tap on the GPS
+    // control would. Deep links (/k/:id set data-focus-*) and ?c= views are
+    // left as-is, and a "prompt"/"denied" state stays silent — we never
+    // surface an unsolicited permission prompt.
+    const urlPinsLocation =
+      params.has("c") || (Number.isFinite(focusLng) && Number.isFinite(focusLat));
+    if (!urlPinsLocation) {
+      navigator.permissions
+        ?.query({ name: "geolocation" as PermissionName })
+        .then((status) => {
+          if (status.state === "granted") geolocate.trigger();
+        })
+        .catch(() => {});
+    }
+
     for (const z of SUMMARY_ZOOMS) {
       const layerId = summaryBubbleId(z);
       map.on("click", layerId, (e: MapLayerMouseEvent) => {
