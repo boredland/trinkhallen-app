@@ -685,13 +685,13 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               <li>
                 <span class="font-display text-fg">Warst du hier?</span> Auf der Detailseite mit
                 einem Tap einchecken — wenn Daten fehlen (Öffnungszeiten, Zahlung, Sitzen, WC, …),
-                fragt das Formular kurz nach. Antworten gehen durch Moderation und landen als PR im
+                fragt das Formular kurz nach. Antworten gehen durch Moderation und landen im offenen
                 Datensatz.
               </li>
               <li>
                 <span class="font-display text-fg">Korrigieren:</span> „Daten falsch?"-Bereich deckt
-                geschlossen, doppelter Eintrag, falsche Adresse usw. ab. Moderation öffnet eine PR
-                (oder ein Issue für Fälle, die nicht automatisch patchbar sind).
+                geschlossen, doppelter Eintrag, falsche Adresse usw. ab. Moderation prüft und
+                übernimmt die Korrektur in den Datensatz.
               </li>
               <li>
                 <span class="font-display text-fg">Vorschlagen:</span>{" "}
@@ -991,15 +991,15 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             <p class="mt-3 text-fg-muted">
               Bewertungen, Daten-Korrekturen, Späti-Vorschläge und Check-ins werden mit deinem
               Nutzerkonto verknüpft gespeichert. Freigegebene Korrekturen und Vorschläge werden
-              außerdem als Pull-Request in das öffentliche{" "}
+              außerdem in den öffentlichen, offen lizenzierten Datensatz{" "}
               <a
                 class="text-neon-cyan underline-offset-2 hover:underline"
                 href="https://github.com/boredland/trinkhallen-data"
               >
                 trinkhallen-data
-              </a>
-              -Repository übernommen und sind dort dauerhaft Teil der offenen Geschichte. Der dort
-              vermerkte „user-id" ist ein zufälliger UUID-Wert ohne Personenbezug für Außenstehende.
+              </a>{" "}
+              übernommen und sind dort dauerhaft Teil der offenen Geschichte. Mit dem Eintrag
+              gespeichert wird eine zufällige UUID ohne Personenbezug für Außenstehende.
               Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
             </p>
           </section>
@@ -1231,14 +1231,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         <header class="mb-6">
           <h1 class="font-display text-4xl tracking-wide text-fg">Späti vorschlagen</h1>
           <p class="mt-2 text-fg-muted">
-            Dein Vorschlag landet als Pull Request auf{" "}
-            <a
-              class="text-neon-cyan underline-offset-2 hover:underline"
-              href="https://github.com/boredland/trinkhallen-data"
-            >
-              GitHub
-            </a>{" "}
-            und wird von Moderator:innen geprüft.
+            Dein Vorschlag wird von Moderator:innen geprüft und landet anschließend im offenen
+            Datensatz.
           </p>
         </header>
 
@@ -1838,11 +1832,6 @@ async function renderProfile(
                 <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
                   <span class="border-2 border-border px-2 py-0.5">{kindLabel(r.kind)}</span>
                   <StatusPill status={r.status} />
-                  {r.pr_url && (
-                    <a class="text-neon-cyan underline-offset-2 hover:underline" href={r.pr_url}>
-                      PR →
-                    </a>
-                  )}
                 </div>
               </li>
             ))}
@@ -1855,14 +1844,14 @@ async function renderProfile(
         <p class="mt-2 text-fg-muted">
           Löscht dein Konto unwiderruflich: E-Mail, Username, Profil, Sitzungen, Bewertungen,
           Check-ins und offene Vorschläge oder Korrekturen werden entfernt. Korrekturen und
-          Vorschläge, die bereits als PR im{" "}
+          Vorschläge, die bereits in den{" "}
           <a
             class="text-neon-cyan underline-offset-2 hover:underline"
             href="https://github.com/boredland/trinkhallen-data"
           >
-            Datensatz
+            offenen Datensatz
           </a>{" "}
-          gelandet sind, bleiben dort bestehen — der Verweis auf dein Konto wird anonymisiert.
+          übernommen wurden, bleiben dort bestehen — der Verweis auf dein Konto wird anonymisiert.
         </p>
         {c.req.query("delete") === "unconfirmed" && (
           <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
@@ -1928,9 +1917,10 @@ function StatusPill({ status }: { status: string }) {
   const map: Record<string, { de: string; cls: string }> = {
     open: { de: "Offen", cls: "border-status-open text-status-open" },
     pending: { de: "Wartet", cls: "border-status-open text-status-open" },
-    pr_opened: { de: "PR offen", cls: "border-neon-cyan text-neon-cyan" },
+    pr_opened: { de: "Akzeptiert", cls: "border-neon-cyan text-neon-cyan" },
+    approved: { de: "Akzeptiert", cls: "border-neon-cyan text-neon-cyan" },
     merged: { de: "Übernommen", cls: "border-success text-success" },
-    dismissed: { de: "Verworfen", cls: "border-border text-fg-dim" },
+    dismissed: { de: "Abgelehnt", cls: "border-border text-fg-dim" },
   };
   const cfg = map[status] ?? { de: status, cls: "border-border text-fg-dim" };
   return <span class={`border-2 px-2 py-0.5 ${cfg.cls}`}>{cfg.de}</span>;

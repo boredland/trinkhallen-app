@@ -60,12 +60,15 @@ describe("kindLabel", () => {
 });
 
 describe("statusLabel", () => {
-  it("maps the three blocking statuses", () => {
+  it("hides the PR mechanism — pr_opened and approved both read as Akzeptiert", () => {
     expect(statusLabel("open")).toBe("In Prüfung");
-    expect(statusLabel("pr_opened")).toBe("Akzeptiert (PR offen)");
+    expect(statusLabel("pending")).toBe("In Prüfung");
+    expect(statusLabel("pr_opened")).toBe("Akzeptiert");
     expect(statusLabel("approved")).toBe("Akzeptiert");
+    expect(statusLabel("merged")).toBe("Übernommen");
+    expect(statusLabel("dismissed")).toBe("Abgelehnt");
   });
-  it("passes other statuses through unchanged", () => {
-    expect(statusLabel("dismissed")).toBe("dismissed");
+  it("passes unknown statuses through unchanged", () => {
+    expect(statusLabel("freshly_invented_status")).toBe("freshly_invented_status");
   });
 });

@@ -140,16 +140,7 @@ export const ReportForm: FC<ReportFormProps> = ({
             <button type="submit" class="btn-neon">
               ▶ Melden
             </button>
-            <p class="text-xs text-fg-dim">
-              Wird auf{" "}
-              <a
-                class="underline-offset-2 hover:underline"
-                href="https://github.com/boredland/trinkhallen-data"
-              >
-                GitHub
-              </a>{" "}
-              von Moderator:innen geprüft.
-            </p>
+            <p class="text-xs text-fg-dim">Wird von Moderator:innen geprüft.</p>
           </form>
         </details>
       )}
@@ -165,18 +156,7 @@ const SubmittedPanel: FC<{ reports: UserKioskReport[] }> = ({ reports }) => (
         <li class="flex items-center justify-between gap-2">
           <span class="text-fg">{kindLabel(r.kind)}</span>
           <span class="font-display text-xs tracking-wider uppercase text-fg-muted">
-            {r.pr_url ? (
-              <a
-                class="hover:text-neon-cyan underline-offset-2 hover:underline"
-                href={r.pr_url}
-                target="_blank"
-                rel="noopener"
-              >
-                {statusLabel(r.status)} →
-              </a>
-            ) : (
-              statusLabel(r.status)
-            )}
+            {statusLabel(r.status)}
           </span>
         </li>
       ))}

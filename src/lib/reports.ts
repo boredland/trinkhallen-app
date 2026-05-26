@@ -75,11 +75,18 @@ export function kindLabel(kind: string): string {
 export function statusLabel(status: string): string {
   switch (status) {
     case "open":
+    case "pending":
       return "In Prüfung";
-    case "pr_opened":
-      return "Akzeptiert (PR offen)";
+    // `approved` and `pr_opened` are both "accepted by a moderator, change
+    // is on its way into the dataset" — we deliberately don't expose the
+    // PR mechanism to end users.
     case "approved":
+    case "pr_opened":
       return "Akzeptiert";
+    case "merged":
+      return "Übernommen";
+    case "dismissed":
+      return "Abgelehnt";
     default:
       return status;
   }

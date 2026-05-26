@@ -109,19 +109,7 @@ const AnsweredStub: FC<{ report: UserKioskReport }> = ({ report }) => (
     <span class="font-display text-xs tracking-wider uppercase text-fg-dim">
       {kindLabel(report.kind)} —{" "}
     </span>
-    {report.pr_url ? (
-      <a
-        class="text-neon-cyan underline-offset-2 hover:underline"
-        href={report.pr_url}
-        target="_blank"
-        rel="noopener"
-      >
-        {statusLabel(report.status)} →
-      </a>
-    ) : (
-      <span>{statusLabel(report.status)}</span>
-    )}
-    . Danke!
+    <span>{statusLabel(report.status)}</span>. Danke!
   </p>
 );
 
