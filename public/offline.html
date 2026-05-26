@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0A0A0A" />
+    <meta name="robots" content="noindex" />
+    <title>Offline · trinkhallen.app</title>
+    <style>
+      /* Self-contained — this page must paint without any /assets/*
+         being available. Keep all styles inline, no external CSS,
+         no client JS. */
+      :root {
+        color-scheme: dark;
+        --bg: #0a0a0a;
+        --surface: #141414;
+        --fg: #f5f2ec;
+        --fg-muted: #a8a39a;
+        --border: #2a2a2a;
+        --cyan: #5ee2ff;
+        --pink: #ff2d6f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        min-height: 100vh;
+      }
+      main {
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 64px 24px 24px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: var(--pink);
+        color: #fff;
+      }
+      h1 {
+        margin: 16px 0 8px;
+        font-size: 36px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      p {
+        margin: 8px 0 16px;
+        color: var(--fg-muted);
+        line-height: 1.5;
+      }
+      .card {
+        margin-top: 24px;
+        padding: 16px;
+        background: var(--surface);
+        border: 2px solid var(--border);
+      }
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--fg-muted);
+      }
+      .card ul {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--fg);
+        line-height: 1.6;
+      }
+      .card a {
+        color: var(--cyan);
+        text-decoration: none;
+      }
+      .card a:hover {
+        text-decoration: underline;
+      }
+      button {
+        margin-top: 16px;
+        padding: 12px 24px;
+        font: inherit;
+        font-weight: 600;
+        background: var(--cyan);
+        color: var(--bg);
+        border: 2px solid var(--cyan);
+        cursor: pointer;
+      }
+      button:hover {
+        background: transparent;
+        color: var(--cyan);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="badge">Offline</span>
+      <h1>Keine Verbindung</h1>
+      <p>
+        Dein Gerät ist gerade nicht im Netz. Schon besuchte Kioske und die Karte aus deinem
+        letzten Sichtbereich bleiben verfügbar.
+      </p>
+
+      <div class="card">
+        <h2>Was geht offline:</h2>
+        <ul>
+          <li>Die Karte mit Kacheln, die du schon gesehen hast</li>
+          <li>Späti-Detailseiten, die du kürzlich geöffnet hast</li>
+          <li>Deine letzte Suche und Filter</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Braucht Internet:</h2>
+        <ul>
+          <li>Bewertungen schreiben, Check-ins, Daten korrigieren</li>
+          <li>An- und Abmelden</li>
+          <li>Neue Stadtteile auf der Karte laden</li>
+        </ul>
+      </div>
+
+      <button type="button" onclick="location.reload()">Erneut versuchen</button>
+    </main>
+  </body>
+</html>

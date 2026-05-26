@@ -24,6 +24,36 @@
       "url": "https://apps.apple.com/app/id6773266903"
     }
   ],
+  "shortcuts": [
+    {
+      "name": "Jetzt navigieren",
+      "short_name": "Jetzt",
+      "description": "Finde den nächsten geöffneten Späti und öffne die Karten-App.",
+      "url": "/jetzt?utm_source=shortcut",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Karte öffnen",
+      "short_name": "Karte",
+      "description": "Direkt zur bundesweiten Karte mit allen Trinkhallen.",
+      "url": "/?utm_source=shortcut",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Späti vorschlagen",
+      "short_name": "Vorschlagen",
+      "description": "Fehlt ein Späti? Reich ihn als Pull Request ein.",
+      "url": "/add?utm_source=shortcut",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Mein Profil",
+      "short_name": "Profil",
+      "description": "Deine Bewertungen, Check-ins und eingereichten Korrekturen.",
+      "url": "/me?utm_source=shortcut",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "icons": [
     {
       "src": "/favicon.svg",

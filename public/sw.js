@@ -26,7 +26,8 @@
  * Bump VERSION below to invalidate everything.
  */
 
-const VERSION = "v5";
+const VERSION = "v6";
+const OFFLINE_URL = "/offline.html";
 const STATIC_CACHE = `tk-static-${VERSION}`;
 const TILES_CACHE = `tk-tiles-${VERSION}`;
 const DATA_CACHE = `tk-data-${VERSION}`;
@@ -45,12 +46,21 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
   // Pre-warm the app shell so the first offline visit lands on something.
   // `/me` is intentionally NOT pre-warmed — it's a per-user page.
+  // OFFLINE_URL goes into STATIC_CACHE because it's the same on every
+  // deploy and must outlive runtime cache rotations.
   event.waitUntil(
-    caches.open(RUNTIME_CACHE).then((cache) =>
-      cache.addAll(["/", "/about"]).catch(() => {
-        // best-effort; offline-during-install is fine
-      }),
-    ),
+    Promise.all([
+      caches.open(RUNTIME_CACHE).then((cache) =>
+        cache.addAll(["/", "/about"]).catch(() => {
+          // best-effort; offline-during-install is fine
+        }),
+      ),
+      caches.open(STATIC_CACHE).then((cache) =>
+        cache.add(OFFLINE_URL).catch(() => {
+          // ditto — page can still navigate online if the precache fails
+        }),
+      ),
+    ]),
   );
 });
 
@@ -126,7 +136,7 @@ self.addEventListener("fetch", (event) => {
     ) {
       return; // pass through to the network
     }
-    event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
+    event.respondWith(navigationWithOfflineFallback(req));
     return;
   }
 
@@ -157,15 +167,26 @@ async function staleWhileRevalidate(req, cacheName) {
   return cached ?? (await fresh) ?? Response.error();
 }
 
-async function networkFirst(req, cacheName) {
-  const cache = await caches.open(cacheName);
-  try {
-    const resp = await fetch(req);
-    if (resp.ok) cache.put(req, resp.clone()).catch(() => {});
-    return resp;
-  } catch {
-    const cached = await cache.match(req, { ignoreVary: true });
-    if (cached) return cached;
-    throw new Error("offline + nothing cached");
-  }
+/**
+ * Navigation handler: stale-while-revalidate on the runtime cache, but when
+ * the network fetch fails AND nothing's cached for this URL, fall through to
+ * the pre-cached offline page instead of returning a hard error. The user
+ * gets context ("you're offline, here's what still works") instead of
+ * Chrome's generic "no internet" screen.
+ */
+async function navigationWithOfflineFallback(req) {
+  const runtime = await caches.open(RUNTIME_CACHE);
+  const cached = await runtime.match(req, { ignoreVary: true });
+  const fresh = fetch(req)
+    .then((resp) => {
+      if (resp.ok) runtime.put(req, resp.clone()).catch(() => {});
+      return resp;
+    })
+    .catch(() => null);
+
+  if (cached) return cached;
+  const live = await fresh;
+  if (live) return live;
+  const offline = await caches.match(OFFLINE_URL, { ignoreVary: true });
+  return offline ?? Response.error();
 }

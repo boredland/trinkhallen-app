@@ -373,6 +373,88 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   // Legacy redirect — /list was unified into the map sidebar.
   app.get("/list", (c) => c.redirect("/", 301));
 
+  // PWA shortcut destination — "find the nearest currently-open kiosk and
+  // open native Maps for navigation". Requires browser geolocation; the
+  // page below holds the user-gesture flow that pre-permission iOS Safari
+  // needs and degrades gracefully to the map on denial or no-results.
+  app.get("/jetzt", (c) =>
+    c.html(
+      <Layout
+        title="Jetzt navigieren"
+        description="Direkt zum nächsten geöffneten Späti per Karten-App."
+        noindex
+        nav="map"
+        user={c.get("user")}
+      >
+        <article class="border-2 border-border bg-surface p-6">
+          <h1 class="font-display text-3xl tracking-wide text-fg sm:text-4xl">Jetzt navigieren</h1>
+          <p id="jetzt-status" class="mt-4 text-fg-muted" aria-live="polite">
+            Wir holen kurz deinen Standort, suchen den nächsten geöffneten Späti und öffnen deine
+            Karten-App.
+          </p>
+          <div id="jetzt-actions" class="mt-6 hidden flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <a href="/" class="btn-neon">
+              Zur Karte
+            </a>
+            <button type="button" id="jetzt-retry" class="btn-neon">
+              Erneut versuchen
+            </button>
+          </div>
+        </article>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (() => {
+                const status = document.getElementById("jetzt-status");
+                const actions = document.getElementById("jetzt-actions");
+                const retry = document.getElementById("jetzt-retry");
+                const setMsg = (m) => { if (status) status.textContent = m; };
+                const showFallback = () => {
+                  if (actions) {
+                    actions.classList.remove("hidden");
+                    actions.classList.add("flex");
+                  }
+                };
+                const go = () => {
+                  if (!("geolocation" in navigator)) {
+                    setMsg("Dein Browser unterstützt keine Standort-Anfrage. Öffne die Karte und such manuell.");
+                    showFallback();
+                    return;
+                  }
+                  setMsg("Standort wird ermittelt …");
+                  navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const { latitude: lat, longitude: lng } = pos.coords;
+                    setMsg("Suche den nächsten geöffneten Späti …");
+                    try {
+                      const res = await fetch(\`/api/kiosks/nearest-open?origin=\${lat},\${lng}\`);
+                      if (res.status === 404) {
+                        setMsg("In deiner Nähe ist gerade nichts geöffnet. Schau auf die Karte für die volle Übersicht.");
+                        showFallback();
+                        return;
+                      }
+                      if (!res.ok) throw new Error("nearest lookup failed");
+                      const data = await res.json();
+                      setMsg(\`\${data.name} — Karten-App wird geöffnet …\`);
+                      window.location.href = data.nav_url;
+                    } catch {
+                      setMsg("Konnte den nächsten Späti nicht ermitteln. Öffne die Karte manuell.");
+                      showFallback();
+                    }
+                  }, () => {
+                    setMsg("Wir konnten deinen Standort nicht lesen. Öffne die Karte und navigiere von dort.");
+                    showFallback();
+                  }, { enableHighAccuracy: true, timeout: 8000 });
+                };
+                retry?.addEventListener("click", go);
+                go();
+              })();
+            `,
+          }}
+        />
+      </Layout>,
+    ),
+  );
+
   // Per-city directory pages. SERP analysis (see SXO audit) showed that
   // "trinkhallen frankfurt" / "späti berlin" rank curated lists, not maps —
   // /stadt/:slug serves a real list page so we can compete for those.

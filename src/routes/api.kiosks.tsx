@@ -1,7 +1,12 @@
 import { Hono } from "hono";
 import { KioskList } from "../components/KioskList";
 import type { Env } from "../env";
-import { findNearestKiosk, getKioskById, queryKiosksInBbox } from "../lib/asset-kiosks";
+import {
+  findNearbyKiosks,
+  findNearestKiosk,
+  getKioskById,
+  queryKiosksInBbox,
+} from "../lib/asset-kiosks";
 import type { KioskRecord } from "../lib/db";
 import {
   applyFilters,
@@ -10,6 +15,7 @@ import {
   parseFilterFromQuery,
 } from "../lib/filters";
 import { haversineMeters, parseBbox, parseLatLng, quantizeBbox } from "../lib/geo";
+import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 
 export const apiKiosks = new Hono<{ Bindings: Env }>();
@@ -126,6 +132,48 @@ apiKiosks.get("/api/kiosks/nearest", async (c) => {
     },
     200,
     { "cache-control": "public, max-age=30, s-maxage=30" },
+  );
+});
+
+/**
+ * GET /api/kiosks/nearest-open?origin=lat,lng
+ *
+ * Picks the closest non-vending kiosk with computeStatus().kind === "open"
+ * out of a ~5 km radius around the user. Used by the /jetzt shortcut to
+ * deep-link straight into a native Maps app. Returns the kiosk id + a
+ * UA-appropriate navigation URL; client only needs to `window.location` to it.
+ */
+apiKiosks.get("/api/kiosks/nearest-open", async (c) => {
+  const origin = parseLatLng(c.req.query("origin"));
+  if (!origin) return c.json({ error: "origin lat,lng required" }, 400);
+
+  // Pull a generous candidate pool — open-now is sparse on holidays and at
+  // night, so we'd rather walk a bit farther than miss the only open Späti.
+  const candidates = await findNearbyKiosks(c.env, origin, "", 50);
+  const now = new Date();
+  const openHit = candidates.find(
+    (h) => computeStatus(h.record.hours?.raw, now, kioskLocation(h.record)).kind === "open",
+  );
+  if (!openHit) return c.json({ error: "no open kiosks within reach" }, 404);
+
+  const nav = buildNavigateTargets({
+    name: openHit.record.name,
+    lat: openHit.record.lat,
+    lng: openHit.record.lng,
+    userAgent: c.req.header("user-agent") ?? null,
+  });
+  return c.json(
+    {
+      id: openHit.record.id,
+      name: openHit.record.name,
+      lng: openHit.record.lng,
+      lat: openHit.record.lat,
+      distance: openHit.distance,
+      nav_url: nav.primary.href,
+      detail_url: `/k/${openHit.record.id}`,
+    },
+    200,
+    { "cache-control": "private, max-age=30" },
   );
 });
 
