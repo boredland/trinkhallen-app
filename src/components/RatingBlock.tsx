@@ -87,7 +87,7 @@ const OwnRatingForm: FC<{ kioskId: string; own: RatingRow | null }> = ({ kioskId
         <button
           type="submit"
           formaction="/api/ratings/delete"
-          class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wider uppercase text-fg-muted hover:border-danger hover:text-danger"
+          class="cursor-pointer border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wider uppercase text-fg-muted hover:border-danger hover:text-danger"
         >
           Löschen
         </button>

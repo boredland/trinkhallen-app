@@ -121,7 +121,7 @@ const inputCls =
   "w-full border-2 border-border bg-surface px-2 py-1 text-sm text-fg placeholder:text-fg-dim focus:border-neon-cyan focus:outline-none";
 
 const submitCls =
-  "border-2 border-neon-cyan bg-transparent px-3 py-1 text-xs font-bold uppercase tracking-wider text-neon-cyan transition-colors hover:bg-neon-cyan hover:text-bg";
+  "cursor-pointer border-2 border-neon-cyan bg-transparent px-3 py-1 text-xs font-bold uppercase tracking-wider text-neon-cyan transition-colors hover:bg-neon-cyan hover:text-bg";
 
 // Forms are intercepted by client/checkin.ts (data-checkin-form marker) —
 // posted via fetch and replaced in-place with the response body. Falls back
