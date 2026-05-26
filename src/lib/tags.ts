@@ -10,6 +10,7 @@ const OVERRIDES: Record<string, string> = {
   applewoi: "Äppler",
   fritz_kola: "fritz-kola",
   gemischte_tuete: "Gemischte Tüte",
+  gluecksspiele: "Glücksspiele",
   ueberdacht: "Überdacht",
   draussen: "Draußen",
   gemuetlich: "Gemütlich",
@@ -25,23 +26,29 @@ const OVERRIDES: Record<string, string> = {
 };
 
 /**
- * Amenity slugs the "Warst du hier?" gap-fill form may add or remove via
- * `update_tags` reports. The set is intentionally small (≤6) so the chip row
- * stays scannable on mobile. The server validates incoming add_tags /
- * remove_tags arrays against this whitelist before persisting the report.
+ * Tags the "Warst du hier?" gap-fill form lets a visitor add or remove via
+ * `update_tags` reports, grouped the way schema/tags.json groups them so the
+ * form can render scannable sub-sections. The server validates incoming
+ * add_tags / remove_tags against REPORTABLE_TAGS before persisting a report.
+ * Keep slugs + groups in sync with schema/tags.json in the data repo.
  */
-export const AMENITY_TAGS = [
-  "wc",
-  "sitzgelegenheiten",
-  "barrierefrei",
-  "draussen",
-  "wlan",
-  "geldautomat",
+export const REPORTABLE_TAG_GROUPS = [
+  {
+    label: "Sortiment",
+    tags: ["backwaren", "eis", "zeitungen", "gemischte_tuete", "gluecksspiele"],
+  },
+  { label: "Ambiente", tags: ["innenraum", "stehtisch", "ueberdacht"] },
+  { label: "Ausstattung", tags: ["wc", "barrierefrei", "paketshop", "wlan", "geldautomat"] },
 ] as const;
-export type AmenityTag = (typeof AMENITY_TAGS)[number];
 
-export function isAmenityTag(slug: string): slug is AmenityTag {
-  return (AMENITY_TAGS as readonly string[]).includes(slug);
+export type ReportableTag = (typeof REPORTABLE_TAG_GROUPS)[number]["tags"][number];
+
+export const REPORTABLE_TAGS: readonly ReportableTag[] = REPORTABLE_TAG_GROUPS.flatMap(
+  (g) => g.tags,
+);
+
+export function isReportableTag(slug: string): slug is ReportableTag {
+  return (REPORTABLE_TAGS as readonly string[]).includes(slug);
 }
 
 export function tagLabel(slug: string): string {

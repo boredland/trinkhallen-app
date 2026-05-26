@@ -1,7 +1,7 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
 import { kindLabel, statusLabel, type UserKioskReport } from "../lib/reports";
-import { AMENITY_TAGS, tagLabel } from "../lib/tags";
+import { REPORTABLE_TAG_GROUPS, tagLabel } from "../lib/tags";
 
 /**
  * Check-in + gap-fill island.
@@ -28,11 +28,18 @@ const PAYMENT_LABELS: Record<string, { de: string; icon: string }> = {
 };
 const PAYMENT_ORDER = ["cash", "cards", "contactless", "girocard", "mobile"] as const;
 
-const AMENITY_ICONS: Record<string, string> = {
+const TAG_ICONS: Record<string, string> = {
+  backwaren: "🥨",
+  eis: "🍦",
+  zeitungen: "📰",
+  gemischte_tuete: "🍬",
+  gluecksspiele: "🎰",
+  innenraum: "🏠",
+  stehtisch: "🧍",
+  ueberdacht: "☂️",
   wc: "🚻",
-  sitzgelegenheiten: "🪑",
   barrierefrei: "♿",
-  draussen: "☀️",
+  paketshop: "📦",
   wlan: "📶",
   geldautomat: "🏧",
 };
@@ -187,29 +194,32 @@ const AmenitiesGroup: FC<{ kioskId: string; present: Set<string> }> = ({ kioskId
     <input type="hidden" name="kiosk_id" value={kioskId} />
     <input type="hidden" name="kind" value="update_tags" />
     <span class={labelCls}>Was gibt's hier?</span>
-    <div class="space-y-2">
-      {AMENITY_TAGS.map((slug) => (
-        <fieldset class="flex flex-wrap items-center gap-2">
-          <legend class="mr-2 inline-flex items-center gap-1.5 text-sm text-fg">
-            <span aria-hidden="true">{AMENITY_ICONS[slug] ?? "•"}</span>
-            {tagLabel(slug)}
-          </legend>
-          <TriRadio
-            name={`tag_${slug}`}
-            value="yes"
-            label="Ja"
-            defaultChecked={present.has(slug)}
-          />
-          <TriRadio name={`tag_${slug}`} value="no" label="Nein" />
-          <TriRadio
-            name={`tag_${slug}`}
-            value=""
-            label="Weiß nicht"
-            defaultChecked={!present.has(slug)}
-          />
-        </fieldset>
-      ))}
-    </div>
+    {REPORTABLE_TAG_GROUPS.map((group) => (
+      <div class="space-y-2">
+        <p class="font-display text-[0.7rem] tracking-wider uppercase text-fg-dim">{group.label}</p>
+        {group.tags.map((slug) => (
+          <fieldset class="flex flex-wrap items-center gap-2">
+            <legend class="mr-2 inline-flex items-center gap-1.5 text-sm text-fg">
+              <span aria-hidden="true">{TAG_ICONS[slug] ?? "•"}</span>
+              {tagLabel(slug)}
+            </legend>
+            <TriRadio
+              name={`tag_${slug}`}
+              value="yes"
+              label="Ja"
+              defaultChecked={present.has(slug)}
+            />
+            <TriRadio name={`tag_${slug}`} value="no" label="Nein" />
+            <TriRadio
+              name={`tag_${slug}`}
+              value=""
+              label="Weiß nicht"
+              defaultChecked={!present.has(slug)}
+            />
+          </fieldset>
+        ))}
+      </div>
+    ))}
     <button type="submit" class={submitCls}>
       Senden
     </button>

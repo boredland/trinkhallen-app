@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
 import { hasBlockingReport } from "../lib/reports";
-import { AMENITY_TAGS, isAmenityTag } from "../lib/tags";
+import { REPORTABLE_TAGS } from "../lib/tags";
 
 export const apiReports = new Hono<{ Bindings: Env }>();
 
@@ -74,10 +74,10 @@ apiReports.post("/api/reports", async (c) => {
     // Field name convention: `tag_<slug>` = "yes" | "no" | "" (skip).
     const add: string[] = [];
     const remove: string[] = [];
-    for (const slug of AMENITY_TAGS) {
+    for (const slug of REPORTABLE_TAGS) {
       const v = (form.get(`tag_${slug}`) ?? "").toString();
-      if (v === "yes" && isAmenityTag(slug)) add.push(slug);
-      else if (v === "no" && isAmenityTag(slug)) remove.push(slug);
+      if (v === "yes") add.push(slug);
+      else if (v === "no") remove.push(slug);
     }
     if (add.length) payload["add_tags"] = add;
     if (remove.length) payload["remove_tags"] = remove;

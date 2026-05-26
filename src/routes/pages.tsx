@@ -1407,7 +1407,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 ["kaffee", "Kaffee"],
                 ["eis", "Eis"],
                 ["zeitungen", "Zeitungen"],
-                ["lotto", "Lotto"],
+                ["gluecksspiele", "Glücksspiele"],
                 ["wc", "WC"],
                 ["sitzgelegenheiten", "Sitzgelegenheiten"],
                 ["innenraum", "Innenraum"],
