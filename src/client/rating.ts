@@ -55,9 +55,33 @@ function paintStars(input: HTMLInputElement): void {
   });
 }
 
+function showError(form: HTMLFormElement, message: string | null): void {
+  const el = form.querySelector<HTMLElement>("[data-rating-error]");
+  if (!el) return;
+  if (message) {
+    el.textContent = message;
+    el.hidden = false;
+  } else {
+    el.textContent = "";
+    el.hidden = true;
+  }
+}
+
 async function onSubmit(form: HTMLFormElement, submitter: HTMLButtonElement | null): Promise<void> {
   // Button-level formaction (Löschen) wins over the form's action.
   const action = submitter?.formAction || form.action;
+  const isDelete = action.endsWith("/delete");
+
+  // Star selection is validated here, not via `required` on the radios:
+  // those are sr-only, so a native unfilled-required block fires no submit
+  // event and the button just looks dead. Delete needs no star.
+  if (!isDelete && !form.querySelector("input[name='stars']:checked")) {
+    showError(form, "Bitte wähle 1–5 Sterne aus.");
+    form.querySelector<HTMLElement>("[data-stars-group]")?.scrollIntoView({ block: "nearest" });
+    return;
+  }
+  showError(form, null);
+
   const buttons = form.querySelectorAll<HTMLButtonElement>("button[type='submit']");
   buttons.forEach((b) => (b.disabled = true));
   try {
@@ -68,6 +92,12 @@ async function onSubmit(form: HTMLFormElement, submitter: HTMLButtonElement | nu
     });
     if (!resp.ok) {
       buttons.forEach((b) => (b.disabled = false));
+      showError(
+        form,
+        resp.status === 401
+          ? "Bitte melde dich an, um zu bewerten."
+          : "Konnte die Bewertung nicht speichern. Bitte später erneut versuchen.",
+      );
       return;
     }
     const html = await resp.text();
@@ -75,5 +105,6 @@ async function onSubmit(form: HTMLFormElement, submitter: HTMLButtonElement | nu
     if (host) host.outerHTML = html;
   } catch {
     buttons.forEach((b) => (b.disabled = false));
+    showError(form, "Netzwerkfehler — bitte erneut versuchen.");
   }
 }

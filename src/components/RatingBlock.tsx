@@ -66,6 +66,7 @@ const OwnRatingForm: FC<{ kioskId: string; own: RatingRow | null }> = ({ kioskId
       {own ? "Deine Bewertung" : "Bewerten"}
     </p>
     <Stars current={own?.stars ?? 0} />
+    <p data-rating-error hidden class="text-sm text-danger" aria-live="polite" />
     <label class="block">
       <span class="sr-only">Kommentar</span>
       <textarea
@@ -106,12 +107,15 @@ const Stars: FC<{ current: number }> = ({ current }) => (
       const active = star <= current;
       return (
         <label class="cursor-pointer">
+          {/* No `required`: these radios are sr-only, so an unfilled-required
+              submit blocks natively but the validation bubble can't render
+              off-screen — the submit event never fires and the button looks
+              dead. We validate star selection in rating.ts instead. */}
           <input
             type="radio"
             name="stars"
             value={star}
             checked={active && star === current}
-            required
             class="sr-only"
           />
           <span
