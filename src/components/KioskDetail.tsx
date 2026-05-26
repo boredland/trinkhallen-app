@@ -11,7 +11,7 @@ import {
 } from "../lib/opening-hours";
 import type { Aggregate, RatingRow } from "../lib/ratings";
 import type { UserKioskReport } from "../lib/reports";
-import { tagLabel } from "../lib/tags";
+import { isReportableTag, tagLabel } from "../lib/tags";
 import { CheckinForm } from "./CheckinForm";
 import { RatingBlock } from "./RatingBlock";
 import { ReportForm } from "./ReportForm";
@@ -70,6 +70,10 @@ export const KioskDetail: FC<{
 
   const hopfenstopSource = kiosk.sources?.find((s) => s.type === "hopfenstop");
   const osmSource = kiosk.sources?.find((s) => s.type === "osm");
+
+  // Only surface tags from the curated reportable vocabulary — legacy/imported
+  // slugs (applewoi, craft_bier, ambiente tags, …) aren't managed, so hide them.
+  const managedTags = kiosk.tags.filter(isReportableTag);
 
   const city = addr["city"];
   const intro = (() => {
@@ -207,11 +211,11 @@ export const KioskDetail: FC<{
         </section>
       )}
 
-      {kiosk.tags.length > 0 && (
+      {managedTags.length > 0 && (
         <section class="border-b-2 border-border p-6">
           <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">Tags</h2>
           <ul class="flex flex-wrap gap-2">
-            {kiosk.tags.map((slug) => (
+            {managedTags.map((slug) => (
               <li class="border-2 border-border-hi px-2 py-1 text-sm text-fg-muted">
                 {tagLabel(slug)}
               </li>
