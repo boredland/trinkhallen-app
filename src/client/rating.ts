@@ -68,8 +68,11 @@ function showError(form: HTMLFormElement, message: string | null): void {
 }
 
 async function onSubmit(form: HTMLFormElement, submitter: HTMLButtonElement | null): Promise<void> {
-  // Button-level formaction (Löschen) wins over the form's action.
-  const action = submitter?.formAction || form.action;
+  // Button-level formaction (Löschen) wins over the form's action. Read the
+  // attribute, not the `.formAction` IDL property: the latter returns the
+  // document URL (not "") when the attribute is absent, so "Abgeben" — which
+  // has no formaction — would POST to the current /k/:id page and 404.
+  const action = submitter?.getAttribute("formaction") || form.action;
   const isDelete = action.endsWith("/delete");
 
   // Star selection is validated here, not via `required` on the radios:
