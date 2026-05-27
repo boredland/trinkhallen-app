@@ -225,18 +225,16 @@ const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | und
   </header>
 );
 
-type HeaderIdentity =
-  | { kind: "handle"; username: string; avatarUrl: string | null }
-  | { kind: "anonymous" };
+type HeaderIdentity = { kind: "handle"; username: string } | { kind: "anonymous" };
 
 /**
  * Every account has an auto-generated handle, so that's the identity we show;
- * the SSO display name is never rendered. "anonymous" is only the brief
- * pre-backfill edge where a row still lacks a handle.
+ * no SSO profile data (name or picture) is rendered. "anonymous" is only the
+ * brief pre-backfill edge where a row still lacks a handle.
  */
 function identifyForHeader(user: LayoutUser): HeaderIdentity {
   if (user.username) {
-    return { kind: "handle", username: user.username, avatarUrl: user.avatarUrl };
+    return { kind: "handle", username: user.username };
   }
   return { kind: "anonymous" };
 }
@@ -251,20 +249,9 @@ const UserButton: FC<{ user: LayoutUser }> = ({ user }) => {
         class="group inline-flex items-center gap-2 border-2 border-border-hi px-2 py-1 transition-colors hover:border-neon-pink"
         aria-label={`Profil von @${id.username}`}
       >
-        {id.avatarUrl ? (
-          <img
-            src={id.avatarUrl}
-            alt=""
-            width="24"
-            height="24"
-            class="h-6 w-6 object-cover"
-            referrerpolicy="no-referrer"
-          />
-        ) : (
-          <span class="grid h-6 w-6 place-items-center bg-neon-pink/15 font-display text-xs text-neon-pink">
-            {id.username[0]!.toUpperCase()}
-          </span>
-        )}
+        <span class="grid h-6 w-6 place-items-center bg-neon-pink/15 font-display text-xs text-neon-pink">
+          {id.username[0]!.toUpperCase()}
+        </span>
         <span class="hidden font-mono text-sm lowercase text-neon-cyan transition-colors group-hover:text-neon-pink sm:inline">
           @{id.username}
         </span>

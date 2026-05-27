@@ -967,12 +967,13 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <section>
             <h2 class="font-display text-xl tracking-wide text-fg">Login per Google</h2>
             <p class="mt-3 text-fg-muted">
-              Wenn du dich per Google anmeldest, erhalten wir von Google deine E-Mail-Adresse,
-              deinen Namen, dein Profilbild und eine stabile interne ID. Bei der Weiterleitung zu
-              Google teilt dein Browser deine IP-Adresse mit Google. Wir verarbeiten die Daten
-              ausschließlich, um dich wiederzuerkennen und dir deine Inhalte (Bewertungen,
-              Korrekturen, Check-ins) zuzuordnen. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO; die
-              Datenübermittlung an Google erfolgt nur, wenn du den Login aktiv anstößt.
+              Wenn du dich per Google anmeldest, speichern wir von deinem Google-Profil nur deine
+              E-Mail-Adresse und eine stabile interne ID. Weder deinen Namen noch dein Profilbild
+              speichern wir — sollte Google sie mit übermitteln, verwerfen wir sie. Bei der
+              Weiterleitung zu Google teilt dein Browser deine IP-Adresse mit Google. Wir
+              verarbeiten die Daten ausschließlich, um dich wiederzuerkennen und dir deine Inhalte
+              (Bewertungen, Korrekturen, Check-ins) zuzuordnen. Rechtsgrundlage: Art. 6 Abs. 1 lit.
+              b DSGVO; die Datenübermittlung an Google erfolgt nur, wenn du den Login aktiv anstößt.
             </p>
             <p class="mt-3 text-fg-muted">
               Anbieter: Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland.
@@ -982,6 +983,30 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 href="https://policies.google.com/privacy"
               >
                 policies.google.com/privacy
+              </a>
+              .
+            </p>
+          </section>
+
+          <section>
+            <h2 class="font-display text-xl tracking-wide text-fg">Login per Apple</h2>
+            <p class="mt-3 text-fg-muted">
+              Wenn du dich per „Mit Apple anmelden" einloggst, erhalten wir von Apple deine
+              E-Mail-Adresse und eine stabile interne ID. Wählst du Apples „E-Mail verbergen", ist
+              das eine anonyme Relay-Adresse — wir erreichen dich darüber nur per Mail, ohne deine
+              echte Adresse zu kennen. Einen Namen fragen wir nicht ab, ein Profilbild liefert Apple
+              nicht. Wir verarbeiten die Daten ausschließlich, um dich wiederzuerkennen und dir
+              deine Inhalte zuzuordnen. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO; die
+              Datenübermittlung an Apple erfolgt nur, wenn du den Login aktiv anstößt.
+            </p>
+            <p class="mt-3 text-fg-muted">
+              Anbieter: Apple Distribution International Ltd., Hollyhill Industrial Estate,
+              Hollyhill, Cork, Irland. Datenschutz:{" "}
+              <a
+                class="text-neon-cyan underline-offset-2 hover:underline"
+                href="https://www.apple.com/legal/privacy/"
+              >
+                apple.com/legal/privacy
               </a>
               .
             </p>
@@ -1013,8 +1038,10 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 trinkhallen-data
               </a>{" "}
               übernommen und sind dort dauerhaft Teil der offenen Geschichte. Mit dem Eintrag
-              gespeichert wird eine zufällige UUID ohne Personenbezug für Außenstehende.
-              Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
+              gespeichert wird eine zufällige UUID ohne Personenbezug für Außenstehende. Öffentlich
+              neben deinen Bewertungen sichtbar ist nur dein automatisch erzeugter, pseudonymer
+              Handle (z. B. @pfand_pirat) — niemals dein Name. Rechtsgrundlage: Art. 6 Abs. 1 lit. b
+              DSGVO.
             </p>
           </section>
 
@@ -1504,8 +1531,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             </form>
 
             <p class="mt-6 text-xs text-fg-dim">
-              Wir speichern nur deine E-Mail-Adresse. Mehr nicht. Mit Google angemeldet, holen wir
-              dein Profilbild dazu — kannst du jederzeit wieder lösen.
+              Wir speichern nur deine E-Mail-Adresse und einen automatisch erzeugten Handle. Keinen
+              Namen, kein Profilbild, keine Tracker.
             </p>
           </section>
         </Layout>,
@@ -1664,20 +1691,9 @@ async function renderProfile(
     <Layout title="Profil" noindex nav="me" user={user}>
       <section class="border-2 border-border bg-surface p-6">
         <div class="flex items-center gap-4">
-          {user.avatarUrl ? (
-            <img
-              src={user.avatarUrl}
-              alt=""
-              width="64"
-              height="64"
-              class="rounded-full border-2 border-border-hi"
-              referrerpolicy="no-referrer"
-            />
-          ) : (
-            <span class="grid h-16 w-16 place-items-center border-2 border-border-hi bg-neon-pink/20 font-display text-2xl text-neon-pink">
-              {(user.username ?? user.email)[0]!.toUpperCase()}
-            </span>
-          )}
+          <span class="grid h-16 w-16 place-items-center border-2 border-border-hi bg-neon-pink/20 font-display text-2xl text-neon-pink">
+            {(user.username ?? user.email)[0]!.toUpperCase()}
+          </span>
           <div>
             <h1 class="font-display text-3xl tracking-wide text-fg">
               {user.username ? `@${user.username}` : user.email}

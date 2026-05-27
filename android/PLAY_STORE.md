@@ -146,9 +146,9 @@ Trinkhallen-specific answers:
 Data types to disclose (only these — the rest are "No"):
 
 - **Personal info → Email address** — Collected, Optional, Purpose: account management; Shared: No.
-- **Personal info → Name** — Collected (via Google OAuth profile), Optional, Purpose: account management; Shared: No.
+- **Personal info → Name** — **No.** We do not store a name. The SSO display name is discarded on sign-in; the public handle is an auto-generated pseudonym, not a name.
 - **Personal info → User IDs** — Collected, Required (if logged in), Purpose: account management; Shared: **Yes** with GitHub (the user UUID is published in the trinkhallen-data repo's PR metadata) — describe as "user-generated content metadata in public open-data repository, no personal info attached to the UUID".
-- **Photos and videos → Photos** — Collected (via Google OAuth avatar URL), Optional; Shared: No.
+- **Photos and videos → Photos** — **No.** Profile pictures are no longer requested or stored.
 - **App activity → App interactions** — Collected (ratings, check-ins, submissions), Required for logged-in users, Purpose: app functionality; Shared: **Yes** with GitHub (the contribution PR contains the change).
 - **App activity → In-app search history** — No.
 - **App info and performance → Crash logs** — No (we don't ship Firebase Crashlytics; the TWA forwards crashes to Google Play but those go to Play, not us).

@@ -52,7 +52,7 @@ auth.use("/auth/google", async (c, next) => {
   const handler = googleAuth({
     client_id: c.env.GOOGLE_CLIENT_ID,
     client_secret: c.env.GOOGLE_CLIENT_SECRET,
-    scope: ["openid", "email", "profile"],
+    scope: ["openid", "email"],
     redirect_uri: callbackUrl(c, c.req.url),
   });
   return handler(c, next);
@@ -65,7 +65,7 @@ auth.use("/auth/google/callback", async (c, next) => {
   const handler = googleAuth({
     client_id: c.env.GOOGLE_CLIENT_ID,
     client_secret: c.env.GOOGLE_CLIENT_SECRET,
-    scope: ["openid", "email", "profile"],
+    scope: ["openid", "email"],
     redirect_uri: callbackUrl(c, c.req.url),
   });
   return handler(c, next);
@@ -91,7 +91,6 @@ auth.get("/auth/google/callback", async (c) => {
       userId: currentUser.id,
       googleSub: profile.id,
       googleEmail: profile.email,
-      avatarUrl: profile.picture ?? null,
     });
     if (outcome === "conflict") {
       // Google sub is already attached to some *other* row. Refuse to
@@ -106,7 +105,6 @@ auth.get("/auth/google/callback", async (c) => {
   const userId = await upsertUser(c.env.DB, {
     googleSub: profile.id,
     email: profile.email,
-    avatarUrl: profile.picture ?? null,
     now,
   });
 
@@ -326,7 +324,6 @@ async function linkGoogleToCurrentUser(
     userId: string;
     googleSub: string;
     googleEmail: string;
-    avatarUrl: string | null;
   },
 ): Promise<"ok" | "conflict"> {
   // Reject if Google sub already lives on a different row.
@@ -336,16 +333,11 @@ async function linkGoogleToCurrentUser(
     .first<{ id: string }>();
   if (other) return "conflict";
 
-  // COALESCE keeps any avatar_url the user already had. We deliberately do not
-  // store the SSO display name.
+  // Attach the Google identity only — no SSO profile data (name or picture) is
+  // stored.
   await db
-    .prepare(
-      `UPDATE users
-          SET google_sub = ?,
-              avatar_url = COALESCE(avatar_url, ?)
-        WHERE id = ?`,
-    )
-    .bind(args.googleSub, args.avatarUrl, args.userId)
+    .prepare(`UPDATE users SET google_sub = ? WHERE id = ?`)
+    .bind(args.googleSub, args.userId)
     .run();
   return "ok";
 }
@@ -364,8 +356,8 @@ async function upsertUserByEmail(db: D1Database, email: string): Promise<string>
   const username = await generateUniqueUsername(db);
   await db
     .prepare(
-      `INSERT INTO users (id, google_sub, email, avatar_url, role, created_at, username)
-       VALUES (?, ?, ?, NULL, 'user', ?, ?)`,
+      `INSERT INTO users (id, google_sub, email, role, created_at, username)
+       VALUES (?, ?, ?, 'user', ?, ?)`,
     )
     .bind(id, syntheticSub, email, now, username)
     .run();
@@ -377,7 +369,6 @@ async function upsertUser(
   args: {
     googleSub: string;
     email: string;
-    avatarUrl: string | null;
     now: number;
   },
 ): Promise<string> {
@@ -387,11 +378,8 @@ async function upsertUser(
     .bind(args.googleSub)
     .first<{ id: string }>();
   if (existing) {
-    // Refresh denormalised profile fields opportunistically.
-    await db
-      .prepare(`UPDATE users SET email = ?, avatar_url = ? WHERE id = ?`)
-      .bind(args.email, args.avatarUrl, existing.id)
-      .run();
+    // Refresh the email opportunistically; no SSO profile data is stored.
+    await db.prepare(`UPDATE users SET email = ? WHERE id = ?`).bind(args.email, existing.id).run();
     return existing.id;
   }
 
@@ -399,20 +387,15 @@ async function upsertUser(
   //    magic-link have verified this email, so transparently upgrading the
   //    row is safe. Guard on `email:` prefix so a real Google sub belonging
   //    to a different person sharing the email never gets clobbered. The
-  //    existing handle is kept; we don't store the SSO display name.
+  //    existing handle is kept; no SSO profile data (name or picture) is stored.
   const byEmail = await db
     .prepare(`SELECT id, google_sub FROM users WHERE email = ?`)
     .bind(args.email)
     .first<{ id: string; google_sub: string }>();
   if (byEmail?.google_sub.startsWith("email:")) {
     await db
-      .prepare(
-        `UPDATE users
-            SET google_sub = ?,
-                avatar_url = COALESCE(avatar_url, ?)
-          WHERE id = ?`,
-      )
-      .bind(args.googleSub, args.avatarUrl, byEmail.id)
+      .prepare(`UPDATE users SET google_sub = ? WHERE id = ?`)
+      .bind(args.googleSub, byEmail.id)
       .run();
     return byEmail.id;
   }
@@ -422,10 +405,10 @@ async function upsertUser(
   const username = await generateUniqueUsername(db);
   await db
     .prepare(
-      `INSERT INTO users (id, google_sub, email, avatar_url, role, created_at, username)
-       VALUES (?, ?, ?, ?, 'user', ?, ?)`,
+      `INSERT INTO users (id, google_sub, email, role, created_at, username)
+       VALUES (?, ?, ?, 'user', ?, ?)`,
     )
-    .bind(id, args.googleSub, args.email, args.avatarUrl, args.now, username)
+    .bind(id, args.googleSub, args.email, args.now, username)
     .run();
   return id;
 }
@@ -499,8 +482,8 @@ async function upsertUserByApple(
   const username = await generateUniqueUsername(db);
   await db
     .prepare(
-      `INSERT INTO users (id, google_sub, apple_sub, email, avatar_url, role, created_at, username)
-       VALUES (?, ?, ?, ?, NULL, 'user', ?, ?)`,
+      `INSERT INTO users (id, google_sub, apple_sub, email, role, created_at, username)
+       VALUES (?, ?, ?, ?, 'user', ?, ?)`,
     )
     .bind(id, syntheticGoogleSub, args.appleSub, args.email, args.now, username)
     .run();

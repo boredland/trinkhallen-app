@@ -68,10 +68,11 @@ export function appleEnv(env: Env): AppleEnv | null {
  * Builds the URL the browser is redirected to so the user can authorize
  * us on appleid.apple.com.
  *
- * `response_mode=form_post` is mandatory when `scope=email name` so Apple
- * can POST the name+email back in the body; query-string mode strips
- * them. The trade-off is the cross-site POST, which requires a
- * SameSite=None state cookie (set by the caller).
+ * `response_mode=form_post` is mandatory whenever an `email`/`name` scope is
+ * requested so Apple can POST the result back in the body; query-string mode
+ * strips it. The trade-off is the cross-site POST, which requires a
+ * SameSite=None state cookie (set by the caller). We request only `email` —
+ * the name is not collected.
  */
 export function buildAuthorizeUrl(apple: AppleEnv, redirectUri: string, state: string): string {
   const params = new URLSearchParams({
@@ -79,7 +80,7 @@ export function buildAuthorizeUrl(apple: AppleEnv, redirectUri: string, state: s
     redirect_uri: redirectUri,
     response_type: "code",
     response_mode: "form_post",
-    scope: "name email",
+    scope: "email",
     state,
   });
   return `${AUTHORIZE_URL}?${params.toString()}`;
