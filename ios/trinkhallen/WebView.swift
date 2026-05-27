@@ -103,6 +103,17 @@ func calcWebviewFrame(webviewView: UIView, toolbarView: UIToolbar?) -> CGRect{
 }
 
 extension ViewController: WKUIDelegate, WKDownloadDelegate {
+    // Auto-grant the web-content geolocation permission so the user only sees the
+    // single Core Location (OS) prompt instead of that prompt plus WebKit's own
+    // per-origin one. Core Location still drives authorization, so accuracy,
+    // navigator.permissions.query, and errors keep working natively.
+    @objc(_webView:requestGeolocationPermissionForOrigin:initiatedByFrame:decisionHandler:)
+    func webView(_ webView: WKWebView,
+                 requestGeolocationPermissionFor origin: WKSecurityOrigin,
+                 initiatedByFrame frame: WKFrameInfo,
+                 decisionHandler: @escaping (WKPermissionDecision) -> Void) {
+        decisionHandler(.grant)
+    }
     // redirect new tabs to main webview
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if (navigationAction.targetFrame == nil) {
