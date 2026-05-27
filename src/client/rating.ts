@@ -15,8 +15,8 @@
  * "rating just got replaced by the server fragment" reflow.
  */
 
-const ACTIVE_CLASS = "text-status-open";
-const INACTIVE_CLASSES = ["text-fg-dim", "hover:text-status-open/60"];
+const ACTIVE_CLASS = "text-neon-amber";
+const INACTIVE_CLASSES = ["text-fg-dim", "hover:text-neon-amber/60"];
 
 let installed = false;
 
