@@ -27,7 +27,10 @@ function query<T = Record<string, unknown>>(sql: string): T[] {
     ["wrangler", "d1", "execute", DB, LOCATION, "--json", "--command", sql],
     { encoding: "utf8" },
   );
-  const parsed = JSON.parse(out) as Array<{ results?: T[] }>;
+  // wrangler prepends banner/notice lines to stdout; the --json payload is the
+  // array that starts at the first bracket.
+  const start = out.indexOf("[");
+  const parsed = JSON.parse(start === -1 ? "[]" : out.slice(start)) as Array<{ results?: T[] }>;
   return parsed[0]?.results ?? [];
 }
 
