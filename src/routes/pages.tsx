@@ -20,7 +20,7 @@ import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating, listComments } from "../lib/ratings";
 import { getUserReports, kindLabel } from "../lib/reports";
 import { destroySession } from "../lib/session";
-import { setUsername } from "../lib/usernames";
+import { renameUsername } from "../lib/usernames";
 import { countUsers } from "../lib/users";
 
 const ORIGIN = "https://trinkhallen.app";
@@ -1514,14 +1514,14 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     return renderProfile(c, user);
   });
 
-  // Set-once username. The handler enforces validation + UNIQUE + IS NULL at
-  // the SQL layer; the form on /me only renders when the column is null.
+  // Change-once username. The handler enforces validation + UNIQUE + the
+  // one-change guard at the SQL layer; the form on /me only renders while the
+  // user still has their rename available.
   app.post("/me/username", async (c) => {
     const user = c.get("user");
     if (!user) return c.redirect("/me");
-    if (user.username) return c.redirect("/me?username=already_set");
     const raw = ((await c.req.formData()).get("username") ?? "").toString();
-    const result = await setUsername(c.env.DB, user.id, raw);
+    const result = await renameUsername(c.env.DB, user.id, raw);
     return c.redirect(`/me?username=${result}`);
   });
 
@@ -1652,6 +1652,12 @@ async function renderProfile(
   const submissions = submissionsRes.results;
   const ratingsCount = ratingsCountRow?.n ?? 0;
   const checkinsCount = checkinsCountRow?.n ?? 0;
+  const usernameRow = await c.env.DB.prepare(
+    `SELECT username_changed_at AS changedAt FROM users WHERE id = ?`,
+  )
+    .bind(user.id)
+    .first<{ changedAt: number | null }>();
+  const canRename = (usernameRow?.changedAt ?? null) === null;
   const fmtDate = (s: number) => new Date(s * 1000).toLocaleDateString("de-DE");
 
   return c.html(
@@ -1669,15 +1675,14 @@ async function renderProfile(
             />
           ) : (
             <span class="grid h-16 w-16 place-items-center border-2 border-border-hi bg-neon-pink/20 font-display text-2xl text-neon-pink">
-              {(user.displayName ?? user.email)[0]!.toUpperCase()}
+              {(user.username ?? user.email)[0]!.toUpperCase()}
             </span>
           )}
           <div>
             <h1 class="font-display text-3xl tracking-wide text-fg">
-              {user.displayName ?? user.username ?? user.email}
+              {user.username ? `@${user.username}` : user.email}
             </h1>
             <p class="text-fg-muted">{user.email}</p>
-            {user.username && <p class="mt-1 font-mono text-sm text-neon-cyan">@{user.username}</p>}
             <p class="mt-1 text-xs uppercase tracking-wider text-fg-dim">Rolle: {user.role}</p>
           </div>
         </div>
@@ -1747,66 +1752,83 @@ async function renderProfile(
         </div>
       )}
 
-      {!user.username && (
-        <section class="mt-6 border-2 border-border bg-surface p-6">
-          <h2 class="font-display text-xl tracking-wide text-fg">Username wählen</h2>
-          <p class="mt-2 text-fg-muted">
-            Wähl dir einen Handle — 3–24 Zeichen, Kleinbuchstaben, Zahlen, Unterstrich. Einmal
-            gewählt, nicht änderbar.
+      <section class="mt-6 border-2 border-border bg-surface p-6">
+        <h2 class="font-display text-xl tracking-wide text-fg">Dein Handle</h2>
+        <p class="mt-2 font-mono text-neon-cyan">@{user.username ?? "—"}</p>
+        {usernameFlag === "ok" && (
+          <p class="mt-3 border-2 border-success/60 bg-success/10 p-3 text-success">
+            ▶▶▶ Handle geändert.
           </p>
-          {usernameFlag === "invalid" && (
-            <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-              Nur Kleinbuchstaben, Zahlen, Unterstrich. 3–24 Zeichen.
+        )}
+        {usernameFlag === "invalid" && (
+          <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
+            Nur Kleinbuchstaben, Zahlen, Unterstrich. 3–24 Zeichen.
+          </p>
+        )}
+        {usernameFlag === "reserved" && (
+          <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
+            Dieser Handle ist reserviert. Wähl einen anderen.
+          </p>
+        )}
+        {usernameFlag === "taken" && (
+          <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
+            Schon vergeben. Wähl einen anderen.
+          </p>
+        )}
+        {usernameFlag === "retired" && (
+          <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
+            Dieser Handle war schon mal vergeben und ist gesperrt.
+          </p>
+        )}
+        {usernameFlag === "unchanged" && (
+          <p class="mt-3 border-2 border-border-hi bg-surface-2 p-3 text-fg-muted">
+            Das ist bereits dein Handle.
+          </p>
+        )}
+        {usernameFlag === "already_changed" && (
+          <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
+            Du hast deinen Handle bereits einmal geändert — er ist jetzt fest.
+          </p>
+        )}
+        {canRename ? (
+          <>
+            <p class="mt-4 text-fg-muted">
+              Du kannst deinen Handle <strong>einmal</strong> ändern — danach ist er fest. 3–24
+              Zeichen, Kleinbuchstaben, Zahlen, Unterstrich.
             </p>
-          )}
-          {usernameFlag === "reserved" && (
-            <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-              Dieser Username ist reserviert. Wähl einen anderen.
-            </p>
-          )}
-          {usernameFlag === "taken" && (
-            <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-              Schon vergeben. Wähl einen anderen.
-            </p>
-          )}
-          <form
-            action="/me/username"
-            method="post"
-            class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-stretch"
-          >
-            <label class="flex-1">
-              <span class="sr-only">Username</span>
-              <input
-                type="text"
-                name="username"
-                required
-                minLength={3}
-                maxLength={24}
-                pattern="[A-Za-z0-9_]{3,24}"
-                autocapitalize="none"
-                autocorrect="off"
-                autocomplete="off"
-                spellcheck={false}
-                placeholder="z.B. jonas_s"
-                class="w-full border-2 border-border-hi bg-surface-2 px-3 py-2.5 font-mono lowercase text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
-              />
-            </label>
-            <button type="submit" class="btn-neon shrink-0">
-              ▶ Username setzen
-            </button>
-          </form>
-        </section>
-      )}
-      {user.username && usernameFlag === "ok" && (
-        <div class="mt-6 border-2 border-success/60 bg-success/10 p-4 text-success">
-          ▶▶▶ Username gesetzt: <span class="font-mono">@{user.username}</span>
-        </div>
-      )}
-      {usernameFlag === "already_set" && (
-        <div class="mt-6 border-2 border-danger/60 bg-danger/10 p-4 text-danger">
-          Username ist schon gesetzt — Änderungen sind nicht möglich.
-        </div>
-      )}
+            <form
+              action="/me/username"
+              method="post"
+              class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-stretch"
+            >
+              <label class="flex-1">
+                <span class="sr-only">Neuer Handle</span>
+                <input
+                  type="text"
+                  name="username"
+                  required
+                  minLength={3}
+                  maxLength={24}
+                  pattern="[A-Za-z0-9_]{3,24}"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  autocomplete="off"
+                  spellcheck={false}
+                  placeholder="z.B. pfand_pirat"
+                  class="w-full border-2 border-border-hi bg-surface-2 px-3 py-2.5 font-mono lowercase text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
+                />
+              </label>
+              <button type="submit" class="btn-neon shrink-0">
+                ▶ Handle ändern
+              </button>
+            </form>
+          </>
+        ) : (
+          <p class="mt-4 text-fg-dim">
+            Dein Handle ist festgelegt und kann nicht mehr geändert werden.
+          </p>
+        )}
+      </section>
 
       <section class="mt-6 border-2 border-border bg-surface">
         <header class="flex items-center justify-between border-b-2 border-border px-4 py-3">

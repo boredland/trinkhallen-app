@@ -1,0 +1,81 @@
+/**
+ * One-off backfill for the username auto-generation migration (0012).
+ *
+ * Assigns a unique themed handle to every user whose username is still NULL,
+ * and purges the now-unused SSO display_name. Run once after the migration is
+ * applied — local first, then production:
+ *
+ *   bun scripts/backfill-usernames.ts            # local D1
+ *   bun scripts/backfill-usernames.ts --remote   # production D1
+ *
+ * Idempotent: a re-run only touches rows that are still NULL, and the
+ * display_name purge is a no-op once everything is already cleared.
+ */
+
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { randomHandleCandidate, validateUsername } from "../src/lib/usernames";
+
+const DB = "trinkhallen-prod";
+const LOCATION = process.argv.includes("--remote") ? "--remote" : "--local";
+
+function query<T = Record<string, unknown>>(sql: string): T[] {
+  const out = execFileSync(
+    "bunx",
+    ["wrangler", "d1", "execute", DB, LOCATION, "--json", "--command", sql],
+    { encoding: "utf8" },
+  );
+  const parsed = JSON.parse(out) as Array<{ results?: T[] }>;
+  return parsed[0]?.results ?? [];
+}
+
+function runFile(sql: string): void {
+  const file = join(mkdtempSync(join(tmpdir(), "tk-backfill-")), "backfill.sql");
+  writeFileSync(file, sql);
+  execFileSync("bunx", ["wrangler", "d1", "execute", DB, LOCATION, "--file", file], {
+    stdio: "inherit",
+  });
+}
+
+/** Draw a handle not already live or retired (and not handed out this run). */
+function freshHandle(used: Set<string>): string {
+  for (let i = 0; i < 1000; i++) {
+    const v = validateUsername(randomHandleCandidate());
+    if (v.ok && !used.has(v.value)) {
+      used.add(v.value);
+      return v.value;
+    }
+  }
+  throw new Error("could not find a free handle after 1000 attempts");
+}
+
+function main(): void {
+  console.log(`Backfilling usernames (${LOCATION.slice(2)})…`);
+
+  const used = new Set<string>();
+  for (const r of query<{ u: string }>(
+    "SELECT lower(username) AS u FROM users WHERE username IS NOT NULL",
+  )) {
+    used.add(r.u);
+  }
+  for (const r of query<{ u: string }>("SELECT lower(username) AS u FROM retired_usernames")) {
+    used.add(r.u);
+  }
+
+  const nullUsers = query<{ id: string }>("SELECT id FROM users WHERE username IS NULL");
+  console.log(`  ${nullUsers.length} user(s) without a handle.`);
+
+  // Handles are [a-z0-9_] and ids are UUIDs, so direct interpolation is safe.
+  const statements = nullUsers.map(
+    (u) =>
+      `UPDATE users SET username = '${freshHandle(used)}' WHERE id = '${u.id}' AND username IS NULL;`,
+  );
+  statements.push("UPDATE users SET display_name = NULL WHERE display_name IS NOT NULL;");
+
+  runFile(statements.join("\n"));
+  console.log(`✔ Assigned ${nullUsers.length} handle(s) and purged display_name.`);
+}
+
+main();

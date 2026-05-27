@@ -227,25 +227,16 @@ const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | und
 
 type HeaderIdentity =
   | { kind: "handle"; username: string; avatarUrl: string | null }
-  | { kind: "named"; firstName: string; avatarUrl: string | null }
   | { kind: "anonymous" };
 
 /**
- * Pick the strongest identity signal the user actually owns. The email
- * local-part is intentionally absent — it's a system address half, not a
- * name. A user-set `username` outranks the auto-populated `display_name`
- * because the user deliberately chose it.
+ * Every account has an auto-generated handle, so that's the identity we show;
+ * the SSO display name is never rendered. "anonymous" is only the brief
+ * pre-backfill edge where a row still lacks a handle.
  */
 function identifyForHeader(user: LayoutUser): HeaderIdentity {
   if (user.username) {
     return { kind: "handle", username: user.username, avatarUrl: user.avatarUrl };
-  }
-  if (user.displayName) {
-    return {
-      kind: "named",
-      firstName: user.displayName.split(/\s+/)[0] ?? user.displayName,
-      avatarUrl: user.avatarUrl,
-    };
   }
   return { kind: "anonymous" };
 }
@@ -281,35 +272,7 @@ const UserButton: FC<{ user: LayoutUser }> = ({ user }) => {
     );
   }
 
-  if (id.kind === "named") {
-    return (
-      <a
-        href="/me"
-        class="group inline-flex items-center gap-2 border-2 border-border-hi px-2 py-1 transition-colors hover:border-neon-pink"
-        aria-label={`Profil von ${id.firstName}`}
-      >
-        {id.avatarUrl ? (
-          <img
-            src={id.avatarUrl}
-            alt=""
-            width="24"
-            height="24"
-            class="h-6 w-6 object-cover"
-            referrerpolicy="no-referrer"
-          />
-        ) : (
-          <span class="grid h-6 w-6 place-items-center bg-neon-pink/15 font-display text-xs text-neon-pink">
-            {id.firstName[0]!.toUpperCase()}
-          </span>
-        )}
-        <span class="hidden font-display text-sm tracking-wide uppercase text-fg transition-colors group-hover:text-neon-pink sm:inline">
-          {id.firstName}
-        </span>
-      </a>
-    );
-  }
-
-  // Anonymous: magic-link signup who hasn't picked a username yet. Sober
+  // Anonymous: no handle yet — only the brief window before backfill. Sober
   // "Profil" label, neutral glyph badge, single amber square in the corner
   // as the only contrast — a quiet "incomplete" cue, not a notification dot.
   return (

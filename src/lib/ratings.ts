@@ -70,16 +70,15 @@ export interface RatingComment {
 }
 
 /** Ratings that carry a written comment, newest first. Banned authors are
- *  excluded (same shadow-ban policy as the aggregate). Author shows the public
- *  @handle (username); with no username we fall back to the SSO display_name's
- *  initials ("Jonas Strassel" → "J.S.") rather than exposing the full name. */
+ *  excluded (same shadow-ban policy as the aggregate). Author is the public
+ *  @handle; every account has one, so the SSO display name never appears. */
 export async function listComments(
   env: Env,
   kioskId: string,
   limit = 50,
 ): Promise<RatingComment[]> {
   const { results } = await env.DB.prepare(
-    `SELECT u.username AS username, u.display_name AS displayName,
+    `SELECT u.username AS username,
             r.stars AS stars, r.comment AS comment, r.updated_at AS updatedAt
        FROM ratings r JOIN users u ON u.id = r.user_id
        WHERE r.kiosk_id = ?
@@ -92,25 +91,16 @@ export async function listComments(
     .bind(kioskId, limit)
     .all<{
       username: string | null;
-      displayName: string | null;
       stars: number;
       comment: string;
       updatedAt: number;
     }>();
   return results.map((r) => ({
-    author: r.username?.trim() || initials(r.displayName) || "Anonym",
+    author: r.username?.trim() || "Anonym",
     stars: r.stars,
     comment: r.comment,
     updatedAt: r.updatedAt,
   }));
-}
-
-/** "Jonas Strassel" → "J.S." — initials only, so the public rating list never
- *  exposes a full SSO name. */
-function initials(name: string | null): string {
-  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "";
-  return `${parts.map((w) => w[0]!.toUpperCase()).join(".")}.`;
 }
 
 export async function upsertRating(

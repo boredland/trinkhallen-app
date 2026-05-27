@@ -24,7 +24,6 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { Env } from "../env";
 import {
   buildAuthorizeUrl as appleAuthorizeUrl,
-  extractDisplayName as appleDisplayName,
   appleEnv,
   exchangeCode as appleExchangeCode,
   parseCallbackForm as appleParseCallback,
@@ -32,6 +31,7 @@ import {
 import { sendEmail } from "../lib/email";
 import { isValidEmail, mintMagicLink, redeemMagicLink } from "../lib/magic";
 import { createSession, destroySession, loadSession } from "../lib/session";
+import { generateUniqueUsername } from "../lib/usernames";
 
 export const auth = new Hono<{ Bindings: Env }>();
 
@@ -91,7 +91,6 @@ auth.get("/auth/google/callback", async (c) => {
       userId: currentUser.id,
       googleSub: profile.id,
       googleEmail: profile.email,
-      displayName: profile.name ?? profile.given_name ?? null,
       avatarUrl: profile.picture ?? null,
     });
     if (outcome === "conflict") {
@@ -107,7 +106,6 @@ auth.get("/auth/google/callback", async (c) => {
   const userId = await upsertUser(c.env.DB, {
     googleSub: profile.id,
     email: profile.email,
-    displayName: profile.name ?? profile.given_name ?? null,
     avatarUrl: profile.picture ?? null,
     now,
   });
@@ -187,7 +185,6 @@ auth.post("/auth/apple/callback", async (c) => {
     );
   }
 
-  const displayName = appleDisplayName(form.user);
   const now = Math.floor(Date.now() / 1000);
   const currentUser = c.get("user");
 
@@ -196,7 +193,6 @@ auth.post("/auth/apple/callback", async (c) => {
       userId: currentUser.id,
       appleSub: idToken.sub,
       appleEmail: idToken.email,
-      displayName,
     });
     if (outcome === "conflict") return c.redirect("/me?link=conflict");
     return c.redirect("/me?link=ok");
@@ -205,7 +201,6 @@ auth.post("/auth/apple/callback", async (c) => {
   const userId = await upsertUserByApple(c.env.DB, {
     appleSub: idToken.sub,
     email: idToken.email,
-    displayName,
     now,
   });
   await createSession(c, userId);
@@ -331,7 +326,6 @@ async function linkGoogleToCurrentUser(
     userId: string;
     googleSub: string;
     googleEmail: string;
-    displayName: string | null;
     avatarUrl: string | null;
   },
 ): Promise<"ok" | "conflict"> {
@@ -342,17 +336,16 @@ async function linkGoogleToCurrentUser(
     .first<{ id: string }>();
   if (other) return "conflict";
 
-  // COALESCE keeps display_name/avatar_url the user already had (they
-  // may have come from a previous Google login, or be hand-set later).
+  // COALESCE keeps any avatar_url the user already had. We deliberately do not
+  // store the SSO display name.
   await db
     .prepare(
       `UPDATE users
           SET google_sub = ?,
-              display_name = COALESCE(display_name, ?),
               avatar_url = COALESCE(avatar_url, ?)
         WHERE id = ?`,
     )
-    .bind(args.googleSub, args.displayName, args.avatarUrl, args.userId)
+    .bind(args.googleSub, args.avatarUrl, args.userId)
     .run();
   return "ok";
 }
@@ -368,12 +361,13 @@ async function upsertUserByEmail(db: D1Database, email: string): Promise<string>
   // For magic-link signups we use the email as a synthetic google_sub so the
   // unique constraint holds; if the user later links Google, we overwrite it.
   const syntheticSub = `email:${email}`;
+  const username = await generateUniqueUsername(db);
   await db
     .prepare(
-      `INSERT INTO users (id, google_sub, email, display_name, avatar_url, role, created_at)
-       VALUES (?, ?, ?, NULL, NULL, 'user', ?)`,
+      `INSERT INTO users (id, google_sub, email, avatar_url, role, created_at, username)
+       VALUES (?, ?, ?, NULL, 'user', ?, ?)`,
     )
-    .bind(id, syntheticSub, email, now)
+    .bind(id, syntheticSub, email, now, username)
     .run();
   return id;
 }
@@ -383,7 +377,6 @@ async function upsertUser(
   args: {
     googleSub: string;
     email: string;
-    displayName: string | null;
     avatarUrl: string | null;
     now: number;
   },
@@ -396,8 +389,8 @@ async function upsertUser(
   if (existing) {
     // Refresh denormalised profile fields opportunistically.
     await db
-      .prepare(`UPDATE users SET email = ?, display_name = ?, avatar_url = ? WHERE id = ?`)
-      .bind(args.email, args.displayName, args.avatarUrl, existing.id)
+      .prepare(`UPDATE users SET email = ?, avatar_url = ? WHERE id = ?`)
+      .bind(args.email, args.avatarUrl, existing.id)
       .run();
     return existing.id;
   }
@@ -405,9 +398,8 @@ async function upsertUser(
   // 2. Magic-link signup being linked to Google. Both Google and our own
   //    magic-link have verified this email, so transparently upgrading the
   //    row is safe. Guard on `email:` prefix so a real Google sub belonging
-  //    to a different person sharing the email never gets clobbered.
-  //    COALESCE keeps any display_name/avatar_url the user set themselves
-  //    over the Google profile fields.
+  //    to a different person sharing the email never gets clobbered. The
+  //    existing handle is kept; we don't store the SSO display name.
   const byEmail = await db
     .prepare(`SELECT id, google_sub FROM users WHERE email = ?`)
     .bind(args.email)
@@ -417,23 +409,23 @@ async function upsertUser(
       .prepare(
         `UPDATE users
             SET google_sub = ?,
-                display_name = COALESCE(display_name, ?),
                 avatar_url = COALESCE(avatar_url, ?)
           WHERE id = ?`,
       )
-      .bind(args.googleSub, args.displayName, args.avatarUrl, byEmail.id)
+      .bind(args.googleSub, args.avatarUrl, byEmail.id)
       .run();
     return byEmail.id;
   }
 
   // 3. Brand-new user.
   const id = crypto.randomUUID();
+  const username = await generateUniqueUsername(db);
   await db
     .prepare(
-      `INSERT INTO users (id, google_sub, email, display_name, avatar_url, role, created_at)
-       VALUES (?, ?, ?, ?, ?, 'user', ?)`,
+      `INSERT INTO users (id, google_sub, email, avatar_url, role, created_at, username)
+       VALUES (?, ?, ?, ?, 'user', ?, ?)`,
     )
-    .bind(id, args.googleSub, args.email, args.displayName, args.avatarUrl, args.now)
+    .bind(id, args.googleSub, args.email, args.avatarUrl, args.now, username)
     .run();
   return id;
 }
@@ -446,7 +438,7 @@ async function upsertUser(
  */
 async function linkAppleToCurrentUser(
   db: D1Database,
-  args: { userId: string; appleSub: string; appleEmail: string; displayName: string | null },
+  args: { userId: string; appleSub: string; appleEmail: string },
 ): Promise<"ok" | "conflict"> {
   const other = await db
     .prepare(`SELECT id FROM users WHERE apple_sub = ? AND id != ?`)
@@ -454,20 +446,15 @@ async function linkAppleToCurrentUser(
     .first<{ id: string }>();
   if (other) return "conflict";
   await db
-    .prepare(
-      `UPDATE users
-          SET apple_sub = ?,
-              display_name = COALESCE(display_name, ?)
-        WHERE id = ?`,
-    )
-    .bind(args.appleSub, args.displayName, args.userId)
+    .prepare(`UPDATE users SET apple_sub = ? WHERE id = ?`)
+    .bind(args.appleSub, args.userId)
     .run();
   return "ok";
 }
 
 /**
  * Upsert via Apple. Three branches mirror upsertUser (google):
- *   1. Already-linked apple_sub → reuse, refresh email/display_name
+ *   1. Already-linked apple_sub → reuse, refresh email
  *   2. Magic-link signup with matching email (synthetic `email:` google_sub)
  *      → attach apple_sub in place, keep the magic-link history
  *   3. Brand-new user → insert with no google_sub yet (will get one if they
@@ -483,7 +470,6 @@ async function upsertUserByApple(
   args: {
     appleSub: string;
     email: string;
-    displayName: string | null;
     now: number;
   },
 ): Promise<string> {
@@ -492,10 +478,7 @@ async function upsertUserByApple(
     .bind(args.appleSub)
     .first<{ id: string }>();
   if (existing) {
-    await db
-      .prepare(`UPDATE users SET email = ?, display_name = COALESCE(display_name, ?) WHERE id = ?`)
-      .bind(args.email, args.displayName, existing.id)
-      .run();
+    await db.prepare(`UPDATE users SET email = ? WHERE id = ?`).bind(args.email, existing.id).run();
     return existing.id;
   }
 
@@ -505,25 +488,21 @@ async function upsertUserByApple(
     .first<{ id: string; google_sub: string }>();
   if (byEmail?.google_sub.startsWith("email:")) {
     await db
-      .prepare(
-        `UPDATE users
-            SET apple_sub = ?,
-                display_name = COALESCE(display_name, ?)
-          WHERE id = ?`,
-      )
-      .bind(args.appleSub, args.displayName, byEmail.id)
+      .prepare(`UPDATE users SET apple_sub = ? WHERE id = ?`)
+      .bind(args.appleSub, byEmail.id)
       .run();
     return byEmail.id;
   }
 
   const id = crypto.randomUUID();
   const syntheticGoogleSub = `apple:${args.appleSub}`;
+  const username = await generateUniqueUsername(db);
   await db
     .prepare(
-      `INSERT INTO users (id, google_sub, apple_sub, email, display_name, avatar_url, role, created_at)
-       VALUES (?, ?, ?, ?, ?, NULL, 'user', ?)`,
+      `INSERT INTO users (id, google_sub, apple_sub, email, avatar_url, role, created_at, username)
+       VALUES (?, ?, ?, ?, NULL, 'user', ?, ?)`,
     )
-    .bind(id, syntheticGoogleSub, args.appleSub, args.email, args.displayName, args.now)
+    .bind(id, syntheticGoogleSub, args.appleSub, args.email, args.now, username)
     .run();
   return id;
 }
