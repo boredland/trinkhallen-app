@@ -1782,9 +1782,13 @@ async function renderProfile(
                 required
                 minLength={3}
                 maxLength={24}
-                pattern="[a-z0-9_]{3,24}"
+                pattern="[A-Za-z0-9_]{3,24}"
+                autocapitalize="none"
+                autocorrect="off"
+                autocomplete="off"
+                spellcheck={false}
                 placeholder="z.B. jonas_s"
-                class="w-full border-2 border-border-hi bg-surface-2 px-3 py-2.5 font-mono text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
+                class="w-full border-2 border-border-hi bg-surface-2 px-3 py-2.5 font-mono lowercase text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
               />
             </label>
             <button type="submit" class="btn-neon shrink-0">
