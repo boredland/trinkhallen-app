@@ -64,6 +64,12 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#0A0A0A" />
+        {/* Declared in the HTML (before any CSS) so the browser paints a dark
+            canvas during the cross-page navigation gap — without it the UA
+            falls back to a white backdrop and dark-mode users see a brief
+            light flash between pages. The CSS still flips this to `light` for
+            [data-theme="light"] once it loads. */}
+        <meta name="color-scheme" content="dark" />
         <meta name="description" content={description} />
         {noindex && <meta name="robots" content="noindex, nofollow" />}
         <link rel="canonical" href={canonical} />
