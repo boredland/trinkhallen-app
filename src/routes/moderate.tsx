@@ -38,7 +38,7 @@ interface PendingSubmissionRow {
   status: string;
   pr_url: string | null;
   created_at: number;
-  user_display_name: string | null;
+  user_username: string | null;
   user_email: string;
 }
 interface PendingReportRow {
@@ -51,14 +51,13 @@ interface PendingReportRow {
   pr_url: string | null;
   created_at: number;
   kiosk_name: string;
-  user_display_name: string | null;
+  user_username: string | null;
   user_email: string;
 }
 interface UserRow {
   id: string;
   email: string;
   username: string | null;
-  display_name: string | null;
   role: "user" | "moderator" | "admin";
   banned_at: number | null;
   created_at: number;
@@ -74,19 +73,19 @@ moderate.get("/moderate", async (c) => {
 
   const [subs, reports, users] = await Promise.all([
     c.env.DB.prepare(
-      `SELECT s.*, u.display_name AS user_display_name, u.email AS user_email
+      `SELECT s.*, u.username AS user_username, u.email AS user_email
          FROM submissions s LEFT JOIN users u ON u.id = s.user_id
          WHERE s.status = 'pending' ORDER BY s.created_at ASC LIMIT 100`,
     ).all<PendingSubmissionRow>(),
     c.env.DB.prepare(
-      `SELECT r.*, u.display_name AS user_display_name, u.email AS user_email
+      `SELECT r.*, u.username AS user_username, u.email AS user_email
          FROM reports r
          LEFT JOIN users u ON u.id = r.user_id
          WHERE r.status = 'open' ORDER BY r.created_at ASC LIMIT 100`,
     ).all<Omit<PendingReportRow, "kiosk_name">>(),
     c.env.DB.prepare(
       `SELECT
-          u.id, u.email, u.username, u.display_name, u.role,
+          u.id, u.email, u.username, u.role,
           u.banned_at, u.created_at,
           (SELECT COUNT(*) FROM ratings    r WHERE r.user_id = u.id) AS ratings_count,
           (SELECT COUNT(*) FROM reports    r WHERE r.user_id = u.id) AS reports_count,
@@ -210,7 +209,7 @@ function SubmissionQueue({ rows }: { rows: PendingSubmissionRow[] }) {
             <header class="flex flex-wrap items-baseline justify-between gap-2">
               <h2 class="font-display text-2xl tracking-wide text-fg">{p.name}</h2>
               <p class="text-xs text-fg-dim">
-                von {s.user_display_name ?? s.user_email.split("@")[0]} ·{" "}
+                von {s.user_username ? `@${s.user_username}` : s.user_email.split("@")[0]} ·{" "}
                 {new Date(s.created_at * 1000).toLocaleDateString("de-DE")}
               </p>
             </header>
@@ -274,7 +273,7 @@ function ReportQueue({ rows }: { rows: PendingReportRow[] }) {
                 </a>
               </h2>
               <p class="text-xs text-fg-dim">
-                von {r.user_display_name ?? r.user_email.split("@")[0]} ·{" "}
+                von {r.user_username ? `@${r.user_username}` : r.user_email.split("@")[0]} ·{" "}
                 {new Date(r.created_at * 1000).toLocaleDateString("de-DE")}
               </p>
             </header>
@@ -316,11 +315,7 @@ function UsersQueue({ rows }: { rows: UserRow[] }) {
           <li class={`flex flex-wrap items-center gap-4 p-4 ${banned ? "bg-danger/5" : ""}`}>
             <div class="min-w-0 flex-1">
               <p class="font-display text-sm tracking-wide text-fg">
-                {u.username ? (
-                  <span class="font-mono text-neon-cyan">@{u.username}</span>
-                ) : (
-                  (u.display_name ?? u.email)
-                )}
+                {u.username ? <span class="font-mono text-neon-cyan">@{u.username}</span> : u.email}
                 {u.role !== "user" && (
                   <span class="ml-2 border border-border-hi px-1.5 py-0.5 text-xs uppercase tracking-wider text-fg-muted">
                     {u.role}

@@ -294,8 +294,6 @@ export async function attachUser(
       id: user.id,
       email: user.email,
       username: user.username,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
       role: user.role,
       isMagicLinkOnly: user.isMagicLinkOnly,
       hasGoogle: user.hasGoogle,

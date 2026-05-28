@@ -26,8 +26,6 @@ export interface SessionUser {
   id: string;
   email: string;
   username: string | null;
-  displayName: string | null;
-  avatarUrl: string | null;
   role: "user" | "moderator" | "admin";
   /** True iff the row was created via magic-link and the user hasn't linked
    *  Google or Apple yet (google_sub still has the synthetic "email:<addr>"
@@ -74,7 +72,7 @@ export async function loadSession(c: Context<{ Bindings: Env }>): Promise<Sessio
 
   const row = await c.env.DB.prepare(
     `SELECT s.id AS sid, s.expires_at AS expires_at,
-              u.id AS user_id, u.email, u.username, u.display_name, u.avatar_url, u.role,
+              u.id AS user_id, u.email, u.username, u.role,
               u.google_sub, u.apple_sub
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.id = ?`,
@@ -86,8 +84,6 @@ export async function loadSession(c: Context<{ Bindings: Env }>): Promise<Sessio
       user_id: string;
       email: string;
       username: string | null;
-      display_name: string | null;
-      avatar_url: string | null;
       role: "user" | "moderator" | "admin";
       google_sub: string;
       apple_sub: string | null;
@@ -128,8 +124,6 @@ export async function loadSession(c: Context<{ Bindings: Env }>): Promise<Sessio
     id: row.user_id,
     email: row.email,
     username: row.username,
-    displayName: row.display_name,
-    avatarUrl: row.avatar_url,
     role: row.role,
     isMagicLinkOnly: !hasGoogle && !hasApple,
     hasGoogle,

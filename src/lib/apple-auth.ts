@@ -12,11 +12,9 @@
  *      issue a static client secret. We mint a fresh JWT per token
  *      exchange.
  *
- *   3. Apple returns the user's name and email ONLY on the first
- *      sign-in (via a separate `user` form field). The id_token always
- *      carries `sub` + `email` for repeat sign-ins. We persist the
- *      email-from-id-token as canonical; the optional name-from-`user`
- *      field is best-effort for display_name.
+ *   3. The id_token carries `sub` + `email` on every sign-in. Apple also
+ *      POSTs an optional `user` form field on the very first sign-in with
+ *      the name, but we don't request the `name` scope and don't read it.
  *
  * Apple's `email` may be a relay address ("…@privaterelay.appleid.com")
  * if the user picked "Hide My Email". Treat it as their real email —
@@ -198,8 +196,6 @@ async function importPkcs8(pem: string): Promise<CryptoKey> {
 export interface AppleCallbackForm {
   code: string;
   state: string | null;
-  /** JSON string: { name: { firstName, lastName }, email } */
-  user: string | null;
   id_token: string | null;
   error: string | null;
 }
@@ -208,26 +204,7 @@ export function parseCallbackForm(form: FormData): AppleCallbackForm {
   return {
     code: (form.get("code") ?? "").toString(),
     state: form.get("state") ? form.get("state")!.toString() : null,
-    user: form.get("user") ? form.get("user")!.toString() : null,
     id_token: form.get("id_token") ? form.get("id_token")!.toString() : null,
     error: form.get("error") ? form.get("error")!.toString() : null,
   };
-}
-
-/**
- * `user` is only present on the very first sign-in for a given (Apple
- * user, app) pair — parse it best-effort for a friendlier display_name,
- * but don't depend on it being present.
- */
-export function extractDisplayName(userJson: string | null): string | null {
-  if (!userJson) return null;
-  try {
-    const parsed = JSON.parse(userJson) as { name?: { firstName?: string; lastName?: string } };
-    const first = parsed.name?.firstName?.trim();
-    const last = parsed.name?.lastName?.trim();
-    if (!first && !last) return null;
-    return [first, last].filter(Boolean).join(" ");
-  } catch {
-    return null;
-  }
 }

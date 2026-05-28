@@ -1,15 +1,13 @@
 /**
  * One-off backfill for the username auto-generation migration (0012).
  *
- * Assigns a unique themed handle to every user whose username is still NULL,
- * and purges the now-unused SSO display_name. Run once after the migration is
- * applied — local first, then production:
+ * Assigns a unique themed handle to every user whose username is still NULL.
+ * Run once after the migration is applied — local first, then production:
  *
  *   bun scripts/backfill-usernames.ts            # local D1
  *   bun scripts/backfill-usernames.ts --remote   # production D1
  *
- * Idempotent: a re-run only touches rows that are still NULL, and the
- * display_name purge is a no-op once everything is already cleared.
+ * Idempotent: a re-run is a no-op once every user already has a handle.
  */
 
 import { execFileSync } from "node:child_process";
@@ -70,15 +68,19 @@ function main(): void {
   const nullUsers = query<{ id: string }>("SELECT id FROM users WHERE username IS NULL");
   console.log(`  ${nullUsers.length} user(s) without a handle.`);
 
+  if (nullUsers.length === 0) {
+    console.log("✔ Nothing to do — every user already has a handle.");
+    return;
+  }
+
   // Handles are [a-z0-9_] and ids are UUIDs, so direct interpolation is safe.
   const statements = nullUsers.map(
     (u) =>
       `UPDATE users SET username = '${freshHandle(used)}' WHERE id = '${u.id}' AND username IS NULL;`,
   );
-  statements.push("UPDATE users SET display_name = NULL WHERE display_name IS NOT NULL;");
 
   runFile(statements.join("\n"));
-  console.log(`✔ Assigned ${nullUsers.length} handle(s) and purged display_name.`);
+  console.log(`✔ Assigned ${nullUsers.length} handle(s).`);
 }
 
 main();

@@ -79,7 +79,6 @@ const report = (
 
 const moderator = {
   id: "mod-1",
-  displayName: "Mod",
   username: null as string | null,
   email: "mod@trinkhallen.app",
 };
@@ -345,42 +344,29 @@ describe("moderator handle in PR/issue body", () => {
     };
   };
 
-  it("prefers @username over displayName and email-prefix", async () => {
+  it("prefers @username over the email-prefix fallback", async () => {
     const cap = captureBody();
     const env = makeStub();
     await approveReport(
       env as unknown as Parameters<typeof approveReport>[0],
       report({ kind: "wrong_hours", payload: JSON.stringify({ new_hours: "24/7" }) }),
       kiosk(),
-      { ...moderator, username: "jonas_s", displayName: "Jonas Strasel" },
+      { ...moderator, username: "jonas_s" },
     );
     expect(cap.current).toContain("**Approved by**: @jonas_s");
   });
 
-  it("falls back to displayName when no username", async () => {
+  it("falls back to the email local-part when there is no username", async () => {
+    // Edge: a brief pre-backfill window where username is still NULL. Email
+    // local-part is the last-resort fallback — surprises like "info" for
+    // info@example.de signups remain acceptable when nothing better exists.
     const cap = captureBody();
     const env = makeStub();
     await approveReport(
       env as unknown as Parameters<typeof approveReport>[0],
       report({ kind: "wrong_hours", payload: JSON.stringify({ new_hours: "24/7" }) }),
       kiosk(),
-      { ...moderator, username: null, displayName: "Jonas Strasel" },
-    );
-    expect(cap.current).toContain("**Approved by**: Jonas Strasel");
-  });
-
-  it("falls back to the email local-part only as last resort", async () => {
-    // Regression test: a magic-link signup with email `info@jonas-strassel.de`
-    // and no username/displayName previously rendered as "Approved by: info",
-    // which read like a system label. Still acceptable as the final fallback
-    // when nothing better exists.
-    const cap = captureBody();
-    const env = makeStub();
-    await approveReport(
-      env as unknown as Parameters<typeof approveReport>[0],
-      report({ kind: "wrong_hours", payload: JSON.stringify({ new_hours: "24/7" }) }),
-      kiosk(),
-      { ...moderator, username: null, displayName: null, email: "info@example.de" },
+      { ...moderator, username: null, email: "info@example.de" },
     );
     expect(cap.current).toContain("**Approved by**: info");
   });

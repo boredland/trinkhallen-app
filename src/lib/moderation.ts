@@ -22,18 +22,16 @@ const APP_ORIGIN = "https://trinkhallen.app";
 
 interface Moderator {
   id: string;
-  displayName: string | null;
   username: string | null;
   email: string;
 }
 
-// Pick a human-readable handle for the moderator on PR/issue bodies.
-// `username` (set explicitly by the user) beats Google's displayName, and
-// the email local-part is the last-resort fallback — historically that
+// Pick a human-readable handle for the moderator on PR/issue bodies. Every
+// account has an auto-generated handle, so the username branch is the common
+// path; the email local-part is the last-resort fallback — historically that
 // produced surprises like "info" for magic-link signups (info@example.de).
 function moderatorHandle(m: Moderator): string {
   if (m.username) return `@${m.username}`;
-  if (m.displayName) return m.displayName;
   return m.email.split("@")[0] ?? m.email;
 }
 
