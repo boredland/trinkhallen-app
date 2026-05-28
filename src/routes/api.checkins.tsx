@@ -61,8 +61,10 @@ apiCheckins.post("/api/checkins", async (c) => {
 
   const userLatRaw = (form.get("lat") ?? "").toString();
   const userLngRaw = (form.get("lng") ?? "").toString();
+  const accuracyRaw = (form.get("accuracy") ?? "").toString();
   const userLat = userLatRaw ? parseFloat(userLatRaw) : NaN;
   const userLng = userLngRaw ? parseFloat(userLngRaw) : NaN;
+  const accuracy = accuracyRaw ? parseFloat(accuracyRaw) : NaN;
 
   const outcome = await recordCheckin(c.env, {
     kioskId: kiosk.id,
@@ -71,6 +73,7 @@ apiCheckins.post("/api/checkins", async (c) => {
     regionSlug: regionSlugFromPath(kiosk.region),
     userId: user.id,
     ...(Number.isFinite(userLat) && Number.isFinite(userLng) ? { userLat, userLng } : {}),
+    ...(Number.isFinite(accuracy) ? { accuracy } : {}),
   });
 
   // PH-data-gap capture: when a verified check-in lands on a public holiday

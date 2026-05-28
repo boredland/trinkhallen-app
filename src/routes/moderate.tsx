@@ -66,12 +66,25 @@ interface UserRow {
   submissions_count: number;
   checkins_count: number;
 }
+interface PendingAnomalyRow {
+  id: string;
+  user_id: string;
+  kind: string;
+  payload: string | null;
+  created_at: number;
+  user_username: string | null;
+  user_email: string;
+}
 
 moderate.get("/moderate", async (c) => {
   const user = c.get("user")!;
-  const tab = (c.req.query("tab") ?? "submissions") as "submissions" | "reports" | "users";
+  const tab = (c.req.query("tab") ?? "submissions") as
+    | "submissions"
+    | "reports"
+    | "users"
+    | "anomalies";
 
-  const [subs, reports, users] = await Promise.all([
+  const [subs, reports, users, anomalies] = await Promise.all([
     c.env.DB.prepare(
       `SELECT s.*, u.username AS user_username, u.email AS user_email
          FROM submissions s LEFT JOIN users u ON u.id = s.user_id
@@ -96,6 +109,15 @@ moderate.get("/moderate", async (c) => {
          ORDER BY u.banned_at IS NULL ASC, u.created_at DESC
          LIMIT 200`,
     ).all<UserRow>(),
+    c.env.DB.prepare(
+      `SELECT a.id, a.user_id, a.kind, a.payload, a.created_at,
+              u.username AS user_username, u.email AS user_email
+         FROM user_anomalies a
+         LEFT JOIN users u ON u.id = a.user_id
+         WHERE a.reviewed_at IS NULL
+         ORDER BY a.created_at DESC
+         LIMIT 100`,
+    ).all<PendingAnomalyRow>(),
   ]);
 
   const reportKioskNames = new Map<string, string>();
@@ -133,11 +155,17 @@ moderate.get("/moderate", async (c) => {
           active={tab === "users"}
           label={`Konten (${users.results.length})`}
         />
+        <TabLink
+          href="/moderate?tab=anomalies"
+          active={tab === "anomalies"}
+          label={`Anomalien (${anomalies.results.length})`}
+        />
       </nav>
 
       {tab === "submissions" && <SubmissionQueue rows={subs.results} />}
       {tab === "reports" && <ReportQueue rows={reportRows} />}
       {tab === "users" && <UsersQueue rows={users.results} />}
+      {tab === "anomalies" && <AnomaliesQueue rows={anomalies.results} />}
     </Layout>,
   );
 });
@@ -347,6 +375,35 @@ function UsersQueue({ rows }: { rows: UserRow[] }) {
                 {banned ? "Entbannen" : "Shadow-bannen"}
               </button>
             </form>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function AnomaliesQueue({ rows }: { rows: PendingAnomalyRow[] }) {
+  if (rows.length === 0) return <EmptyQueue label="Keine offenen Anomalien." />;
+  return (
+    <ul class="space-y-4">
+      {rows.map((a) => {
+        const payload = a.payload ? (JSON.parse(a.payload) as Record<string, unknown>) : {};
+        return (
+          <li class="border-2 border-border bg-surface p-5">
+            <header class="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 class="font-display text-lg tracking-wide text-fg">
+                {a.user_username ? `@${a.user_username}` : a.user_email.split("@")[0]}
+              </h2>
+              <p class="text-xs text-fg-dim">
+                <span class="border-2 border-border px-2 py-0.5 font-display text-xs tracking-wider uppercase text-neon-amber">
+                  {a.kind}
+                </span>{" "}
+                · {new Date(a.created_at * 1000).toLocaleDateString("de-DE")}
+              </p>
+            </header>
+            <pre class="mt-3 overflow-x-auto bg-surface-2 p-3 font-mono text-xs text-fg-muted">
+              {JSON.stringify(payload, null, 2)}
+            </pre>
           </li>
         );
       })}

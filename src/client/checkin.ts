@@ -61,6 +61,9 @@ async function postCheckin(kioskId: string): Promise<void> {
   if (coords) {
     body.append("lat", String(coords.lat));
     body.append("lng", String(coords.lng));
+    if (typeof coords.accuracy === "number" && Number.isFinite(coords.accuracy)) {
+      body.append("accuracy", String(coords.accuracy));
+    }
   }
   try {
     await fetch("/api/checkins", { method: "POST", body });
@@ -107,11 +110,17 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function tryGeolocate(): Promise<{ lat: number; lng: number } | null> {
+interface Coords {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+}
+
+function tryGeolocate(): Promise<Coords | null> {
   if (!navigator.geolocation) return Promise.resolve(null);
   return new Promise((resolve) => {
     let settled = false;
-    const settle = (v: { lat: number; lng: number } | null) => {
+    const settle = (v: Coords | null) => {
       if (settled) return;
       settled = true;
       resolve(v);
@@ -120,7 +129,12 @@ function tryGeolocate(): Promise<{ lat: number; lng: number } | null> {
     // If geolocation hasn't returned by then, treat it as "no location given".
     setTimeout(() => settle(null), 4000);
     navigator.geolocation.getCurrentPosition(
-      (pos) => settle({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) =>
+        settle({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        }),
       () => settle(null),
       { enableHighAccuracy: true, timeout: 3500, maximumAge: 60_000 },
     );
