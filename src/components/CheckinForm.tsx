@@ -67,6 +67,11 @@ export const CheckinForm: FC<{
   const missingPayment = PAYMENT_ORDER.filter(
     (k) => kiosk.payment?.[k] !== "yes" && kiosk.payment?.[k] !== "no",
   );
+  // The complement: methods with a settled yes/no value, eligible for a
+  // "Stimmt's noch?" confirm signal (Phase 0 of the Frische epic).
+  const settledPayment = PAYMENT_ORDER.filter(
+    (k) => kiosk.payment?.[k] === "yes" || kiosk.payment?.[k] === "no",
+  );
   // A group is "answered" by this user when there's a non-rejected report
   // of that kind in flight — hide the form, swap in a "Danke!" stub
   // mirroring what client/checkin.ts renders right after a fresh submit.
@@ -122,10 +127,57 @@ export const CheckinForm: FC<{
           ) : (
             <PaymentGroup kioskId={kiosk.id} missing={missingPayment} />
           ))}
+        {settledPayment.length > 0 && (
+          <div
+            data-confirm-block
+            data-field-key="payment"
+            class="space-y-2 border-2 border-border-hi bg-surface-2 p-4"
+          >
+            <p class="text-sm text-fg-muted">Stimmen die Zahlungsoptionen?</p>
+            <p class="font-mono text-sm text-fg">
+              {settledPayment
+                .map(
+                  (k) =>
+                    `${PAYMENT_LABELS[k]?.de ?? k}: ${kiosk.payment?.[k] === "yes" ? "ja" : "nein"}`,
+                )
+                .join(" · ")}
+            </p>
+            <button
+              type="button"
+              data-signal-confirm
+              data-field-key="payment"
+              class="inline-flex cursor-pointer items-center gap-2 border-2 border-neon-cyan px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-cyan hover:bg-neon-cyan hover:text-bg disabled:opacity-60"
+            >
+              <span aria-hidden="true">✓</span>
+              Passt — bestätigen
+            </button>
+          </div>
+        )}
         {isAnswered("update_tags") ? (
           <AnsweredStub report={reportByKind.get("update_tags")!} />
         ) : (
           <AmenitiesGroup kioskId={kiosk.id} present={new Set(kiosk.tags)} />
+        )}
+        {(kiosk.tags?.length ?? 0) > 0 && (
+          <div
+            data-confirm-block
+            data-field-key="tags"
+            class="space-y-2 border-2 border-border-hi bg-surface-2 p-4"
+          >
+            <p class="text-sm text-fg-muted">Stimmen die hinterlegten Tags?</p>
+            <p class="font-mono text-sm text-fg">
+              {kiosk.tags!.map((t) => tagLabel(t)).join(" · ")}
+            </p>
+            <button
+              type="button"
+              data-signal-confirm
+              data-field-key="tags"
+              class="inline-flex cursor-pointer items-center gap-2 border-2 border-neon-cyan px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-cyan hover:bg-neon-cyan hover:text-bg disabled:opacity-60"
+            >
+              <span aria-hidden="true">✓</span>
+              Passt — bestätigen
+            </button>
+          </div>
         )}
         {isAnswered("wrong_name") ? (
           <AnsweredStub report={reportByKind.get("wrong_name")!} />
