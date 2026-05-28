@@ -21,11 +21,17 @@ export function installCheckinForm(_scope: ParentNode = document): void {
   installed = true;
 
   document.addEventListener("click", (ev) => {
-    const btn = (ev.target as HTMLElement | null)?.closest<HTMLButtonElement>(
-      "[data-checkin-button]",
-    );
-    if (!btn) return;
-    onCheckinClick(btn);
+    const target = ev.target as HTMLElement | null;
+    const checkinBtn = target?.closest<HTMLButtonElement>("[data-checkin-button]");
+    if (checkinBtn) {
+      void onCheckinClick(checkinBtn);
+      return;
+    }
+    const signalBtn = target?.closest<HTMLButtonElement>("[data-signal-confirm]");
+    if (signalBtn) {
+      ev.preventDefault();
+      void onSignalConfirm(signalBtn);
+    }
   });
 
   document.addEventListener("submit", (ev) => {
@@ -36,7 +42,7 @@ export function installCheckinForm(_scope: ParentNode = document): void {
   });
 }
 
-function onCheckinClick(btn: HTMLButtonElement): void {
+async function onCheckinClick(btn: HTMLButtonElement): Promise<void> {
   if (btn.dataset["checkinDone"] === "1") return;
   btn.dataset["checkinDone"] = "1";
 
@@ -51,11 +57,20 @@ function onCheckinClick(btn: HTMLButtonElement): void {
   const questions = wrapper.querySelector<HTMLElement>("[data-checkin-questions]");
   if (questions) questions.hidden = false;
 
-  void postCheckin(kioskId);
+  // Geolocate once and cache on the wrapper so the follow-up signal POST can
+  // reuse the same fix without a second permission/timeout round.
+  const coords = await tryGeolocate();
+  if (coords) {
+    wrapper.dataset["lat"] = String(coords.lat);
+    wrapper.dataset["lng"] = String(coords.lng);
+    if (typeof coords.accuracy === "number" && Number.isFinite(coords.accuracy)) {
+      wrapper.dataset["accuracy"] = String(coords.accuracy);
+    }
+  }
+  void postCheckin(kioskId, coords);
 }
 
-async function postCheckin(kioskId: string): Promise<void> {
-  const coords = await tryGeolocate();
+async function postCheckin(kioskId: string, coords: Coords | null): Promise<void> {
   const body = new FormData();
   body.append("kiosk_id", kioskId);
   if (coords) {
@@ -70,6 +85,60 @@ async function postCheckin(kioskId: string): Promise<void> {
   } catch {
     // Silent — the check-in is best-effort. The user already sees the form
     // questions; treating a network blip as a hard error would just nag them.
+  }
+}
+
+async function onSignalConfirm(btn: HTMLButtonElement): Promise<void> {
+  if (btn.dataset["signalDone"] === "1") return;
+  btn.dataset["signalDone"] = "1";
+
+  const wrapper = btn.closest<HTMLElement>("[data-checkin]");
+  const block = btn.closest<HTMLElement>("[data-confirm-block]");
+  if (!wrapper) return;
+  const kioskId = wrapper.dataset["kioskId"];
+  const fieldKey = btn.dataset["fieldKey"];
+  if (!kioskId || !fieldKey) return;
+
+  btn.disabled = true;
+
+  const body = new FormData();
+  body.append("kiosk_id", kioskId);
+  body.append("field_key", fieldKey);
+  body.append("action", "confirm");
+  const lat = wrapper.dataset["lat"];
+  const lng = wrapper.dataset["lng"];
+  const accuracy = wrapper.dataset["accuracy"];
+  if (lat) body.append("lat", lat);
+  if (lng) body.append("lng", lng);
+  if (accuracy) body.append("accuracy", accuracy);
+
+  try {
+    const resp = await fetch("/api/signals", { method: "POST", body });
+    if (resp.ok) {
+      if (block) {
+        block.outerHTML =
+          '<p class="border-2 border-success/60 bg-success/10 p-3 text-sm text-success">✓ Bestätigt — danke!</p>';
+      }
+      return;
+    }
+    if (resp.status === 422 && block) {
+      const reason = (await resp.text()).trim();
+      const msg =
+        reason === "no_fix"
+          ? "Konnten deinen Standort nicht ermitteln — bitte Standort erlauben und erneut versuchen."
+          : reason === "out_of_range"
+            ? "Du scheinst nicht hier zu sein — Bestätigung nur vor Ort."
+            : reason === "low_accuracy"
+              ? "GPS-Signal zu ungenau — bitte ins Freie und erneut versuchen."
+              : `Konnte nicht bestätigen (${reason}).`;
+      block.innerHTML = `<p class="border-2 border-danger/60 bg-danger/10 p-3 text-sm text-danger">${escapeHtml(msg)}</p>`;
+      return;
+    }
+    btn.disabled = false;
+    btn.dataset["signalDone"] = "";
+  } catch {
+    btn.disabled = false;
+    btn.dataset["signalDone"] = "";
   }
 }
 

@@ -97,6 +97,25 @@ export const CheckinForm: FC<{
           ) : (
             <HoursGroup kioskId={kiosk.id} />
           ))}
+        {kiosk.hours?.raw && (
+          <div
+            data-confirm-block
+            data-field-key="opening_hours"
+            class="space-y-2 border-2 border-border-hi bg-surface-2 p-4"
+          >
+            <p class="text-sm text-fg-muted">Stimmen die Öffnungszeiten?</p>
+            <p class="font-mono text-sm text-fg">{kiosk.hours.raw}</p>
+            <button
+              type="button"
+              data-signal-confirm
+              data-field-key="opening_hours"
+              class="inline-flex cursor-pointer items-center gap-2 border-2 border-neon-cyan px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-cyan hover:bg-neon-cyan hover:text-bg disabled:opacity-60"
+            >
+              <span aria-hidden="true">✓</span>
+              Passt — bestätigen
+            </button>
+          </div>
+        )}
         {missingPayment.length > 0 &&
           (isAnswered("update_payment") ? (
             <AnsweredStub report={reportByKind.get("update_payment")!} />

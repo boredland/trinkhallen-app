@@ -1677,12 +1677,16 @@ async function renderProfile(
   const submissions = submissionsRes.results;
   const ratingsCount = ratingsCountRow?.n ?? 0;
   const checkinsCount = checkinsCountRow?.n ?? 0;
-  const usernameRow = await c.env.DB.prepare(
-    `SELECT username_changed_at AS changedAt FROM users WHERE id = ?`,
-  )
-    .bind(user.id)
-    .first<{ changedAt: number | null }>();
+  const [usernameRow, signalsCountRow] = await Promise.all([
+    c.env.DB.prepare(`SELECT username_changed_at AS changedAt FROM users WHERE id = ?`)
+      .bind(user.id)
+      .first<{ changedAt: number | null }>(),
+    c.env.DB.prepare(`SELECT COUNT(*) AS n FROM field_signals WHERE user_id = ?`)
+      .bind(user.id)
+      .first<{ n: number }>(),
+  ]);
   const canRename = (usernameRow?.changedAt ?? null) === null;
+  const signalsCount = signalsCountRow?.n ?? 0;
   const fmtDate = (s: number) => new Date(s * 1000).toLocaleDateString("de-DE");
 
   return c.html(
@@ -1700,8 +1704,9 @@ async function renderProfile(
             <p class="mt-1 text-xs uppercase tracking-wider text-fg-dim">Rolle: {user.role}</p>
           </div>
         </div>
-        <dl class="mt-6 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
+        <dl class="mt-6 grid grid-cols-2 gap-3 text-center sm:grid-cols-5">
           <Stat n={checkinsCount} label="Check-ins" />
+          <Stat n={signalsCount} label="Bestätigungen" />
           <Stat n={ratingsCount} label="Bewertungen" />
           <Stat n={reports.length} label="Korrekturen" />
           <Stat n={submissions.length} label="Vorschläge" />
