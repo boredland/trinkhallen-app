@@ -9,12 +9,14 @@ export const apiSignals = new Hono<{ Bindings: Env }>();
 const ALLOWED_ACTIONS: ReadonlySet<SignalAction> = new Set(["confirm", "dispute", "fill"]);
 
 /**
- * POST /api/signals — strict-verified write-path for per-field signals.
+ * POST /api/signals — always-record write-path for per-field signals.
  *
- * Auth required. The strict verifyPresence gate inside recordSignal hard-blocks
- * anything but a fresh in-range fix; the failure reason
- * (`no_fix` | `out_of_range` | `low_accuracy`) surfaces as the 422 body so
- * callers can show clear UX. Same-day re-confirms return 204 (silent dedup).
+ * Auth required. The row always lands in `field_signals`; the `verified` column
+ * captures whether the user had a fresh in-range fix (verifyPresence). Same-day
+ * re-confirms silently dedup via the UNIQUE index. Response is a small JSON
+ * `{ verified, reason }` so the client can show high- vs low-confidence
+ * feedback ("✓ Bestätigt — danke!" vs "Bestätigt, ohne Vor-Ort-Prüfung — zählt
+ * nur leise.").
  */
 apiSignals.post("/api/signals", async (c) => {
   const user = c.get("user");
@@ -53,6 +55,5 @@ apiSignals.post("/api/signals", async (c) => {
     ...(Number.isFinite(accuracy) ? { accuracy } : {}),
   });
 
-  if (!result.ok) return c.text(result.reason, 422);
-  return c.body(null, 204);
+  return c.json({ verified: result.verified, reason: result.reason ?? null });
 });

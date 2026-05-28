@@ -47,7 +47,7 @@ const baseInput = {
 };
 
 describe("recordSignal", () => {
-  it("records a confirm at the kiosk", async () => {
+  it("records a confirm at the kiosk as verified", async () => {
     const { env, runs } = fakeDb();
     const r = await recordSignal(env as never, {
       ...baseInput,
@@ -55,10 +55,12 @@ describe("recordSignal", () => {
       userLng: KIOSK.lng,
       accuracy: 20,
     });
-    expect(r).toMatchObject({ ok: true, inserted: true });
+    expect(r).toMatchObject({ inserted: true, verified: true });
     expect(runs).toHaveLength(1);
     expect(runs[0]!.sql).toContain("INSERT OR IGNORE INTO field_signals");
-    // confirm action ⇒ asserted_value is null
+    // verified column is the 7th bind (index 6), 1 for verified writes.
+    expect(runs[0]!.bound[6]).toBe(1);
+    // confirm action ⇒ asserted_value (index 4) is null.
     expect(runs[0]!.bound[4]).toBeNull();
   });
 
@@ -70,17 +72,18 @@ describe("recordSignal", () => {
       userLng: KIOSK.lng,
       accuracy: 20,
     });
-    expect(r).toMatchObject({ ok: true, inserted: false });
+    expect(r).toMatchObject({ inserted: false, verified: true });
   });
 
-  it("rejects without a fix as no_fix and does not write", async () => {
+  it("still records when no fix is present, marked verified=0 with reason no_fix", async () => {
     const { env, runs } = fakeDb();
     const r = await recordSignal(env as never, { ...baseInput });
-    expect(r).toEqual({ ok: false, reason: "no_fix" });
-    expect(runs).toHaveLength(0);
+    expect(r).toMatchObject({ inserted: true, verified: false, reason: "no_fix" });
+    expect(runs).toHaveLength(1);
+    expect(runs[0]!.bound[6]).toBe(0);
   });
 
-  it("rejects an out-of-range fix as out_of_range", async () => {
+  it("still records an out-of-range fix, marked verified=0 with reason out_of_range", async () => {
     const { env, runs } = fakeDb();
     const r = await recordSignal(env as never, {
       ...baseInput,
@@ -88,11 +91,11 @@ describe("recordSignal", () => {
       userLng: KIOSK.lng + FAR_OFFSET,
       accuracy: 20,
     });
-    expect(r).toEqual({ ok: false, reason: "out_of_range" });
-    expect(runs).toHaveLength(0);
+    expect(r).toMatchObject({ inserted: true, verified: false, reason: "out_of_range" });
+    expect(runs[0]!.bound[6]).toBe(0);
   });
 
-  it("rejects a wildly-noisy out-of-range fix as low_accuracy", async () => {
+  it("still records a low-accuracy fix, marked verified=0 with reason low_accuracy", async () => {
     const { env, runs } = fakeDb();
     const r = await recordSignal(env as never, {
       ...baseInput,
@@ -100,8 +103,8 @@ describe("recordSignal", () => {
       userLng: KIOSK.lng + FAR_OFFSET,
       accuracy: 5000,
     });
-    expect(r).toEqual({ ok: false, reason: "low_accuracy" });
-    expect(runs).toHaveLength(0);
+    expect(r).toMatchObject({ inserted: true, verified: false, reason: "low_accuracy" });
+    expect(runs[0]!.bound[6]).toBe(0);
   });
 
   it("persists asserted_value for fill, ignores it for confirm", async () => {

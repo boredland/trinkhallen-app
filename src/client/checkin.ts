@@ -128,21 +128,11 @@ async function onSignalSubmit(
   try {
     const resp = await fetch("/api/signals", { method: "POST", body });
     if (resp.ok) {
-      const verb = action === "dispute" ? "Notiert" : "Bestätigt";
-      showSignalSuccess(block, `✓ ${verb} — danke!`);
-      return;
-    }
-    if (resp.status === 422) {
-      const reason = (await resp.text()).trim();
-      const msg =
-        reason === "no_fix"
-          ? "Konnten deinen Standort nicht ermitteln — bitte Standort erlauben und nochmal antippen."
-          : reason === "out_of_range"
-            ? "Du scheinst nicht hier zu sein — nur vor Ort möglich."
-            : reason === "low_accuracy"
-              ? "GPS-Signal zu ungenau — bitte ins Freie und erneut versuchen."
-              : `Konnte nicht senden (${reason || "unbekannt"}).`;
-      showSignalError(block, btn, msg);
+      // Always-record: server returns { verified, reason }. Verified rows get
+      // the loud green confirmation; unverified ones land softer + amber so
+      // the user knows it counted but with lower weight (engine sees verified=0).
+      const data = (await resp.json().catch(() => ({ verified: true }))) as { verified?: boolean };
+      showSignalSuccess(block, action, data.verified !== false);
       return;
     }
     showSignalError(block, btn, `Server-Fehler (${resp.status}). Bitte erneut versuchen.`);
@@ -151,9 +141,18 @@ async function onSignalSubmit(
   }
 }
 
-function showSignalSuccess(block: HTMLElement | null, msg: string): void {
+function showSignalSuccess(
+  block: HTMLElement | null,
+  action: "confirm" | "dispute",
+  verified: boolean,
+): void {
   if (!block) return;
-  block.outerHTML = `<p class="border-2 border-success/60 bg-success/10 p-3 text-sm text-success">${escapeHtml(msg)}</p>`;
+  const verb = action === "dispute" ? "Notiert" : "Bestätigt";
+  const msg = verified ? `✓ ${verb} — danke!` : `${verb}, ohne Vor-Ort-Prüfung — zählt nur leise.`;
+  const cls = verified
+    ? "border-success/60 bg-success/10 text-success"
+    : "border-neon-amber/60 bg-neon-amber/10 text-neon-amber";
+  block.outerHTML = `<p class="border-2 ${cls} p-3 text-sm">${escapeHtml(msg)}</p>`;
 }
 
 function showSignalError(block: HTMLElement | null, btn: HTMLButtonElement, msg: string): void {
