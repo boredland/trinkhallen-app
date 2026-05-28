@@ -45,6 +45,35 @@ const TAG_ICONS: Record<string, string> = {
   geldautomat: "🏧",
 };
 
+/**
+ * The confirm + dispute action pair rendered inside every `data-confirm-block`.
+ * Both buttons share the same `data-field-key`; the client distinguishes via
+ * the `data-signal-confirm` vs `data-signal-dispute` attribute and POSTs to
+ * /api/signals with action='confirm' / 'dispute' accordingly.
+ */
+const ConfirmDisputeButtons: FC<{ fieldKey: string }> = ({ fieldKey }) => (
+  <div class="flex flex-wrap gap-2">
+    <button
+      type="button"
+      data-signal-confirm
+      data-field-key={fieldKey}
+      class="inline-flex cursor-pointer items-center gap-2 border-2 border-neon-cyan px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-cyan hover:bg-neon-cyan hover:text-bg disabled:opacity-60"
+    >
+      <span aria-hidden="true">✓</span>
+      Passt — bestätigen
+    </button>
+    <button
+      type="button"
+      data-signal-dispute
+      data-field-key={fieldKey}
+      class="inline-flex cursor-pointer items-center gap-2 border-2 border-border-hi px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-fg-muted hover:border-danger hover:text-danger disabled:opacity-60"
+    >
+      <span aria-hidden="true">✕</span>
+      Stimmt nicht
+    </button>
+  </div>
+);
+
 export const CheckinForm: FC<{
   kiosk: KioskRecord;
   isLoggedIn: boolean;
@@ -110,15 +139,7 @@ export const CheckinForm: FC<{
           >
             <p class="text-sm text-fg-muted">Stimmen die Öffnungszeiten?</p>
             <p class="font-mono text-sm text-fg">{kiosk.hours.raw}</p>
-            <button
-              type="button"
-              data-signal-confirm
-              data-field-key="opening_hours"
-              class="inline-flex cursor-pointer items-center gap-2 border-2 border-neon-cyan px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-cyan hover:bg-neon-cyan hover:text-bg disabled:opacity-60"
-            >
-              <span aria-hidden="true">✓</span>
-              Passt — bestätigen
-            </button>
+            <ConfirmDisputeButtons fieldKey="opening_hours" />
           </div>
         )}
         {missingPayment.length > 0 &&
@@ -142,15 +163,7 @@ export const CheckinForm: FC<{
                 )
                 .join(" · ")}
             </p>
-            <button
-              type="button"
-              data-signal-confirm
-              data-field-key="payment"
-              class="inline-flex cursor-pointer items-center gap-2 border-2 border-neon-cyan px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-cyan hover:bg-neon-cyan hover:text-bg disabled:opacity-60"
-            >
-              <span aria-hidden="true">✓</span>
-              Passt — bestätigen
-            </button>
+            <ConfirmDisputeButtons fieldKey="payment" />
           </div>
         )}
         {isAnswered("update_tags") ? (
@@ -168,15 +181,7 @@ export const CheckinForm: FC<{
             <p class="font-mono text-sm text-fg">
               {kiosk.tags!.map((t) => tagLabel(t)).join(" · ")}
             </p>
-            <button
-              type="button"
-              data-signal-confirm
-              data-field-key="tags"
-              class="inline-flex cursor-pointer items-center gap-2 border-2 border-neon-cyan px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-cyan hover:bg-neon-cyan hover:text-bg disabled:opacity-60"
-            >
-              <span aria-hidden="true">✓</span>
-              Passt — bestätigen
-            </button>
+            <ConfirmDisputeButtons fieldKey="tags" />
           </div>
         )}
         {isAnswered("wrong_name") ? (

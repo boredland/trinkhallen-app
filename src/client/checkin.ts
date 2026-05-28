@@ -27,10 +27,13 @@ export function installCheckinForm(_scope: ParentNode = document): void {
       void onCheckinClick(checkinBtn);
       return;
     }
-    const signalBtn = target?.closest<HTMLButtonElement>("[data-signal-confirm]");
+    const signalBtn = target?.closest<HTMLButtonElement>(
+      "[data-signal-confirm], [data-signal-dispute]",
+    );
     if (signalBtn) {
       ev.preventDefault();
-      void onSignalConfirm(signalBtn);
+      const action = signalBtn.hasAttribute("data-signal-dispute") ? "dispute" : "confirm";
+      void onSignalSubmit(signalBtn, action);
     }
   });
 
@@ -88,23 +91,33 @@ async function postCheckin(kioskId: string, coords: Coords | null): Promise<void
   }
 }
 
-async function onSignalConfirm(btn: HTMLButtonElement): Promise<void> {
+async function onSignalSubmit(
+  btn: HTMLButtonElement,
+  action: "confirm" | "dispute",
+): Promise<void> {
   if (btn.dataset["signalDone"] === "1") return;
   btn.dataset["signalDone"] = "1";
 
   const wrapper = btn.closest<HTMLElement>("[data-checkin]");
   const block = btn.closest<HTMLElement>("[data-confirm-block]");
-  if (!wrapper) return;
-  const kioskId = wrapper.dataset["kioskId"];
+  const kioskId = wrapper?.dataset["kioskId"];
   const fieldKey = btn.dataset["fieldKey"];
-  if (!kioskId || !fieldKey) return;
+  if (!wrapper || !kioskId || !fieldKey) {
+    showSignalError(block, btn, "Interner Fehler — kann nicht senden.");
+    return;
+  }
 
   btn.disabled = true;
+  // Also disable the sibling action so a quick confirm-then-dispute doesn't
+  // race against itself.
+  for (const sibling of block?.querySelectorAll<HTMLButtonElement>("button") ?? []) {
+    sibling.disabled = true;
+  }
 
   const body = new FormData();
   body.append("kiosk_id", kioskId);
   body.append("field_key", fieldKey);
-  body.append("action", "confirm");
+  body.append("action", action);
   const lat = wrapper.dataset["lat"];
   const lng = wrapper.dataset["lng"];
   const accuracy = wrapper.dataset["accuracy"];
@@ -115,31 +128,42 @@ async function onSignalConfirm(btn: HTMLButtonElement): Promise<void> {
   try {
     const resp = await fetch("/api/signals", { method: "POST", body });
     if (resp.ok) {
-      if (block) {
-        block.outerHTML =
-          '<p class="border-2 border-success/60 bg-success/10 p-3 text-sm text-success">✓ Bestätigt — danke!</p>';
-      }
+      const verb = action === "dispute" ? "Notiert" : "Bestätigt";
+      showSignalSuccess(block, `✓ ${verb} — danke!`);
       return;
     }
-    if (resp.status === 422 && block) {
+    if (resp.status === 422) {
       const reason = (await resp.text()).trim();
       const msg =
         reason === "no_fix"
-          ? "Konnten deinen Standort nicht ermitteln — bitte Standort erlauben und erneut versuchen."
+          ? "Konnten deinen Standort nicht ermitteln — bitte Standort erlauben und nochmal antippen."
           : reason === "out_of_range"
-            ? "Du scheinst nicht hier zu sein — Bestätigung nur vor Ort."
+            ? "Du scheinst nicht hier zu sein — nur vor Ort möglich."
             : reason === "low_accuracy"
               ? "GPS-Signal zu ungenau — bitte ins Freie und erneut versuchen."
-              : `Konnte nicht bestätigen (${reason}).`;
-      block.innerHTML = `<p class="border-2 border-danger/60 bg-danger/10 p-3 text-sm text-danger">${escapeHtml(msg)}</p>`;
+              : `Konnte nicht senden (${reason || "unbekannt"}).`;
+      showSignalError(block, btn, msg);
       return;
     }
-    btn.disabled = false;
-    btn.dataset["signalDone"] = "";
+    showSignalError(block, btn, `Server-Fehler (${resp.status}). Bitte erneut versuchen.`);
   } catch {
-    btn.disabled = false;
-    btn.dataset["signalDone"] = "";
+    showSignalError(block, btn, "Netzwerkfehler — bitte erneut versuchen.");
   }
+}
+
+function showSignalSuccess(block: HTMLElement | null, msg: string): void {
+  if (!block) return;
+  block.outerHTML = `<p class="border-2 border-success/60 bg-success/10 p-3 text-sm text-success">${escapeHtml(msg)}</p>`;
+}
+
+function showSignalError(block: HTMLElement | null, btn: HTMLButtonElement, msg: string): void {
+  if (block) {
+    block.innerHTML = `<p class="border-2 border-danger/60 bg-danger/10 p-3 text-sm text-danger">${escapeHtml(msg)}</p>`;
+    return;
+  }
+  // Block gone (defensive): at least re-enable so the user can retry.
+  btn.disabled = false;
+  btn.dataset["signalDone"] = "";
 }
 
 async function onFormSubmit(form: HTMLFormElement): Promise<void> {
