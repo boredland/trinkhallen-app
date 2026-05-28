@@ -26,7 +26,7 @@
  * Bump VERSION below to invalidate everything.
  */
 
-const VERSION = "v6";
+const VERSION = "v7";
 const OFFLINE_URL = "/offline.html";
 const STATIC_CACHE = `tk-static-${VERSION}`;
 const TILES_CACHE = `tk-tiles-${VERSION}`;
