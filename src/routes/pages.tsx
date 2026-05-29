@@ -22,6 +22,7 @@ import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating, listComments } from "../lib/ratings";
 import { getUserReports, kindLabel } from "../lib/reports";
 import { destroySession } from "../lib/session";
+import { tagLabel } from "../lib/tags";
 import { renameUsername } from "../lib/usernames";
 import { countUsers } from "../lib/users";
 
@@ -1312,33 +1313,28 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         clientEntries={["app", "pick"]}
       >
         <header class="mb-6">
-          <h1 class="font-display text-4xl tracking-wide text-fg">Späti vorschlagen</h1>
-          <p class="mt-2 text-fg-muted">
-            Dein Vorschlag wird von Moderator:innen geprüft und landet anschließend im offenen
-            Datensatz.
-          </p>
+          <h1 class="font-display text-4xl tracking-wide text-fg">{t(lang, "add.heading")}</h1>
+          <p class="mt-2 text-fg-muted">{t(lang, "add.intro")}</p>
         </header>
 
         {error && (
           <div class="mb-4 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-            {error === "basics" && "Name und Koordinaten sind Pflicht."}
-            {error === "coords" && "Koordinaten sind ungültig."}
+            {error === "basics" && t(lang, "add.errBasics")}
+            {error === "coords" && t(lang, "add.errCoords")}
           </div>
         )}
 
         <form action="/add" method="post" class="space-y-6 border-2 border-border bg-surface p-6">
           <fieldset class="space-y-3">
-            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">Ort</legend>
+            <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
+              {t(lang, "add.legendLocation")}
+            </legend>
             <div id="pick-map" class="h-72 w-full border-2 border-border-hi bg-bg sm:h-96" />
-            <p class="text-xs text-fg-dim">
-              ▶ Klick auf die Karte, um die genaue Position zu setzen. Geolokalisierung
-              (Pfeil-Symbol oben rechts) füllt automatisch ein. Adresse wird aus der Kartenposition
-              vorbefüllt — du kannst sie überschreiben.
-            </p>
+            <p class="text-xs text-fg-dim">{t(lang, "add.mapHint")}</p>
             <div class="grid grid-cols-2 gap-3">
               <label>
                 <span class="block text-xs uppercase tracking-wider text-fg-dim">
-                  Breitengrad (lat)
+                  {t(lang, "add.lat")}
                 </span>
                 <input
                   type="number"
@@ -1352,7 +1348,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               </label>
               <label>
                 <span class="block text-xs uppercase tracking-wider text-fg-dim">
-                  Längengrad (lng)
+                  {t(lang, "add.lng")}
                 </span>
                 <input
                   type="number"
@@ -1369,10 +1365,12 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
 
           <fieldset class="space-y-3">
             <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
-              Name &amp; Adresse
+              {t(lang, "add.legendNameAddress")}
             </legend>
             <label>
-              <span class="block text-xs uppercase tracking-wider text-fg-dim">Name *</span>
+              <span class="block text-xs uppercase tracking-wider text-fg-dim">
+                {t(lang, "add.nameLabel")}
+              </span>
               <input
                 type="text"
                 name="name"
@@ -1385,54 +1383,54 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             <input
               type="text"
               name="street"
-              placeholder="Straße"
+              placeholder={t(lang, "reportForm.street")}
               class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
             />
             <div class="grid grid-cols-3 gap-3">
               <input
                 type="text"
                 name="number"
-                placeholder="Nr"
+                placeholder={t(lang, "reportForm.number")}
                 class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
               />
               <input
                 type="text"
                 name="postalcode"
-                placeholder="PLZ"
+                placeholder={t(lang, "reportForm.postalcode")}
                 maxLength={5}
                 class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
               />
               <input
                 type="text"
                 name="city"
-                placeholder="Stadt"
+                placeholder={t(lang, "reportForm.city")}
                 class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
               />
             </div>
             <input
               type="text"
               name="district"
-              placeholder="Stadtteil"
+              placeholder={t(lang, "add.district")}
               class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
             />
           </fieldset>
 
           <fieldset class="space-y-2">
             <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
-              Beschreibung
+              {t(lang, "kiosk.descriptionHeading")}
             </legend>
             <textarea
               name="description"
               rows={3}
               maxLength={2000}
-              placeholder="Was macht den Späti besonders?"
+              placeholder={t(lang, "add.descPlaceholder")}
               class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
             />
           </fieldset>
 
           <fieldset class="space-y-2">
             <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
-              Öffnungszeiten
+              {t(lang, "kiosk.openingHoursHeading")}
             </legend>
             <input
               type="text"
@@ -1441,13 +1439,15 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 font-mono text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
             />
             <p class="text-xs text-fg-dim">
-              OSM <code>opening_hours</code>-Format.
+              {t(lang, "reportForm.osmFormatPre")}
+              <code>opening_hours</code>
+              {t(lang, "reportForm.osmFormatPost")}
             </p>
           </fieldset>
 
           <fieldset class="space-y-2">
             <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
-              Zahlung
+              {t(lang, "kiosk.paymentHeading")}
             </legend>
             <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {(["cash", "cards", "contactless", "girocard"] as const).map((key) => (
@@ -1455,9 +1455,9 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                   <span class="flex-1 capitalize text-fg-muted">{key}</span>
                   <select name={`pay_${key}`} class="bg-transparent text-fg focus:outline-none">
                     <option value="">?</option>
-                    <option value="yes">Ja</option>
-                    <option value="no">Nein</option>
-                    <option value="unknown">Unbekannt</option>
+                    <option value="yes">{t(lang, "radio.yes")}</option>
+                    <option value="no">{t(lang, "radio.no")}</option>
+                    <option value="unknown">{t(lang, "add.payUnknown")}</option>
                   </select>
                 </label>
               ))}
@@ -1466,33 +1466,33 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
 
           <fieldset class="space-y-2">
             <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
-              Tags
+              {t(lang, "kiosk.tagsHeading")}
             </legend>
             <div class="flex flex-wrap gap-2">
               {[
-                ["snacks", "Snacks"],
-                ["bier", "Bier"],
-                ["kaffee", "Kaffee"],
-                ["eis", "Eis"],
-                ["zeitungen", "Zeitungen"],
-                ["gluecksspiele", "Glücksspiele"],
-                ["wc", "WC"],
-                ["sitzgelegenheiten", "Sitzgelegenheiten"],
-                ["innenraum", "Innenraum"],
-                ["draussen", "Draußen"],
-                ["barrierefrei", "Barrierefrei"],
-                ["automat", "Automat"],
-              ].map(([slug, label]) => (
+                "snacks",
+                "bier",
+                "kaffee",
+                "eis",
+                "zeitungen",
+                "gluecksspiele",
+                "wc",
+                "sitzgelegenheiten",
+                "innenraum",
+                "draussen",
+                "barrierefrei",
+                "automat",
+              ].map((slug) => (
                 <label class="cursor-pointer border-2 border-border bg-surface-2 px-2 py-1 text-sm text-fg-muted has-[:checked]:border-neon-pink has-[:checked]:text-neon-pink">
                   <input type="checkbox" name="tags" value={slug} class="sr-only" />
-                  {label}
+                  {tagLabel(lang, slug)}
                 </label>
               ))}
             </div>
           </fieldset>
 
           <button type="submit" class="btn-neon">
-            ▶ Vorschlag einreichen
+            {t(lang, "add.submit")}
           </button>
         </form>
       </Layout>,

@@ -184,6 +184,24 @@ const DE = {
   "jetzt.geoFailed":
     "Wir konnten deinen Standort nicht lesen. Öffne die Karte und navigiere von dort.",
 
+  // add a kiosk (/add)
+  "add.heading": "Späti vorschlagen",
+  "add.intro":
+    "Dein Vorschlag wird von Moderator:innen geprüft und landet anschließend im offenen Datensatz.",
+  "add.errBasics": "Name und Koordinaten sind Pflicht.",
+  "add.errCoords": "Koordinaten sind ungültig.",
+  "add.legendLocation": "Ort",
+  "add.mapHint":
+    "▶ Klick auf die Karte, um die genaue Position zu setzen. Geolokalisierung (Pfeil-Symbol oben rechts) füllt automatisch ein. Adresse wird aus der Kartenposition vorbefüllt — du kannst sie überschreiben.",
+  "add.lat": "Breitengrad (lat)",
+  "add.lng": "Längengrad (lng)",
+  "add.legendNameAddress": "Name & Adresse",
+  "add.nameLabel": "Name *",
+  "add.district": "Stadtteil",
+  "add.descPlaceholder": "Was macht den Späti besonders?",
+  "add.payUnknown": "Unbekannt",
+  "add.submit": "▶ Vorschlag einreichen",
+
   // profile (/me)
   "profile.role": "Rolle:",
   "profile.stat.checkins": "Check-ins",
