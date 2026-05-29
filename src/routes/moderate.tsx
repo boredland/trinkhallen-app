@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { Layout } from "../components/Layout";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
+import { type Lang, resolveLang } from "../lib/messages";
 import {
   approveReport,
   approveSubmission,
@@ -78,6 +79,7 @@ interface PendingAnomalyRow {
 
 moderate.get("/moderate", async (c) => {
   const user = c.get("user")!;
+  const lang = resolveLang(c.req.header("accept-language"));
   const tab = (c.req.query("tab") ?? "submissions") as
     | "submissions"
     | "reports"
@@ -162,7 +164,7 @@ moderate.get("/moderate", async (c) => {
         />
       </nav>
 
-      {tab === "submissions" && <SubmissionQueue rows={subs.results} />}
+      {tab === "submissions" && <SubmissionQueue lang={lang} rows={subs.results} />}
       {tab === "reports" && <ReportQueue rows={reportRows} />}
       {tab === "users" && <UsersQueue rows={users.results} />}
       {tab === "anomalies" && <AnomaliesQueue rows={anomalies.results} />}
@@ -214,7 +216,7 @@ function ApproveRejectForm({ endpoint }: { endpoint: string }) {
   );
 }
 
-function SubmissionQueue({ rows }: { rows: PendingSubmissionRow[] }) {
+function SubmissionQueue({ lang, rows }: { lang: Lang; rows: PendingSubmissionRow[] }) {
   if (rows.length === 0) return <EmptyQueue label="Keine offenen Vorschläge." />;
   return (
     <ul class="space-y-4">
@@ -265,7 +267,7 @@ function SubmissionQueue({ rows }: { rows: PendingSubmissionRow[] }) {
               <ul class="mt-2 flex flex-wrap gap-1.5">
                 {p.tags.map((t) => (
                   <li class="border-2 border-border-hi px-2 py-0.5 text-xs text-fg-muted">
-                    {tagLabel(t)}
+                    {tagLabel(lang, t)}
                   </li>
                 ))}
               </ul>

@@ -1,0 +1,173 @@
+/**
+ * Central message catalog — the single home for user-facing copy.
+ *
+ * Phase 1 of i18n: all strings live here keyed by language, accessed via
+ * `t(lang, key)` for plain strings and `tpl(lang, key, vars)` for ones with
+ * `{placeholders}`. Only German exists today; the structure is shaped so a
+ * second language is "add a sibling block + a detector" rather than a re-touch
+ * of every call site. `lang` is threaded explicitly through routes →
+ * components → client islands (see resolveLang / the [data-lang] attribute).
+ *
+ * Deliberately NOT here (not UI chrome):
+ *   - Domain/brand terms: Späti, Trinkhalle, Wasserhäuschen, Büdchen.
+ *   - Bundesland names (lib/regions.ts) — required in German by the
+ *     opening_hours holiday library.
+ *   - The username generator wordlists (intentionally German-themed).
+ *   - GitHub commit messages, test assertions, and `"de-DE"` Intl locale tags.
+ */
+
+export type Lang = "de";
+export const DEFAULT_LANG: Lang = "de";
+const SUPPORTED: readonly Lang[] = ["de"];
+
+/** BCP-47 locale per language, for Intl date/number formatting. */
+export const INTL_LOCALE: Record<Lang, string> = { de: "de-DE" };
+
+/**
+ * Resolve the request/document language. Placeholder until detection lands
+ * (Accept-Language / URL / cookie) — always German for now, but every caller
+ * already routes through here so step 2 is a one-spot change.
+ */
+export function resolveLang(candidate?: string | null): Lang {
+  const v = (candidate ?? "").slice(0, 2).toLowerCase();
+  return (SUPPORTED as readonly string[]).includes(v) ? (v as Lang) : DEFAULT_LANG;
+}
+
+// ── Flat UI strings ──────────────────────────────────────────────────────────
+// Dotted keys, grouped by surface. Plain strings only; interpolated copy lives
+// in TEMPLATES below.
+
+const DE = {
+  // nav / chrome
+  "nav.about": "Über",
+  "footer.dataLicense": "Daten: CC BY-NC 4.0",
+  "footer.aboutContribute": "Über & Mitwirken",
+  "footer.imprint": "Impressum",
+  "footer.privacy": "Datenschutz",
+
+  // kiosk detail
+  "kiosk.backToMap": "← Zurück zur Karte",
+  "kiosk.navigate": "▶ Hin navigieren",
+  "kiosk.openOtherMaps": "Anderes Maps-Programm öffnen",
+
+  // check-in + gap-fill
+  "checkin.iWasHere": "Ich war hier",
+  "checkin.thanksWhatMissing": "Danke! Was hat gefehlt?",
+  "checkin.whatMissingHint": "Was hat gefehlt? Jede Antwort hilft. Du kannst auch nichts angeben.",
+  "checkin.hoursOk": "Stimmen die Öffnungszeiten?",
+  "checkin.paymentOk": "Stimmen die Zahlungsoptionen?",
+  "checkin.tagsOk": "Stimmen die hinterlegten Tags?",
+  "checkin.confirm": "Passt — bestätigen",
+  "checkin.dispute": "Stimmt nicht",
+  "checkin.loginToContribute": "um deinen Besuch festzuhalten und Daten zu ergänzen.",
+
+  // auth
+  "auth.login": "Anmelden",
+
+  // generic / errors
+  "error.loginRequired": "Bitte anmelden.",
+  "error.kioskNotFound": "Kiosk nicht gefunden",
+  "error.badRequest": "Bad request",
+} as const;
+
+export const MESSAGES: Record<Lang, Record<string, string>> = {
+  de: DE,
+};
+
+export type MessageKey = keyof typeof DE;
+
+export function t(lang: Lang, key: MessageKey): string {
+  return MESSAGES[lang][key] ?? MESSAGES[DEFAULT_LANG][key] ?? key;
+}
+
+// ── Interpolated templates ───────────────────────────────────────────────────
+
+const DE_TPL = {
+  "oh.openUntil": "Offen bis {time}",
+  "oh.closedOpensAt": "Geschlossen — öffnet {time}",
+} as const;
+
+export const TEMPLATES: Record<Lang, Record<string, string>> = {
+  de: DE_TPL,
+};
+
+export type TemplateKey = keyof typeof DE_TPL;
+
+export function tpl(lang: Lang, key: TemplateKey, vars: Record<string, unknown>): string {
+  const template = TEMPLATES[lang][key] ?? TEMPLATES[DEFAULT_LANG][key] ?? key;
+  return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
+}
+
+// ── Domain label maps (dynamic slug → label, per language) ───────────────────
+
+/** Report kinds (lib/reports.ts). */
+export const REPORT_KIND_LABELS: Record<Lang, Record<string, string>> = {
+  de: {
+    wrong_hours: "Öffnungszeiten",
+    wrong_address: "Adresse",
+    wrong_name: "Name",
+    closed: "Geschlossen",
+    duplicate: "Duplikat",
+    update_payment: "Zahlungsarten",
+    update_tags: "Ausstattung",
+    ph_open_observed: "Feiertags-Öffnung beobachtet",
+    other: "Sonstiges",
+  },
+};
+
+/** Report status labels — note pr_opened/approved deliberately collapse to one. */
+export const REPORT_STATUS_LABELS: Record<Lang, Record<string, string>> = {
+  de: {
+    open: "In Prüfung",
+    pending: "In Prüfung",
+    pr_opened: "Akzeptiert",
+    approved: "Akzeptiert",
+    merged: "Übernommen",
+    dismissed: "Abgelehnt",
+  },
+};
+
+/** Tag display overrides (lib/tags.ts); slugs not listed fall back to titlecase. */
+export const TAG_LABELS: Record<Lang, Record<string, string>> = {
+  de: {
+    applewoi: "Äppler",
+    fritz_kola: "fritz-kola",
+    gemischte_tuete: "Gemischte Tüte",
+    gluecksspiele: "Glücksspiele",
+    ueberdacht: "Überdacht",
+    draussen: "Draußen",
+    gemuetlich: "Gemütlich",
+    wohnzimmer: "Wie ein Wohnzimmer",
+    craft_bier: "Craft-Bier",
+    raucherbereich: "Raucherbereich",
+    barrierefrei: "Barrierefrei",
+    sonne: "Sonnig",
+    wc: "WC",
+    sitzgelegenheiten: "Sitzgelegenheiten",
+    wlan: "WLAN",
+    geldautomat: "Geldautomat",
+  },
+};
+
+/** Reportable-tag group headings (lib/tags.ts). */
+export const TAG_GROUP_LABELS: Record<Lang, Record<string, string>> = {
+  de: {
+    Sortiment: "Sortiment",
+    Ambiente: "Ambiente",
+    Ausstattung: "Ausstattung",
+  },
+};
+
+/** Opening-hours status words + weekday abbreviations (lib/opening-hours.ts). */
+export const OH_LABELS: Record<
+  Lang,
+  { unknown: string; open: string; closed: string; closedLower: string; days: readonly string[] }
+> = {
+  de: {
+    unknown: "Öffnungszeiten unbekannt",
+    open: "Offen",
+    closed: "Geschlossen",
+    closedLower: "geschlossen",
+    days: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+  },
+};

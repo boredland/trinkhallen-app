@@ -15,6 +15,7 @@ import {
   parseFilterFromQuery,
 } from "../lib/filters";
 import { haversineMeters, parseBbox, parseLatLng, quantizeBbox } from "../lib/geo";
+import { resolveLang } from "../lib/messages";
 import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 
@@ -68,10 +69,13 @@ apiKiosks.get("/api/kiosks", async (c) => {
  */
 apiKiosks.get("/api/kiosks/panel", async (c) => {
   const url = new URL(c.req.url);
+  const lang = resolveLang(c.req.header("accept-language"));
   const bbox = parseBbox(url.searchParams.get("bbox"));
   const origin = parseLatLng(url.searchParams.get("origin"));
   if (!bbox)
-    return c.html(<KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />);
+    return c.html(
+      <KioskList lang={lang} kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />,
+    );
   const filter = parseFilterFromQuery(url.searchParams);
   const all = await queryKiosksInBbox(c.env, bbox, 5000);
   const filtered = applyFilters(all, filter);
@@ -91,6 +95,7 @@ apiKiosks.get("/api/kiosks/panel", async (c) => {
   );
   return c.html(
     <KioskList
+      lang={lang}
       kiosks={filtered.slice(0, 100)}
       totalInBbox={all.length}
       filteredCount={filtered.length}

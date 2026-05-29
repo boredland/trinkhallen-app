@@ -1,7 +1,9 @@
 import type { FC } from "hono/jsx";
+import type { Lang } from "../lib/messages";
 import { kindLabel, statusLabel, type UserKioskReport } from "../lib/reports";
 
 export interface ReportFormProps {
+  lang: Lang;
   kioskId: string;
   isLoggedIn: boolean;
   /** Optional: pre-fill hours text from the kiosk for the wrong_hours flow. */
@@ -26,6 +28,7 @@ const KINDS: Array<{ value: string; label: string }> = [
  * section, switched by a tiny script in app.entry.ts.
  */
 export const ReportForm: FC<ReportFormProps> = ({
+  lang,
   kioskId,
   isLoggedIn,
   currentHoursRaw,
@@ -48,7 +51,7 @@ export const ReportForm: FC<ReportFormProps> = ({
 
   return (
     <div class="space-y-3" data-report-form>
-      {userReports.length > 0 && <SubmittedPanel reports={userReports} />}
+      {userReports.length > 0 && <SubmittedPanel lang={lang} reports={userReports} />}
       {exhausted ? (
         <p class="text-sm text-fg-muted">
           Du hast bereits zu allen Kategorien etwas gemeldet — danke!
@@ -148,15 +151,15 @@ export const ReportForm: FC<ReportFormProps> = ({
   );
 };
 
-const SubmittedPanel: FC<{ reports: UserKioskReport[] }> = ({ reports }) => (
+const SubmittedPanel: FC<{ lang: Lang; reports: UserKioskReport[] }> = ({ lang, reports }) => (
   <div class="border-2 border-border bg-surface-2 p-3 text-sm">
     <p class="mb-2 text-xs uppercase tracking-wider text-fg-dim">Du hast hier bereits gemeldet:</p>
     <ul class="space-y-1">
       {reports.map((r) => (
         <li class="flex items-center justify-between gap-2">
-          <span class="text-fg">{kindLabel(r.kind)}</span>
+          <span class="text-fg">{kindLabel(lang, r.kind)}</span>
           <span class="font-display text-xs tracking-wider uppercase text-fg-muted">
-            {statusLabel(r.status)}
+            {statusLabel(lang, r.status)}
           </span>
         </li>
       ))}

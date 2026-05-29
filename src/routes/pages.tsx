@@ -16,6 +16,7 @@ import {
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox, parseLatLng } from "../lib/geo";
+import { resolveLang } from "../lib/messages";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating, listComments } from "../lib/ratings";
@@ -188,6 +189,7 @@ async function renderMapPage(
   focused?: { kiosk: KioskRecord; inner: unknown; href: string; aggregate?: Aggregate | null },
 ): Promise<Response> {
   const url = new URL(c.req.url);
+  const lang = resolveLang(c.req.header("accept-language"));
   const filter = parseFilterFromQuery(url.searchParams);
 
   // For a focused kiosk we centre the map on it; otherwise the URL ?c=lat,lng
@@ -221,7 +223,9 @@ async function renderMapPage(
           }
         : parseBbox("8.4,50.0,8.9,50.3")));
 
-  let initialPanel = <KioskList kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />;
+  let initialPanel = (
+    <KioskList lang={lang} kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />
+  );
   if (initialBbox) {
     const all = await queryKiosksInBbox(c.env, initialBbox, 5000);
     const filtered = applyFilters(all, filter);
@@ -233,6 +237,7 @@ async function renderMapPage(
     );
     initialPanel = (
       <KioskList
+        lang={lang}
         kiosks={filtered.slice(0, 100)}
         totalInBbox={all.length}
         filteredCount={filtered.length}
@@ -462,6 +467,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   // "trinkhallen frankfurt" / "späti berlin" rank curated lists, not maps —
   // /stadt/:slug serves a real list page so we can compete for those.
   app.get("/stadt/:slug", async (c) => {
+    const lang = resolveLang(c.req.header("accept-language"));
     const slug = c.req.param("slug");
     const [manifest, kiosks] = await Promise.all([
       loadManifest(c.env),
@@ -561,6 +567,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </header>
 
           <KioskList
+            lang={lang}
             kiosks={visible}
             totalInBbox={total}
             filteredCount={total}
@@ -1154,6 +1161,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   );
 
   app.get("/k/:id", async (c) => {
+    const lang = resolveLang(c.req.header("accept-language"));
     const id = c.req.param("id");
     const user = c.get("user");
     const partial = c.req.query("partial") === "1";
@@ -1190,6 +1198,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     }));
     const detail = (
       <KioskDetail
+        lang={lang}
         kiosk={kiosk}
         userAgent={c.req.header("user-agent") ?? null}
         aggregate={aggregate}
@@ -1624,6 +1633,7 @@ async function renderProfile(
   c: import("hono").Context<{ Bindings: Env }>,
   user: ProfileUser,
 ): Promise<Response> {
+  const lang = resolveLang(c.req.header("accept-language"));
   const reportedFlag = c.req.query("reported");
   const submittedFlag = c.req.query("submitted");
   const usernameFlag = c.req.query("username");
@@ -1903,7 +1913,7 @@ async function renderProfile(
                   <span class="text-xs text-fg-dim">{fmtDate(r.created_at)}</span>
                 </div>
                 <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
-                  <span class="border-2 border-border px-2 py-0.5">{kindLabel(r.kind)}</span>
+                  <span class="border-2 border-border px-2 py-0.5">{kindLabel(lang, r.kind)}</span>
                   <StatusPill status={r.status} />
                 </div>
               </li>

@@ -8,6 +8,7 @@
 
 import OpeningHours, { type nominatim_object } from "opening_hours";
 import type { KioskRecord } from "./db";
+import { INTL_LOCALE, type Lang, OH_LABELS, tpl } from "./messages";
 import { getBundeslandForRegion } from "./regions";
 
 export type Status =
@@ -100,17 +101,17 @@ export function computeStatus(
   }
 }
 
-export function formatStatus(s: Status, locale = "de-DE"): string {
-  if (s.kind === "unknown") return "Öffnungszeiten unbekannt";
+export function formatStatus(lang: Lang, s: Status): string {
+  const L = OH_LABELS[lang];
+  if (s.kind === "unknown") return L.unknown;
   const time = s.until
-    ? new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(s.until)
+    ? new Intl.DateTimeFormat(INTL_LOCALE[lang], { hour: "2-digit", minute: "2-digit" }).format(
+        s.until,
+      )
     : null;
-  if (s.kind === "open") return time ? `Offen bis ${time}` : "Offen";
-  return time ? `Geschlossen — öffnet ${time}` : "Geschlossen";
+  if (s.kind === "open") return time ? tpl(lang, "oh.openUntil", { time }) : L.open;
+  return time ? tpl(lang, "oh.closedOpensAt", { time }) : L.closed;
 }
-
-/** German day-of-week abbreviations, Mon=0 … Sun=6. */
-const DAY_LABELS_DE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] as const;
 
 /**
  * Fixed reference week used for computing a canonical 7-day schedule.
@@ -136,10 +137,13 @@ function fmtUtcTime(d: Date): string {
  * Example output: `[{ days: "Mo–Fr", hours: "09:00–22:00" }, { days: "Sa", hours: "10:00–20:00" }, { days: "So", hours: "geschlossen" }]`
  */
 export function formatHoursTable(
+  lang: Lang,
   raw: string | null | undefined,
   location?: OpeningHoursLocation,
 ): { days: string; hours: string }[] | null {
   if (!raw) return null;
+  const dayLabels = OH_LABELS[lang].days;
+  const closedLower = OH_LABELS[lang].closedLower;
   try {
     const oh = new OpeningHours(raw, buildNominatim(location));
     const intervals = oh.getOpenIntervals(WEEK_START, WEEK_END);
@@ -211,12 +215,12 @@ export function formatHoursTable(
       // i and j-1 are both in [0,6]; DAY_LABELS_DE has exactly 7 entries.
       const dayLabel =
         count >= 3
-          ? `${DAY_LABELS_DE[i]!}–${DAY_LABELS_DE[j - 1]!}`
+          ? `${dayLabels[i]!}–${dayLabels[j - 1]!}`
           : count === 2
-            ? `${DAY_LABELS_DE[i]!}, ${DAY_LABELS_DE[j - 1]!}`
-            : DAY_LABELS_DE[i]!;
+            ? `${dayLabels[i]!}, ${dayLabels[j - 1]!}`
+            : dayLabels[i]!;
 
-      rows.push({ days: dayLabel, hours: hoursStr || "geschlossen" });
+      rows.push({ days: dayLabel, hours: hoursStr || closedLower });
       i = j;
     }
 

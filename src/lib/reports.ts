@@ -1,4 +1,5 @@
 import type { Env } from "../env";
+import { type Lang, REPORT_KIND_LABELS, REPORT_STATUS_LABELS } from "./messages";
 
 /**
  * Reports a user has submitted for one kiosk that are still "live" — either
@@ -56,38 +57,12 @@ export async function hasBlockingReport(
   return row !== null;
 }
 
-export const KIND_LABEL_DE: Record<string, string> = {
-  wrong_hours: "Öffnungszeiten",
-  wrong_address: "Adresse",
-  wrong_name: "Name",
-  closed: "Geschlossen",
-  duplicate: "Duplikat",
-  update_payment: "Zahlungsarten",
-  update_tags: "Ausstattung",
-  ph_open_observed: "Feiertags-Öffnung beobachtet",
-  other: "Sonstiges",
-};
-
-export function kindLabel(kind: string): string {
-  return KIND_LABEL_DE[kind] ?? kind;
+export function kindLabel(lang: Lang, kind: string): string {
+  return REPORT_KIND_LABELS[lang][kind] ?? kind;
 }
 
-export function statusLabel(status: string): string {
-  switch (status) {
-    case "open":
-    case "pending":
-      return "In Prüfung";
-    // `approved` and `pr_opened` are both "accepted by a moderator, change
-    // is on its way into the dataset" — we deliberately don't expose the
-    // PR mechanism to end users.
-    case "approved":
-    case "pr_opened":
-      return "Akzeptiert";
-    case "merged":
-      return "Übernommen";
-    case "dismissed":
-      return "Abgelehnt";
-    default:
-      return status;
-  }
+export function statusLabel(lang: Lang, status: string): string {
+  // `approved`/`pr_opened` deliberately collapse to one label — we don't
+  // expose the PR mechanism to end users (see REPORT_STATUS_LABELS).
+  return REPORT_STATUS_LABELS[lang][status] ?? status;
 }

@@ -51,24 +51,24 @@ describe("hasBlockingReport", () => {
 
 describe("kindLabel", () => {
   it("translates known kinds to German", () => {
-    expect(kindLabel("wrong_hours")).toBe("Öffnungszeiten");
-    expect(kindLabel("update_payment")).toBe("Zahlungsarten");
+    expect(kindLabel("de", "wrong_hours")).toBe("Öffnungszeiten");
+    expect(kindLabel("de", "update_payment")).toBe("Zahlungsarten");
   });
   it("passes unknown kinds through unchanged", () => {
-    expect(kindLabel("freshly_invented_kind")).toBe("freshly_invented_kind");
+    expect(kindLabel("de", "freshly_invented_kind")).toBe("freshly_invented_kind");
   });
 });
 
 describe("statusLabel", () => {
   it("hides the PR mechanism — pr_opened and approved both read as Akzeptiert", () => {
-    expect(statusLabel("open")).toBe("In Prüfung");
-    expect(statusLabel("pending")).toBe("In Prüfung");
-    expect(statusLabel("pr_opened")).toBe("Akzeptiert");
-    expect(statusLabel("approved")).toBe("Akzeptiert");
-    expect(statusLabel("merged")).toBe("Übernommen");
-    expect(statusLabel("dismissed")).toBe("Abgelehnt");
+    expect(statusLabel("de", "open")).toBe("In Prüfung");
+    expect(statusLabel("de", "pending")).toBe("In Prüfung");
+    expect(statusLabel("de", "pr_opened")).toBe("Akzeptiert");
+    expect(statusLabel("de", "approved")).toBe("Akzeptiert");
+    expect(statusLabel("de", "merged")).toBe("Übernommen");
+    expect(statusLabel("de", "dismissed")).toBe("Abgelehnt");
   });
   it("passes unknown statuses through unchanged", () => {
-    expect(statusLabel("freshly_invented_status")).toBe("freshly_invented_status");
+    expect(statusLabel("de", "freshly_invented_status")).toBe("freshly_invented_status");
   });
 });

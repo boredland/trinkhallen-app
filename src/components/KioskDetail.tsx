@@ -1,5 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
+import type { Lang } from "../lib/messages";
 import { buildNavigateTargets } from "../lib/navigate";
 import {
   computeStatus,
@@ -36,6 +37,7 @@ export interface NearbyKiosk {
 }
 
 export const KioskDetail: FC<{
+  lang: Lang;
   kiosk: KioskRecord;
   userAgent: string | null;
   aggregate: Aggregate;
@@ -45,6 +47,7 @@ export const KioskDetail: FC<{
   nearby?: NearbyKiosk[];
   userReports?: UserKioskReport[];
 }> = ({
+  lang,
   kiosk,
   userAgent,
   aggregate,
@@ -57,8 +60,8 @@ export const KioskDetail: FC<{
   const loc = kioskLocation(kiosk);
   const now = new Date();
   const status = computeStatus(kiosk.hours?.raw, now, loc);
-  const statusLabel = formatStatus(status);
-  const hoursTable = formatHoursTable(kiosk.hours?.raw, loc);
+  const statusLabel = formatStatus(lang, status);
+  const hoursTable = formatHoursTable(lang, kiosk.hours?.raw, loc);
   // PH banner condition: today is a Bundesland holiday AND the kiosk has
   // some opening_hours AND those hours carry no explicit PH rule. The
   // status displayed above stays as-is; we don't override it — Spätis are
@@ -230,7 +233,7 @@ export const KioskDetail: FC<{
           <ul class="flex flex-wrap gap-2">
             {managedTags.map((slug) => (
               <li class="border-2 border-border-hi px-2 py-1 text-sm text-fg-muted">
-                {tagLabel(slug)}
+                {tagLabel(lang, slug)}
               </li>
             ))}
           </ul>
@@ -241,7 +244,7 @@ export const KioskDetail: FC<{
         <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
           Warst du hier?
         </h2>
-        <CheckinForm kiosk={kiosk} isLoggedIn={isLoggedIn} userReports={userReports} />
+        <CheckinForm lang={lang} kiosk={kiosk} isLoggedIn={isLoggedIn} userReports={userReports} />
       </section>
 
       <section class="border-b-2 border-border p-6">
@@ -262,6 +265,7 @@ export const KioskDetail: FC<{
           Daten falsch?
         </h2>
         <ReportForm
+          lang={lang}
           kioskId={kiosk.id}
           isLoggedIn={isLoggedIn}
           currentHoursRaw={kiosk.hours?.raw}

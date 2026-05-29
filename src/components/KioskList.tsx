@@ -1,6 +1,7 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
 import { formatDistance, haversineMeters, type LatLng } from "../lib/geo";
+import type { Lang } from "../lib/messages";
 import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, formatStatus, kioskLocation } from "../lib/opening-hours";
 
@@ -11,6 +12,7 @@ import { computeStatus, formatStatus, kioskLocation } from "../lib/opening-hours
 const CARD_KEYS = ["cards", "contactless", "girocard"] as const;
 
 export interface KioskListProps {
+  lang: Lang;
   kiosks: KioskRecord[];
   totalInBbox: number;
   filteredCount: number;
@@ -28,6 +30,7 @@ export interface KioskListProps {
 }
 
 export const KioskList: FC<KioskListProps> = ({
+  lang,
   kiosks,
   totalInBbox,
   filteredCount,
@@ -88,7 +91,7 @@ export const KioskList: FC<KioskListProps> = ({
       </div>
       <ul class="divide-y-2 divide-border">
         {kiosks.map((k) => (
-          <KioskRow kiosk={k} userAgent={userAgent} origin={origin} />
+          <KioskRow lang={lang} kiosk={k} userAgent={userAgent} origin={origin} />
         ))}
       </ul>
     </div>
@@ -96,10 +99,11 @@ export const KioskList: FC<KioskListProps> = ({
 };
 
 const KioskRow: FC<{
+  lang: Lang;
   kiosk: KioskRecord;
   userAgent: string | null;
   origin?: LatLng | undefined;
-}> = ({ kiosk, userAgent, origin }) => {
+}> = ({ lang, kiosk, userAgent, origin }) => {
   const status = computeStatus(kiosk.hours?.raw, new Date(), kioskLocation(kiosk));
   const nav = buildNavigateTargets({
     name: kiosk.name,
@@ -134,7 +138,7 @@ const KioskRow: FC<{
               }
             >
               {status.kind === "open" ? "▶▶▶ " : status.kind === "closed" ? "■ " : "… "}
-              {formatStatus(status)}
+              {formatStatus(lang, status)}
             </span>
             {distLabel && (
               <span class="font-mono tabular-nums text-neon-cyan" aria-label="Entfernung">

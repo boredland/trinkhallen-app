@@ -1,7 +1,8 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
+import type { Lang } from "../lib/messages";
 import { kindLabel, statusLabel, type UserKioskReport } from "../lib/reports";
-import { REPORTABLE_TAG_GROUPS, tagLabel } from "../lib/tags";
+import { REPORTABLE_TAG_GROUPS, tagGroupLabel, tagLabel } from "../lib/tags";
 
 /**
  * Check-in + gap-fill island.
@@ -75,10 +76,11 @@ const ConfirmDisputeButtons: FC<{ fieldKey: string }> = ({ fieldKey }) => (
 );
 
 export const CheckinForm: FC<{
+  lang: Lang;
   kiosk: KioskRecord;
   isLoggedIn: boolean;
   userReports?: UserKioskReport[];
-}> = ({ kiosk, isLoggedIn, userReports = [] }) => {
+}> = ({ lang, kiosk, isLoggedIn, userReports = [] }) => {
   if (!isLoggedIn) {
     return (
       <p class="text-sm text-fg-muted">
@@ -127,7 +129,7 @@ export const CheckinForm: FC<{
 
         {hoursMissing &&
           (isAnswered("wrong_hours") ? (
-            <AnsweredStub report={reportByKind.get("wrong_hours")!} />
+            <AnsweredStub lang={lang} report={reportByKind.get("wrong_hours")!} />
           ) : (
             <HoursGroup kioskId={kiosk.id} />
           ))}
@@ -144,7 +146,7 @@ export const CheckinForm: FC<{
         )}
         {missingPayment.length > 0 &&
           (isAnswered("update_payment") ? (
-            <AnsweredStub report={reportByKind.get("update_payment")!} />
+            <AnsweredStub lang={lang} report={reportByKind.get("update_payment")!} />
           ) : (
             <PaymentGroup kioskId={kiosk.id} missing={missingPayment} />
           ))}
@@ -167,9 +169,9 @@ export const CheckinForm: FC<{
           </div>
         )}
         {isAnswered("update_tags") ? (
-          <AnsweredStub report={reportByKind.get("update_tags")!} />
+          <AnsweredStub lang={lang} report={reportByKind.get("update_tags")!} />
         ) : (
-          <AmenitiesGroup kioskId={kiosk.id} present={new Set(kiosk.tags)} />
+          <AmenitiesGroup lang={lang} kioskId={kiosk.id} present={new Set(kiosk.tags)} />
         )}
         {(kiosk.tags?.length ?? 0) > 0 && (
           <div
@@ -179,13 +181,13 @@ export const CheckinForm: FC<{
           >
             <p class="text-sm text-fg-muted">Stimmen die hinterlegten Tags?</p>
             <p class="font-mono text-sm text-fg">
-              {kiosk.tags!.map((t) => tagLabel(t)).join(" · ")}
+              {kiosk.tags!.map((t) => tagLabel(lang, t)).join(" · ")}
             </p>
             <ConfirmDisputeButtons fieldKey="tags" />
           </div>
         )}
         {isAnswered("wrong_name") ? (
-          <AnsweredStub report={reportByKind.get("wrong_name")!} />
+          <AnsweredStub lang={lang} report={reportByKind.get("wrong_name")!} />
         ) : (
           <NameGroup kioskId={kiosk.id} currentName={kiosk.name} />
         )}
@@ -194,12 +196,12 @@ export const CheckinForm: FC<{
   );
 };
 
-const AnsweredStub: FC<{ report: UserKioskReport }> = ({ report }) => (
+const AnsweredStub: FC<{ lang: Lang; report: UserKioskReport }> = ({ lang, report }) => (
   <p class="border-2 border-border bg-bg p-4 text-sm text-fg-muted">
     <span class="font-display text-xs tracking-wider uppercase text-fg-dim">
-      {kindLabel(report.kind)} —{" "}
+      {kindLabel(lang, report.kind)} —{" "}
     </span>
-    <span>{statusLabel(report.status)}</span>. Danke!
+    <span>{statusLabel(lang, report.status)}</span>. Danke!
   </p>
 );
 
@@ -272,19 +274,25 @@ const PaymentGroup: FC<{ kioskId: string; missing: readonly string[] }> = ({
   </form>
 );
 
-const AmenitiesGroup: FC<{ kioskId: string; present: Set<string> }> = ({ kioskId, present }) => (
+const AmenitiesGroup: FC<{ lang: Lang; kioskId: string; present: Set<string> }> = ({
+  lang,
+  kioskId,
+  present,
+}) => (
   <form {...formAttrs} class={groupCls}>
     <input type="hidden" name="kiosk_id" value={kioskId} />
     <input type="hidden" name="kind" value="update_tags" />
     <span class={labelCls}>Was gibt's hier?</span>
     {REPORTABLE_TAG_GROUPS.map((group) => (
       <div class="space-y-2">
-        <p class="font-display text-[0.7rem] tracking-wider uppercase text-fg-dim">{group.label}</p>
+        <p class="font-display text-[0.7rem] tracking-wider uppercase text-fg-dim">
+          {tagGroupLabel(lang, group.label)}
+        </p>
         {group.tags.map((slug) => (
           <fieldset class="flex flex-wrap items-center gap-2">
             <legend class="mr-2 inline-flex items-center gap-1.5 text-sm text-fg">
               <span aria-hidden="true">{TAG_ICONS[slug] ?? "•"}</span>
-              {tagLabel(slug)}
+              {tagLabel(lang, slug)}
             </legend>
             <TriRadio name={`tag_${slug}`} value="yes" label="Ja" checked={present.has(slug)} />
             <TriRadio name={`tag_${slug}`} value="no" label="Nein" />

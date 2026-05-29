@@ -6,24 +6,7 @@
  * Keep in sync with `schema/tags.json` in the trinkhallen-data repo.
  */
 
-const OVERRIDES: Record<string, string> = {
-  applewoi: "Äppler",
-  fritz_kola: "fritz-kola",
-  gemischte_tuete: "Gemischte Tüte",
-  gluecksspiele: "Glücksspiele",
-  ueberdacht: "Überdacht",
-  draussen: "Draußen",
-  gemuetlich: "Gemütlich",
-  wohnzimmer: "Wie ein Wohnzimmer",
-  craft_bier: "Craft-Bier",
-  raucherbereich: "Raucherbereich",
-  barrierefrei: "Barrierefrei",
-  sonne: "Sonnig",
-  wc: "WC",
-  sitzgelegenheiten: "Sitzgelegenheiten",
-  wlan: "WLAN",
-  geldautomat: "Geldautomat",
-};
+import { type Lang, TAG_GROUP_LABELS, TAG_LABELS } from "./messages";
 
 /**
  * Tags the "Warst du hier?" gap-fill form lets a visitor add or remove via
@@ -51,8 +34,13 @@ export function isReportableTag(slug: string): slug is ReportableTag {
   return (REPORTABLE_TAGS as readonly string[]).includes(slug);
 }
 
-export function tagLabel(slug: string): string {
-  return OVERRIDES[slug] ?? titlecase(slug);
+export function tagLabel(lang: Lang, slug: string): string {
+  return TAG_LABELS[lang][slug] ?? titlecase(slug);
+}
+
+/** Localized heading for a REPORTABLE_TAG_GROUPS group (keyed by its `label`). */
+export function tagGroupLabel(lang: Lang, key: string): string {
+  return TAG_GROUP_LABELS[lang][key] ?? key;
 }
 
 function titlecase(slug: string): string {
