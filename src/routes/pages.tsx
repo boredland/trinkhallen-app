@@ -4,6 +4,7 @@ import { FilterChips } from "../components/FilterChips";
 import { KioskDetail } from "../components/KioskDetail";
 import { KioskList } from "../components/KioskList";
 import { Layout } from "../components/Layout";
+import { AboutBodyEn, DatenschutzBodyEn, ImpressumBodyEn } from "../components/LegalProse";
 import type { Env } from "../env";
 import {
   countKiosks,
@@ -652,190 +653,194 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         nav="about"
         user={c.get("user")}
       >
-        <article class="space-y-10">
-          <header>
-            <h1 class="font-display text-4xl tracking-wide text-fg sm:text-6xl">
-              trinkhallen<span class="text-neon-pink">.</span>app
-            </h1>
-            <p class="mt-3 text-lg text-fg-muted">
-              {total.toLocaleString("de-DE")} Trinkhallen, Wasserhäuschen und Spätis in einer Karte.
-              Offen, durchsuchbar, von der Community gepflegt — nicht-kommerziell.
-            </p>
-          </header>
+        {lang === "en" ? (
+          <AboutBodyEn lang={lang} total={total} ratings={ratings} users={users} />
+        ) : (
+          <article class="space-y-10">
+            <header>
+              <h1 class="font-display text-4xl tracking-wide text-fg sm:text-6xl">
+                trinkhallen<span class="text-neon-pink">.</span>app
+              </h1>
+              <p class="mt-3 text-lg text-fg-muted">
+                {total.toLocaleString("de-DE")} Trinkhallen, Wasserhäuschen und Spätis in einer
+                Karte. Offen, durchsuchbar, von der Community gepflegt — nicht-kommerziell.
+              </p>
+            </header>
 
-          <section class="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3">
-            <Metric value={total} label="Trinkhallen kartiert" />
-            <Metric value={ratings} label="Bewertungen abgegeben" />
-            <Metric value={users} label="Registrierte Personen" />
-          </section>
+            <section class="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3">
+              <Metric value={total} label="Trinkhallen kartiert" />
+              <Metric value={ratings} label="Bewertungen abgegeben" />
+              <Metric value={users} label="Registrierte Personen" />
+            </section>
 
-          <section>
-            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Was ist das?</h2>
-            <p class="mt-3 text-fg-muted">
-              Du suchst einen Späti mit Kartenzahlung, der gerade offen hat, und willst direkt hin
-              navigieren? Genau dafür ist trinkhallen.app gebaut.
-            </p>
-            <p class="mt-3 text-fg-muted">
-              trinkhallen.app ist der offene Nachfolger von{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://app.hopfenstop.de/"
-              >
-                HopfenStop
-              </a>
-              . Der sorgfältig kuratierte Frankfurter Datensatz von HopfenStop bildet die Basis und
-              lebt hier weiter — ergänzt um OpenStreetMap-Daten für ganz Deutschland, eine
-              transparente Beitrags-Pipeline auf GitHub und Pflege durch die Community statt durch
-              eine einzelne Person.
-            </p>
-          </section>
-
-          <section>
-            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Daten</h2>
-            <p class="mt-3 text-fg-muted">
-              Alle Kiosk-Metadaten liegen offen auf GitHub als GeoJSON, mit pro-Eintrag
-              Quellenangabe (<code class="font-mono">sources[]</code>):
-            </p>
-            <ul class="mt-3 space-y-2 text-fg-muted">
-              <li>
+            <section>
+              <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Was ist das?</h2>
+              <p class="mt-3 text-fg-muted">
+                Du suchst einen Späti mit Kartenzahlung, der gerade offen hat, und willst direkt hin
+                navigieren? Genau dafür ist trinkhallen.app gebaut.
+              </p>
+              <p class="mt-3 text-fg-muted">
+                trinkhallen.app ist der offene Nachfolger von{" "}
                 <a
                   class="text-neon-cyan underline-offset-2 hover:underline"
-                  href="https://github.com/boredland/trinkhallen-data"
+                  href="https://app.hopfenstop.de/"
                 >
-                  boredland/trinkhallen-data
-                </a>{" "}
-                — der Datensatz. PRs willkommen.
-              </li>
-              <li>
+                  HopfenStop
+                </a>
+                . Der sorgfältig kuratierte Frankfurter Datensatz von HopfenStop bildet die Basis
+                und lebt hier weiter — ergänzt um OpenStreetMap-Daten für ganz Deutschland, eine
+                transparente Beitrags-Pipeline auf GitHub und Pflege durch die Community statt durch
+                eine einzelne Person.
+              </p>
+            </section>
+
+            <section>
+              <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Daten</h2>
+              <p class="mt-3 text-fg-muted">
+                Alle Kiosk-Metadaten liegen offen auf GitHub als GeoJSON, mit pro-Eintrag
+                Quellenangabe (<code class="font-mono">sources[]</code>):
+              </p>
+              <ul class="mt-3 space-y-2 text-fg-muted">
+                <li>
+                  <a
+                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    href="https://github.com/boredland/trinkhallen-data"
+                  >
+                    boredland/trinkhallen-data
+                  </a>{" "}
+                  — der Datensatz. PRs willkommen.
+                </li>
+                <li>
+                  <a
+                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    href="https://github.com/boredland/trinkhallen-app"
+                  >
+                    boredland/trinkhallen-app
+                  </a>{" "}
+                  — Code (Cloudflare Workers + Hono).
+                </li>
+              </ul>
+              <p class="mt-3 text-sm text-fg-dim">
+                <strong>Quellen:</strong> HopfenStop (Frankfurt-Seed,{" "}
                 <a
                   class="text-neon-cyan underline-offset-2 hover:underline"
-                  href="https://github.com/boredland/trinkhallen-app"
+                  href="https://creativecommons.org/licenses/by-nc/4.0/"
                 >
-                  boredland/trinkhallen-app
-                </a>{" "}
-                — Code (Cloudflare Workers + Hono).
-              </li>
-            </ul>
-            <p class="mt-3 text-sm text-fg-dim">
-              <strong>Quellen:</strong> HopfenStop (Frankfurt-Seed,{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://creativecommons.org/licenses/by-nc/4.0/"
-              >
-                CC BY-NC 4.0
-              </a>
-              ) · OpenStreetMap (
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://www.openstreetmap.org/copyright"
-              >
-                ODbL
-              </a>
-              ) · Beiträge der Nutzer:innen.
-            </p>
-          </section>
-
-          <section>
-            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Mitmachen</h2>
-            <ul class="mt-3 space-y-3 text-fg-muted">
-              <li>
-                <span class="font-display text-fg">Bewerten:</span> 1–5 Sterne + optionaler
-                Kommentar auf jeder Detailseite (Login nötig).
-              </li>
-              <li>
-                <span class="font-display text-fg">Warst du hier?</span> Auf der Detailseite mit
-                einem Tap einchecken — wenn Daten fehlen (Öffnungszeiten, Zahlung, Sitzen, WC, …),
-                fragt das Formular kurz nach. Antworten gehen durch Moderation und landen im offenen
-                Datensatz.
-              </li>
-              <li>
-                <span class="font-display text-fg">Korrigieren:</span> „Daten falsch?"-Bereich deckt
-                geschlossen, doppelter Eintrag, falsche Adresse usw. ab. Moderation prüft und
-                übernimmt die Korrektur in den Datensatz.
-              </li>
-              <li>
-                <span class="font-display text-fg">Vorschlagen:</span>{" "}
+                  CC BY-NC 4.0
+                </a>
+                ) · OpenStreetMap (
                 <a
                   class="text-neon-cyan underline-offset-2 hover:underline"
-                  href={pathForLang("/add", lang)}
+                  href="https://www.openstreetmap.org/copyright"
                 >
-                  /add
-                </a>{" "}
-                → Späti auf der Karte anklicken, Adresse + Öffnungszeiten + Zahlung eintragen.
-              </li>
-              <li>
-                <span class="font-display text-fg">Direkt PR auf GitHub:</span> Wer mag, kann den
-                Datensatz auch direkt forken und PRs gegen{" "}
+                  ODbL
+                </a>
+                ) · Beiträge der Nutzer:innen.
+              </p>
+            </section>
+
+            <section>
+              <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Mitmachen</h2>
+              <ul class="mt-3 space-y-3 text-fg-muted">
+                <li>
+                  <span class="font-display text-fg">Bewerten:</span> 1–5 Sterne + optionaler
+                  Kommentar auf jeder Detailseite (Login nötig).
+                </li>
+                <li>
+                  <span class="font-display text-fg">Warst du hier?</span> Auf der Detailseite mit
+                  einem Tap einchecken — wenn Daten fehlen (Öffnungszeiten, Zahlung, Sitzen, WC, …),
+                  fragt das Formular kurz nach. Antworten gehen durch Moderation und landen im
+                  offenen Datensatz.
+                </li>
+                <li>
+                  <span class="font-display text-fg">Korrigieren:</span> „Daten falsch?"-Bereich
+                  deckt geschlossen, doppelter Eintrag, falsche Adresse usw. ab. Moderation prüft
+                  und übernimmt die Korrektur in den Datensatz.
+                </li>
+                <li>
+                  <span class="font-display text-fg">Vorschlagen:</span>{" "}
+                  <a
+                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    href={pathForLang("/add", lang)}
+                  >
+                    /add
+                  </a>{" "}
+                  → Späti auf der Karte anklicken, Adresse + Öffnungszeiten + Zahlung eintragen.
+                </li>
+                <li>
+                  <span class="font-display text-fg">Direkt PR auf GitHub:</span> Wer mag, kann den
+                  Datensatz auch direkt forken und PRs gegen{" "}
+                  <a
+                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    href="https://github.com/boredland/trinkhallen-data"
+                  >
+                    trinkhallen-data
+                  </a>{" "}
+                  öffnen — der Datensatz ist primary, die App nur die UI obendrauf.
+                </li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Stack</h2>
+              <ul class="mt-3 space-y-1.5 text-sm text-fg-muted">
+                <li>Cloudflare Workers · Hono SSR · TypeScript · D1 (SQLite)</li>
+                <li>MapLibre GL JS · OpenFreeMap (Vektor-Tiles, ohne API-Key)</li>
+                <li>Tailwind CSS v4 · Anton / Inter · keine Tracker, kein Analytics</li>
+                <li>
+                  Auth: Magic-Link per Mail (Cloudflare Email Routing) oder Google SSO — mit
+                  automatischem Merge der beiden bei gleicher Adresse.
+                </li>
+                <li>
+                  Wöchentliches OSM-Ingest + Daten-Anreicherung (Öffnungszeiten, Zahlung, Place-IDs)
+                  per GitHub Actions Pipeline.
+                </li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Lizenz</h2>
+              <p class="mt-3 text-sm text-fg-muted">
+                <strong class="text-fg">Daten:</strong> CC BY-NC 4.0 — frei zum Teilen und Anpassen,
+                mit Attribution, nicht-kommerziell.
+                <br />
+                <strong class="text-fg">Code:</strong> AGPL-3.0-or-later.
+              </p>
+            </section>
+
+            <section>
+              <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Betreiber</h2>
+              <p class="mt-3 text-fg-muted">
+                trinkhallen.app wird von{" "}
                 <a
                   class="text-neon-cyan underline-offset-2 hover:underline"
-                  href="https://github.com/boredland/trinkhallen-data"
+                  href="https://github.com/boredland"
                 >
-                  trinkhallen-data
+                  Jonas (boredland)
                 </a>{" "}
-                öffnen — der Datensatz ist primary, die App nur die UI obendrauf.
-              </li>
-            </ul>
-          </section>
+                als nicht-kommerzielles Open-Source-Projekt betrieben. Kontakt &amp; Issues über{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://github.com/boredland/trinkhallen-app/issues"
+                >
+                  GitHub
+                </a>
+                .
+              </p>
+            </section>
 
-          <section>
-            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Stack</h2>
-            <ul class="mt-3 space-y-1.5 text-sm text-fg-muted">
-              <li>Cloudflare Workers · Hono SSR · TypeScript · D1 (SQLite)</li>
-              <li>MapLibre GL JS · OpenFreeMap (Vektor-Tiles, ohne API-Key)</li>
-              <li>Tailwind CSS v4 · Anton / Inter · keine Tracker, kein Analytics</li>
-              <li>
-                Auth: Magic-Link per Mail (Cloudflare Email Routing) oder Google SSO — mit
-                automatischem Merge der beiden bei gleicher Adresse.
-              </li>
-              <li>
-                Wöchentliches OSM-Ingest + Daten-Anreicherung (Öffnungszeiten, Zahlung, Place-IDs)
-                per GitHub Actions Pipeline.
-              </li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Lizenz</h2>
-            <p class="mt-3 text-sm text-fg-muted">
-              <strong class="text-fg">Daten:</strong> CC BY-NC 4.0 — frei zum Teilen und Anpassen,
-              mit Attribution, nicht-kommerziell.
-              <br />
-              <strong class="text-fg">Code:</strong> AGPL-3.0-or-later.
-            </p>
-          </section>
-
-          <section>
-            <h2 class="font-display text-2xl tracking-wide text-fg">▶▶▶ Betreiber</h2>
-            <p class="mt-3 text-fg-muted">
-              trinkhallen.app wird von{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://github.com/boredland"
-              >
-                Jonas (boredland)
-              </a>{" "}
-              als nicht-kommerzielles Open-Source-Projekt betrieben. Kontakt &amp; Issues über{" "}
+            <footer class="pt-4 text-xs text-fg-dim">
+              Bugs &amp; Wünsche →{" "}
               <a
                 class="text-neon-cyan underline-offset-2 hover:underline"
                 href="https://github.com/boredland/trinkhallen-app/issues"
               >
-                GitHub
+                GitHub Issues
               </a>
               .
-            </p>
-          </section>
-
-          <footer class="pt-4 text-xs text-fg-dim">
-            Bugs &amp; Wünsche →{" "}
-            <a
-              class="text-neon-cyan underline-offset-2 hover:underline"
-              href="https://github.com/boredland/trinkhallen-app/issues"
-            >
-              GitHub Issues
-            </a>
-            .
-          </footer>
-        </article>
+            </footer>
+          </article>
+        )}
       </Layout>,
     );
   });
@@ -852,104 +857,108 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         nav="about"
         user={c.get("user")}
       >
-        <article class="space-y-8">
-          <header>
-            <h1 class="font-display text-4xl tracking-wide text-fg sm:text-5xl">Impressum</h1>
-            <p class="mt-3 text-fg-muted">Angaben gemäß § 5 TMG</p>
-          </header>
+        {lang === "en" ? (
+          <ImpressumBodyEn />
+        ) : (
+          <article class="space-y-8">
+            <header>
+              <h1 class="font-display text-4xl tracking-wide text-fg sm:text-5xl">Impressum</h1>
+              <p class="mt-3 text-fg-muted">Angaben gemäß § 5 TMG</p>
+            </header>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Betreiber</h2>
-            <address class="mt-3 not-italic text-fg-muted">
-              Jonas Strassel
-              <br />
-              Am Kappelgarten 24
-              <br />
-              60389 Frankfurt am Main
-              <br />
-              Deutschland
-            </address>
-          </section>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Betreiber</h2>
+              <address class="mt-3 not-italic text-fg-muted">
+                Jonas Strassel
+                <br />
+                Am Kappelgarten 24
+                <br />
+                60389 Frankfurt am Main
+                <br />
+                Deutschland
+              </address>
+            </section>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Kontakt</h2>
-            <p class="mt-3 text-fg-muted">
-              E-Mail:{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="mailto:feedback@trinkhallen.app"
-              >
-                feedback@trinkhallen.app
-              </a>
-            </p>
-          </section>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Kontakt</h2>
+              <p class="mt-3 text-fg-muted">
+                E-Mail:{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="mailto:feedback@trinkhallen.app"
+                >
+                  feedback@trinkhallen.app
+                </a>
+              </p>
+            </section>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">
-              Verantwortlich für den Inhalt
-            </h2>
-            <p class="mt-3 text-fg-muted">
-              Jonas Strassel (Anschrift wie oben). trinkhallen.app ist ein nicht-kommerzielles
-              Open-Source-Projekt; der Datensatz lebt in einem öffentlichen{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://github.com/boredland/trinkhallen-data"
-              >
-                GitHub-Repository
-              </a>{" "}
-              und wird von der Community gepflegt.
-            </p>
-          </section>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">
+                Verantwortlich für den Inhalt
+              </h2>
+              <p class="mt-3 text-fg-muted">
+                Jonas Strassel (Anschrift wie oben). trinkhallen.app ist ein nicht-kommerzielles
+                Open-Source-Projekt; der Datensatz lebt in einem öffentlichen{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://github.com/boredland/trinkhallen-data"
+                >
+                  GitHub-Repository
+                </a>{" "}
+                und wird von der Community gepflegt.
+              </p>
+            </section>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Haftung für Inhalte</h2>
-            <p class="mt-3 text-fg-muted">
-              Die Inhalte dieser Seite wurden mit größtmöglicher Sorgfalt erstellt. Für die
-              Richtigkeit, Vollständigkeit und Aktualität der Kiosk-Daten (Öffnungszeiten,
-              Zahlungsmethoden, Standort etc.) kann jedoch keine Gewähr übernommen werden — sie
-              stammen aus offenen Quellen (OpenStreetMap, Community-Beiträge) und können veraltet
-              sein.
-            </p>
-          </section>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Haftung für Inhalte</h2>
+              <p class="mt-3 text-fg-muted">
+                Die Inhalte dieser Seite wurden mit größtmöglicher Sorgfalt erstellt. Für die
+                Richtigkeit, Vollständigkeit und Aktualität der Kiosk-Daten (Öffnungszeiten,
+                Zahlungsmethoden, Standort etc.) kann jedoch keine Gewähr übernommen werden — sie
+                stammen aus offenen Quellen (OpenStreetMap, Community-Beiträge) und können veraltet
+                sein.
+              </p>
+            </section>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Haftung für Links</h2>
-            <p class="mt-3 text-fg-muted">
-              Diese Seite enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen
-              Einfluss haben. Für diese fremden Inhalte ist stets der jeweilige Anbieter
-              verantwortlich. Bei Bekanntwerden von Rechtsverletzungen werden entsprechende Links
-              umgehend entfernt.
-            </p>
-          </section>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Haftung für Links</h2>
+              <p class="mt-3 text-fg-muted">
+                Diese Seite enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen
+                Einfluss haben. Für diese fremden Inhalte ist stets der jeweilige Anbieter
+                verantwortlich. Bei Bekanntwerden von Rechtsverletzungen werden entsprechende Links
+                umgehend entfernt.
+              </p>
+            </section>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Urheberrecht</h2>
-            <p class="mt-3 text-fg-muted">
-              Der Quellcode dieser Anwendung steht unter{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://www.gnu.org/licenses/agpl-3.0.de.html"
-              >
-                AGPL-3.0-or-later
-              </a>
-              , der Datensatz unter{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://creativecommons.org/licenses/by-nc/4.0/deed.de"
-              >
-                CC BY-NC 4.0
-              </a>
-              . Kartendaten © OpenStreetMap-Mitwirkende (
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://www.openstreetmap.org/copyright"
-              >
-                ODbL
-              </a>
-              ).
-            </p>
-          </section>
-        </article>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Urheberrecht</h2>
+              <p class="mt-3 text-fg-muted">
+                Der Quellcode dieser Anwendung steht unter{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://www.gnu.org/licenses/agpl-3.0.de.html"
+                >
+                  AGPL-3.0-or-later
+                </a>
+                , der Datensatz unter{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://creativecommons.org/licenses/by-nc/4.0/deed.de"
+                >
+                  CC BY-NC 4.0
+                </a>
+                . Kartendaten © OpenStreetMap-Mitwirkende (
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://www.openstreetmap.org/copyright"
+                >
+                  ODbL
+                </a>
+                ).
+              </p>
+            </section>
+          </article>
+        )}
       </Layout>,
     );
   });
@@ -966,255 +975,262 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         nav="about"
         user={c.get("user")}
       >
-        <article class="space-y-8">
-          <header>
-            <h1 class="font-display text-4xl tracking-wide text-fg sm:text-5xl">
-              Datenschutzerklärung
-            </h1>
-            <p class="mt-3 text-fg-muted">
-              Wir speichern so wenig wie möglich. Keine Tracker, kein Analytics, keine Werbung. Was
-              wir verarbeiten und warum, steht hier vollständig.
-            </p>
-          </header>
+        {lang === "en" ? (
+          <DatenschutzBodyEn />
+        ) : (
+          <article class="space-y-8">
+            <header>
+              <h1 class="font-display text-4xl tracking-wide text-fg sm:text-5xl">
+                Datenschutzerklärung
+              </h1>
+              <p class="mt-3 text-fg-muted">
+                Wir speichern so wenig wie möglich. Keine Tracker, kein Analytics, keine Werbung.
+                Was wir verarbeiten und warum, steht hier vollständig.
+              </p>
+            </header>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Verantwortlicher</h2>
-            <address class="mt-3 not-italic text-fg-muted">
-              Jonas Strassel
-              <br />
-              Am Kappelgarten 24
-              <br />
-              60389 Frankfurt am Main
-              <br />
-              E-Mail:{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="mailto:feedback@trinkhallen.app"
-              >
-                feedback@trinkhallen.app
-              </a>
-            </address>
-          </section>
-
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Anonyme Nutzung der Karte</h2>
-            <p class="mt-3 text-fg-muted">
-              Du kannst die Karte vollständig anonym benutzen — ohne Konto, ohne Login. Beim Aufruf
-              der Seite werden technisch unvermeidbare Daten (IP-Adresse, User-Agent, angeforderte
-              URL) in den Server-Logs unseres Hosters Cloudflare protokolliert. Rechtsgrundlage:
-              Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an Betrieb und Sicherheit der
-              Seite). Speicherdauer: maximal 30 Tage.
-            </p>
-          </section>
-
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">
-              Login per E-Mail (Magic Link)
-            </h2>
-            <p class="mt-3 text-fg-muted">
-              Wenn du dich per Magic-Link anmeldest, speichern wir deine E-Mail-Adresse, eine
-              gehashte Version des Einmal-Tokens sowie IP-Adresse und User-Agent (für
-              Missbrauchsschutz). Der Token wird nach Einlösung oder spätestens 15 Minuten ungültig.
-              Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Durchführung des Nutzungsverhältnisses).
-            </p>
-          </section>
-
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Login per Google</h2>
-            <p class="mt-3 text-fg-muted">
-              Wenn du dich per Google anmeldest, speichern wir von deinem Google-Profil nur deine
-              E-Mail-Adresse und eine stabile interne ID. Weder deinen Namen noch dein Profilbild
-              speichern wir — sollte Google sie mit übermitteln, verwerfen wir sie. Bei der
-              Weiterleitung zu Google teilt dein Browser deine IP-Adresse mit Google. Wir
-              verarbeiten die Daten ausschließlich, um dich wiederzuerkennen und dir deine Inhalte
-              (Bewertungen, Korrekturen, Check-ins) zuzuordnen. Rechtsgrundlage: Art. 6 Abs. 1 lit.
-              b DSGVO; die Datenübermittlung an Google erfolgt nur, wenn du den Login aktiv anstößt.
-            </p>
-            <p class="mt-3 text-fg-muted">
-              Anbieter: Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland.
-              Datenschutz:{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://policies.google.com/privacy"
-              >
-                policies.google.com/privacy
-              </a>
-              .
-            </p>
-          </section>
-
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Login per Apple</h2>
-            <p class="mt-3 text-fg-muted">
-              Wenn du dich per „Mit Apple anmelden" einloggst, erhalten wir von Apple deine
-              E-Mail-Adresse und eine stabile interne ID. Wählst du Apples „E-Mail verbergen", ist
-              das eine anonyme Relay-Adresse — wir erreichen dich darüber nur per Mail, ohne deine
-              echte Adresse zu kennen. Einen Namen fragen wir nicht ab, ein Profilbild liefert Apple
-              nicht. Wir verarbeiten die Daten ausschließlich, um dich wiederzuerkennen und dir
-              deine Inhalte zuzuordnen. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO; die
-              Datenübermittlung an Apple erfolgt nur, wenn du den Login aktiv anstößt.
-            </p>
-            <p class="mt-3 text-fg-muted">
-              Anbieter: Apple Distribution International Ltd., Hollyhill Industrial Estate,
-              Hollyhill, Cork, Irland. Datenschutz:{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://www.apple.com/legal/privacy/"
-              >
-                apple.com/legal/privacy
-              </a>
-              .
-            </p>
-          </section>
-
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Sitzungs-Cookie</h2>
-            <p class="mt-3 text-fg-muted">
-              Bist du eingeloggt, setzen wir ein einziges Sitzungs-Cookie (
-              <code class="font-mono">__Host-tk_sess</code>
-              ), das eine zufällige, kryptographisch signierte ID enthält. Es ist
-              <code class="font-mono"> HttpOnly</code>, <code class="font-mono">Secure</code> und
-              läuft nach 30 Tagen ohne Aktivität ab. Wir verwenden keine Tracking- oder
-              Marketing-Cookies. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (für den Betrieb
-              technisch notwendig).
-            </p>
-          </section>
-
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Eigene Beiträge</h2>
-            <p class="mt-3 text-fg-muted">
-              Bewertungen, Daten-Korrekturen, Späti-Vorschläge und Check-ins werden mit deinem
-              Nutzerkonto verknüpft gespeichert. Freigegebene Korrekturen und Vorschläge werden
-              außerdem in den öffentlichen, offen lizenzierten Datensatz{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://github.com/boredland/trinkhallen-data"
-              >
-                trinkhallen-data
-              </a>{" "}
-              übernommen und sind dort dauerhaft Teil der offenen Geschichte. Mit dem Eintrag
-              gespeichert wird eine zufällige UUID ohne Personenbezug für Außenstehende. Öffentlich
-              neben deinen Bewertungen sichtbar ist nur dein automatisch erzeugter, pseudonymer
-              Handle (z. B. @pfand_pirat) — niemals dein Name. Rechtsgrundlage: Art. 6 Abs. 1 lit. b
-              DSGVO.
-            </p>
-          </section>
-
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">
-              Drittanbieter &amp; Datenübermittlung
-            </h2>
-            <ul class="mt-3 space-y-3 text-fg-muted">
-              <li>
-                <strong class="text-fg">Cloudflare</strong> (Workers, D1-Datenbank, Edge-Cache):
-                Hosting der Anwendung. Standort: weltweit. Auftragsverarbeitungsvertrag (DPA) und
-                Standardvertragsklauseln liegen vor.
-              </li>
-              <li>
-                <strong class="text-fg">Google</strong>: nur wenn du den Google-Login nutzt (siehe
-                oben).
-              </li>
-              <li>
-                <strong class="text-fg">OpenFreeMap</strong>: liefert die Kartenkacheln. Beim
-                Anzeigen der Karte teilt dein Browser deine IP-Adresse mit OpenFreeMap, um die
-                Kacheln auszuliefern. Anbieter:{" "}
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Verantwortlicher</h2>
+              <address class="mt-3 not-italic text-fg-muted">
+                Jonas Strassel
+                <br />
+                Am Kappelgarten 24
+                <br />
+                60389 Frankfurt am Main
+                <br />
+                E-Mail:{" "}
                 <a
                   class="text-neon-cyan underline-offset-2 hover:underline"
-                  href="https://openfreemap.org/"
+                  href="mailto:feedback@trinkhallen.app"
                 >
-                  openfreemap.org
+                  feedback@trinkhallen.app
                 </a>
-                .
-              </li>
-              <li>
-                <strong class="text-fg">Photon (Komoot)</strong>: füllt auf <code>/add</code> die
-                Adresse aus deiner gewählten Kartenposition vor. Dein Browser sendet die Koordinaten
-                an Photon (basiert auf OpenStreetMap-Daten), die IP-Adresse ist technisch
-                unvermeidbar. Anbieter: Komoot GmbH;{" "}
+              </address>
+            </section>
+
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Anonyme Nutzung der Karte</h2>
+              <p class="mt-3 text-fg-muted">
+                Du kannst die Karte vollständig anonym benutzen — ohne Konto, ohne Login. Beim
+                Aufruf der Seite werden technisch unvermeidbare Daten (IP-Adresse, User-Agent,
+                angeforderte URL) in den Server-Logs unseres Hosters Cloudflare protokolliert.
+                Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an Betrieb und
+                Sicherheit der Seite). Speicherdauer: maximal 30 Tage.
+              </p>
+            </section>
+
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">
+                Login per E-Mail (Magic Link)
+              </h2>
+              <p class="mt-3 text-fg-muted">
+                Wenn du dich per Magic-Link anmeldest, speichern wir deine E-Mail-Adresse, eine
+                gehashte Version des Einmal-Tokens sowie IP-Adresse und User-Agent (für
+                Missbrauchsschutz). Der Token wird nach Einlösung oder spätestens 15 Minuten
+                ungültig. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Durchführung des
+                Nutzungsverhältnisses).
+              </p>
+            </section>
+
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Login per Google</h2>
+              <p class="mt-3 text-fg-muted">
+                Wenn du dich per Google anmeldest, speichern wir von deinem Google-Profil nur deine
+                E-Mail-Adresse und eine stabile interne ID. Weder deinen Namen noch dein Profilbild
+                speichern wir — sollte Google sie mit übermitteln, verwerfen wir sie. Bei der
+                Weiterleitung zu Google teilt dein Browser deine IP-Adresse mit Google. Wir
+                verarbeiten die Daten ausschließlich, um dich wiederzuerkennen und dir deine Inhalte
+                (Bewertungen, Korrekturen, Check-ins) zuzuordnen. Rechtsgrundlage: Art. 6 Abs. 1
+                lit. b DSGVO; die Datenübermittlung an Google erfolgt nur, wenn du den Login aktiv
+                anstößt.
+              </p>
+              <p class="mt-3 text-fg-muted">
+                Anbieter: Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland.
+                Datenschutz:{" "}
                 <a
                   class="text-neon-cyan underline-offset-2 hover:underline"
-                  href="https://photon.komoot.io/"
+                  href="https://policies.google.com/privacy"
                 >
-                  photon.komoot.io
+                  policies.google.com/privacy
                 </a>
                 .
-              </li>
-            </ul>
-          </section>
+              </p>
+            </section>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Speicherdauer</h2>
-            <p class="mt-3 text-fg-muted">
-              Konto- und Beitragsdaten bleiben gespeichert, solange dein Konto besteht. Lösche dein
-              Konto, indem du eine kurze Mail an die oben genannte Adresse schickst — wir löschen es
-              innerhalb von 14 Tagen. Server-Logs werden nach maximal 30 Tagen automatisch
-              verworfen. Magic-Link-Token sind nach Einlösung oder 15 Minuten ungültig.
-            </p>
-          </section>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Login per Apple</h2>
+              <p class="mt-3 text-fg-muted">
+                Wenn du dich per „Mit Apple anmelden" einloggst, erhalten wir von Apple deine
+                E-Mail-Adresse und eine stabile interne ID. Wählst du Apples „E-Mail verbergen", ist
+                das eine anonyme Relay-Adresse — wir erreichen dich darüber nur per Mail, ohne deine
+                echte Adresse zu kennen. Einen Namen fragen wir nicht ab, ein Profilbild liefert
+                Apple nicht. Wir verarbeiten die Daten ausschließlich, um dich wiederzuerkennen und
+                dir deine Inhalte zuzuordnen. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO; die
+                Datenübermittlung an Apple erfolgt nur, wenn du den Login aktiv anstößt.
+              </p>
+              <p class="mt-3 text-fg-muted">
+                Anbieter: Apple Distribution International Ltd., Hollyhill Industrial Estate,
+                Hollyhill, Cork, Irland. Datenschutz:{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://www.apple.com/legal/privacy/"
+                >
+                  apple.com/legal/privacy
+                </a>
+                .
+              </p>
+            </section>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Deine Rechte</h2>
-            <p class="mt-3 text-fg-muted">
-              Du hast jederzeit das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16),
-              Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit
-              (Art. 20) und Widerspruch (Art. 21). Eine kurze Mail an{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="mailto:feedback@trinkhallen.app"
-              >
-                feedback@trinkhallen.app
-              </a>{" "}
-              reicht.
-            </p>
-            <p class="mt-3 text-fg-muted">
-              Außerdem hast du das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren
-              — für uns zuständig:{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://datenschutz.hessen.de/"
-              >
-                Der Hessische Beauftragte für Datenschutz und Informationsfreiheit
-              </a>
-              .
-            </p>
-          </section>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Sitzungs-Cookie</h2>
+              <p class="mt-3 text-fg-muted">
+                Bist du eingeloggt, setzen wir ein einziges Sitzungs-Cookie (
+                <code class="font-mono">__Host-tk_sess</code>
+                ), das eine zufällige, kryptographisch signierte ID enthält. Es ist
+                <code class="font-mono"> HttpOnly</code>, <code class="font-mono">Secure</code> und
+                läuft nach 30 Tagen ohne Aktivität ab. Wir verwenden keine Tracking- oder
+                Marketing-Cookies. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (für den Betrieb
+                technisch notwendig).
+              </p>
+            </section>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">
-              Android-App (Trusted Web Activity)
-            </h2>
-            <p class="mt-3 text-fg-muted">
-              Die Android-App im Google Play Store (
-              <code class="font-mono">app.trinkhallen.twa</code>) ist eine{" "}
-              <em>Trusted Web Activity</em> — technisch lädt sie ausschließlich diese Website in
-              einem Vollbild-Browser-Container von Chrome. Es gibt keinen separaten App-Datenpfad,
-              keine zusätzlichen Tracker und keine über die oben beschriebenen Datenflüsse
-              hinausgehende Verarbeitung. Alle hier genannten Regeln zu Logging, Login, Cookies und
-              Beiträgen gelten für die App identisch.
-            </p>
-            <p class="mt-3 text-fg-muted">
-              Unabhängig davon erhebt Google Play beim Installieren, Aktualisieren oder
-              Deinstallieren der App technische Telemetrie (Geräte- und Android-Version, Land,
-              optionale Absturzberichte). Auf diese Daten haben wir keinen direkten Zugriff; sie
-              unterliegen den{" "}
-              <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
-                href="https://policies.google.com/privacy"
-              >
-                Google-Datenschutzbestimmungen
-              </a>
-              . Push-Benachrichtigungen sind aktuell nicht aktiviert.
-            </p>
-          </section>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Eigene Beiträge</h2>
+              <p class="mt-3 text-fg-muted">
+                Bewertungen, Daten-Korrekturen, Späti-Vorschläge und Check-ins werden mit deinem
+                Nutzerkonto verknüpft gespeichert. Freigegebene Korrekturen und Vorschläge werden
+                außerdem in den öffentlichen, offen lizenzierten Datensatz{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://github.com/boredland/trinkhallen-data"
+                >
+                  trinkhallen-data
+                </a>{" "}
+                übernommen und sind dort dauerhaft Teil der offenen Geschichte. Mit dem Eintrag
+                gespeichert wird eine zufällige UUID ohne Personenbezug für Außenstehende.
+                Öffentlich neben deinen Bewertungen sichtbar ist nur dein automatisch erzeugter,
+                pseudonymer Handle (z. B. @pfand_pirat) — niemals dein Name. Rechtsgrundlage: Art. 6
+                Abs. 1 lit. b DSGVO.
+              </p>
+            </section>
 
-          <section>
-            <h2 class="font-display text-xl tracking-wide text-fg">Änderungen</h2>
-            <p class="mt-3 text-fg-muted">
-              Diese Erklärung kann sich ändern, wenn wir das Angebot weiterentwickeln. Der jeweils
-              aktuelle Stand steht hier. Wesentliche Änderungen kündigen wir vor Inkrafttreten an.
-            </p>
-          </section>
-        </article>
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">
+                Drittanbieter &amp; Datenübermittlung
+              </h2>
+              <ul class="mt-3 space-y-3 text-fg-muted">
+                <li>
+                  <strong class="text-fg">Cloudflare</strong> (Workers, D1-Datenbank, Edge-Cache):
+                  Hosting der Anwendung. Standort: weltweit. Auftragsverarbeitungsvertrag (DPA) und
+                  Standardvertragsklauseln liegen vor.
+                </li>
+                <li>
+                  <strong class="text-fg">Google</strong>: nur wenn du den Google-Login nutzt (siehe
+                  oben).
+                </li>
+                <li>
+                  <strong class="text-fg">OpenFreeMap</strong>: liefert die Kartenkacheln. Beim
+                  Anzeigen der Karte teilt dein Browser deine IP-Adresse mit OpenFreeMap, um die
+                  Kacheln auszuliefern. Anbieter:{" "}
+                  <a
+                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    href="https://openfreemap.org/"
+                  >
+                    openfreemap.org
+                  </a>
+                  .
+                </li>
+                <li>
+                  <strong class="text-fg">Photon (Komoot)</strong>: füllt auf <code>/add</code> die
+                  Adresse aus deiner gewählten Kartenposition vor. Dein Browser sendet die
+                  Koordinaten an Photon (basiert auf OpenStreetMap-Daten), die IP-Adresse ist
+                  technisch unvermeidbar. Anbieter: Komoot GmbH;{" "}
+                  <a
+                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    href="https://photon.komoot.io/"
+                  >
+                    photon.komoot.io
+                  </a>
+                  .
+                </li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Speicherdauer</h2>
+              <p class="mt-3 text-fg-muted">
+                Konto- und Beitragsdaten bleiben gespeichert, solange dein Konto besteht. Lösche
+                dein Konto, indem du eine kurze Mail an die oben genannte Adresse schickst — wir
+                löschen es innerhalb von 14 Tagen. Server-Logs werden nach maximal 30 Tagen
+                automatisch verworfen. Magic-Link-Token sind nach Einlösung oder 15 Minuten
+                ungültig.
+              </p>
+            </section>
+
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Deine Rechte</h2>
+              <p class="mt-3 text-fg-muted">
+                Du hast jederzeit das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16),
+                Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit
+                (Art. 20) und Widerspruch (Art. 21). Eine kurze Mail an{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="mailto:feedback@trinkhallen.app"
+                >
+                  feedback@trinkhallen.app
+                </a>{" "}
+                reicht.
+              </p>
+              <p class="mt-3 text-fg-muted">
+                Außerdem hast du das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu
+                beschweren — für uns zuständig:{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://datenschutz.hessen.de/"
+                >
+                  Der Hessische Beauftragte für Datenschutz und Informationsfreiheit
+                </a>
+                .
+              </p>
+            </section>
+
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">
+                Android-App (Trusted Web Activity)
+              </h2>
+              <p class="mt-3 text-fg-muted">
+                Die Android-App im Google Play Store (
+                <code class="font-mono">app.trinkhallen.twa</code>) ist eine{" "}
+                <em>Trusted Web Activity</em> — technisch lädt sie ausschließlich diese Website in
+                einem Vollbild-Browser-Container von Chrome. Es gibt keinen separaten App-Datenpfad,
+                keine zusätzlichen Tracker und keine über die oben beschriebenen Datenflüsse
+                hinausgehende Verarbeitung. Alle hier genannten Regeln zu Logging, Login, Cookies
+                und Beiträgen gelten für die App identisch.
+              </p>
+              <p class="mt-3 text-fg-muted">
+                Unabhängig davon erhebt Google Play beim Installieren, Aktualisieren oder
+                Deinstallieren der App technische Telemetrie (Geräte- und Android-Version, Land,
+                optionale Absturzberichte). Auf diese Daten haben wir keinen direkten Zugriff; sie
+                unterliegen den{" "}
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href="https://policies.google.com/privacy"
+                >
+                  Google-Datenschutzbestimmungen
+                </a>
+                . Push-Benachrichtigungen sind aktuell nicht aktiviert.
+              </p>
+            </section>
+
+            <section>
+              <h2 class="font-display text-xl tracking-wide text-fg">Änderungen</h2>
+              <p class="mt-3 text-fg-muted">
+                Diese Erklärung kann sich ändern, wenn wir das Angebot weiterentwickeln. Der jeweils
+                aktuelle Stand steht hier. Wesentliche Änderungen kündigen wir vor Inkrafttreten an.
+              </p>
+            </section>
+          </article>
+        )}
       </Layout>,
     );
   });
