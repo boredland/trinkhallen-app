@@ -27,7 +27,7 @@ def twaManifest = [
     name: 'trinkhallen.app', // The application name.
     launcherName: 'trinkhallen', // The name shown on the Android Launcher.
     themeColor: '#0A0A0A', // The color used for the status bar.
-    themeColorDark: '#000000', // The color used for the dark status bar.
+    themeColorDark: '#0A0A0A', // The color used for the dark status bar.
     navigationColor: '#000000', // The color used for the navigation bar.
     navigationColorDark: '#000000', // The color used for the dark navbar.
     navigationDividerColor: '#000000', // The navbar divider color.
@@ -57,8 +57,8 @@ android {
         applicationId "app.trinkhallen.twa"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 1
-        versionName "1"
+        versionCode 2
+        versionName "2"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
