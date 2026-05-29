@@ -12,7 +12,8 @@ import { REPORTABLE_TAG_GROUPS, tagGroupLabel, tagLabel } from "../lib/tags";
  *      check-in to /api/checkins (best-effort geolocation) and reveals the
  *      question block. See src/client/checkin.ts for the JS side.
  *   2. Expanded: one form per question group, each posting to /api/reports
- *      via HTMX and swapping itself out for a "Danke!" fragment on success.
+ *      via a client fetch (see src/client/checkin.ts) and swapping itself out
+ *      for a "Danke!" fragment on success.
  *
  * Gap detection runs at render time: groups whose fields are already filled
  * in on the kiosk don't render at all. The amenity group is always shown

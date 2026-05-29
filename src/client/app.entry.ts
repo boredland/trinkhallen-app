@@ -1,4 +1,3 @@
-import Alpine from "alpinejs";
 import "./app.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -280,12 +279,3 @@ void setupIosInstallPrompt();
 // Service worker — caches assets + tile bytes for fast repeat visits and basic
 // offline, plus the update-prompt flow (waiting SW → "neu laden" toast).
 installServiceWorker();
-
-// Only spin Alpine up when the page actually carries `[x-data]` directives.
-// SSR detail pages and most static routes have none and don't need ~30 KB of
-// reactive engine running.
-if (document.querySelector("[x-data]")) {
-  // biome-ignore lint/suspicious/noExplicitAny: Alpine attaches itself to window with no shipped type
-  (window as any).Alpine = Alpine;
-  Alpine.start();
-}

@@ -114,7 +114,7 @@ pages.use("*", async (c, next) => {
     return c.redirect(pathForLang(url.pathname, chosen) + url.search, 302);
   }
 
-  // HTMX/sheet partials already target the right locale; don't bounce them.
+  // Sheet/panel partial fetches already target the right locale; don't bounce them.
   if (url.searchParams.has("partial")) return next();
 
   const cookie = getCookie(c, LANG_COOKIE);

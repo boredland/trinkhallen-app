@@ -182,7 +182,7 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
             via `eagerness: moderate`). Cap is enforced by the browser
             (~10 concurrent prerenders). Falls back silently elsewhere.
             ?partial=1 links never appear as <a href> so don't need an
-            exclusion — they only fire from HTMX fetches. */}
+            exclusion — they only fire from the client's partial fetches. */}
           <script type="speculationrules" nonce={nonce}>
             {raw(
               JSON.stringify({

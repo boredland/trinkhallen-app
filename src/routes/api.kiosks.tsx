@@ -65,7 +65,8 @@ apiKiosks.get("/api/kiosks", async (c) => {
 
 /**
  * HTML fragment of the side panel for the current bbox + filters.
- * Targeted via HTMX from filter chips and the map's moveend handler.
+ * Fetched by the client (filter chips + the map's moveend handler) and
+ * swapped into #kiosk-panel — see src/client/app.entry.ts.
  */
 apiKiosks.get("/api/kiosks/panel", async (c) => {
   const url = new URL(c.req.url);

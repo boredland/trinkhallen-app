@@ -70,7 +70,7 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
     "file": "assets/pwa-install.es-XuEJvKJ2.js"
   },
   "src/client/app.entry.ts": {
-    "file": "assets/app-BIMcUnPQ.js",
+    "file": "assets/app-z-W5VYyc.js",
     "css": [
       "assets/app-DMHfMawu.css"
     ]

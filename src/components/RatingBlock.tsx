@@ -13,8 +13,9 @@ export interface RatingBlockProps {
 
 /**
  * Renders the aggregate + written comments + (when logged in) the interactive
- * star form. `id="rating-block"` is the HTMX swap target — POST /api/ratings
- * returns the exact same fragment to replace it.
+ * star form. `id="rating-block"` is the swap target — the client posts to
+ * /api/ratings (see src/client/rating.ts), which returns the exact same
+ * fragment to replace it.
  */
 export const RatingBlock: FC<RatingBlockProps> = ({
   lang,
