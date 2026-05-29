@@ -46,7 +46,7 @@ export const KioskList: FC<KioskListProps> = ({
     filteredCount === totalInBbox
       ? tpl(lang, "kioskList.countAll", {
           n: filteredCount,
-          suffix: filteredCount === 1 ? "" : "n",
+          suffix: filteredCount === 1 ? "" : lang === "en" ? "s" : "n",
         })
       : tpl(lang, "kioskList.countFiltered", { filtered: filteredCount, total: totalInBbox });
 

@@ -334,8 +334,253 @@ const DE = {
 } as const;
 
 // English overrides. Missing keys fall back to German per-key (see `t`), so this
-// can be filled incrementally without breaking EN pages.
-const EN: Record<string, string> = {};
+// can be filled incrementally without breaking EN pages. The domain nouns
+// Trinkhalle/Späti/Wasserhäuschen are kept untranslated — they are the proper
+// nouns the app is about (like "bodega" or "izakaya"), not UI chrome.
+const EN: Record<string, string> = {
+  "nav.map": "Map",
+  "nav.about": "About",
+  "nav.mod": "Mod",
+  "nav.themeToggle": "Toggle theme",
+  "meta.descriptionDefault":
+    "Find Trinkhallen, Wasserhäuschen and Spätis near you. Open now, card accepted, one click to navigate.",
+  "meta.ogImageAlt": "trinkhallen.app — map of German Trinkhallen, Wasserhäuschen and Spätis",
+  "footer.dataLicense": "Data: CC BY-NC 4.0",
+  "footer.aboutContribute": "About & contribute",
+  "footer.imprint": "Legal notice",
+  "footer.privacy": "Privacy",
+
+  "kiosk.backToMap": "← Back to the map",
+  "kiosk.navigate": "▶ Navigate there",
+  "kiosk.openOtherMaps": "Open another maps app",
+  "kiosk.paymentHeading": "Payment",
+  "kiosk.openingHoursHeading": "Opening hours",
+  "kiosk.phBanner":
+    "Today is a public holiday — these opening hours don't mention a holiday rule. Actual times may differ. A verified check-in today automatically tells us this shop is open.",
+  "kiosk.descriptionHeading": "Description",
+  "kiosk.tagsHeading": "Tags",
+  "kiosk.wereYouHere": "Were you here?",
+  "kiosk.ratingsHeading": "Ratings",
+  "kiosk.dataWrong": "Data wrong?",
+  "kiosk.nearbyHeading": "Nearby",
+  "kiosk.idLabel": "ID:",
+  "kiosk.sourceLabel": "Source:",
+  "kiosk.updatedLabel": "Updated:",
+  "kiosk.editOnGithub": "Edit on GitHub →",
+
+  "checkin.iWasHere": "I was here",
+  "checkin.thanksWhatMissing": "Thanks! What was missing?",
+  "checkin.whatMissingHint": "What was missing? Every answer helps. You can also leave it blank.",
+  "checkin.hoursOk": "Are the opening hours correct?",
+  "checkin.paymentOk": "Are the payment options correct?",
+  "checkin.tagsOk": "Are the listed tags correct?",
+  "checkin.confirm": "Looks right — confirm",
+  "checkin.dispute": "Not correct",
+  "checkin.loginToContribute": "to record your visit and help complete the data.",
+  "checkin.send": "Send",
+  "checkin.thanks": "Thanks!",
+  "checkin.hoursQ": "Opening hours?",
+  "checkin.paymentQ": "Card accepted?",
+  "checkin.amenitiesQ": "What's here?",
+  "checkin.nameToggle": "Actually called something else?",
+  "checkin.nameLabel": "Correct name",
+
+  "radio.yes": "Yes",
+  "radio.no": "No",
+  "radio.unknown": "Don't know",
+
+  "payment.yesLower": "yes",
+  "payment.noLower": "no",
+
+  "reportForm.loginHint": "and point out an error in the data.",
+  "reportForm.allReported": "You've already reported something in every category — thanks!",
+  "reportForm.toggle": "Report wrong or missing info",
+  "reportForm.whatsWrong": "What's wrong?",
+  "reportForm.correctTimes": "Correct times",
+  "reportForm.osmFormatPre": "OSM ",
+  "reportForm.osmFormatPost": " format.",
+  "reportForm.correctAddress": "Correct address",
+  "reportForm.street": "Street",
+  "reportForm.number": "No",
+  "reportForm.postalcode": "Postcode",
+  "reportForm.city": "City",
+  "reportForm.noteOptional": "Note (optional)",
+  "reportForm.notePlaceholder": "What should change?",
+  "reportForm.submit": "▶ Report",
+  "reportForm.moderated": "Reviewed by moderators.",
+  "reportForm.alreadyReported": "You've already reported here:",
+  "reportForm.kindWrongHours": "Wrong opening hours",
+  "reportForm.kindWrongAddress": "Wrong address",
+  "reportForm.kindClosed": "Permanently closed",
+  "reportForm.kindDuplicate": "Duplicate entry",
+  "reportForm.kindOther": "Other",
+
+  "filter.openNow": "Open now",
+  "filter.needsHours": "Hours missing",
+  "filter.sitzen": "Seating",
+  "filter.searchPlaceholder": "Search…",
+  "filter.apply": "Apply filters",
+
+  "kioskList.nothingFound": "… nothing found",
+  "kioskList.nothingHint": "No Trinkhallen in this area – zoom out or loosen the filters.",
+  "kioskList.resetLong": "× Reset filters",
+  "kioskList.resetShort": "× Reset",
+  "kioskList.resetAria": "Reset filters",
+  "kioskList.distanceAria": "Distance",
+  "kioskList.nav": "▶ Nav",
+
+  "page.home.title": "Find Trinkhallen, Spätis & Wasserhäuschen",
+  "page.home.description":
+    "Map of Trinkhallen, Wasserhäuschen and Spätis across Germany — filtered by opening hours, payment and tags. One click to navigate.",
+  "page.jetzt.title": "Navigate now",
+  "page.jetzt.description": "Straight to the nearest open Späti via your map app.",
+  "page.cityNotFound.title": "City not found",
+  "page.about.title": "About trinkhallen.app",
+  "page.about.description":
+    "trinkhallen.app is the open successor to HopfenStop — Trinkhallen, Spätis and Wasserhäuschen across Germany with opening hours, a card-payment filter and direct navigation. Data from OpenStreetMap and the community, open on GitHub.",
+  "page.impressum.title": "Legal notice",
+  "page.impressum.description":
+    "Legal notice for trinkhallen.app — information pursuant to §5 TMG.",
+  "page.datenschutz.title": "Privacy",
+  "page.datenschutz.description":
+    "Privacy policy for trinkhallen.app — what data we process, why, and how to exercise your rights.",
+  "page.notFound.title": "Not found",
+  "page.add.title": "Add a Späti",
+  "page.profile.title": "Profile",
+  "page.kiosk.hours": "Opening hours",
+  "page.kiosk.hoursHint": "Opening hours (tips welcome)",
+  "page.kiosk.germany": "Germany",
+  "city.breadcrumb": "Trinkhallen",
+  "city.viewOnMap": "▶ View on the map",
+  "city.allOnMap": "All on the map →",
+  "notFound.heading": "404 — kiosk not found",
+  "notFound.idMissingPre": "The ID",
+  "notFound.idMissingPost": "doesn't exist.",
+  "notFound.backToMap": "Back to the map",
+  "jetzt.intro": "We'll grab your location, find the nearest open Späti and open your map app.",
+  "jetzt.toMap": "To the map",
+  "jetzt.retry": "Try again",
+  "jetzt.noGeo":
+    "Your browser doesn't support location requests. Open the map and search manually.",
+  "jetzt.locating": "Getting your location …",
+  "jetzt.searching": "Finding the nearest open Späti …",
+  "jetzt.noneOpen": "Nothing is open near you right now. Check the map for the full picture.",
+  "jetzt.openingSuffix": " — opening map app …",
+  "jetzt.lookupFailed": "Couldn't find the nearest Späti. Open the map manually.",
+  "jetzt.geoFailed": "We couldn't read your location. Open the map and navigate from there.",
+
+  "add.heading": "Suggest a Späti",
+  "add.intro": "Your suggestion will be reviewed by moderators and then added to the open dataset.",
+  "add.errBasics": "Name and coordinates are required.",
+  "add.errCoords": "Coordinates are invalid.",
+  "add.legendLocation": "Location",
+  "add.mapHint":
+    "▶ Click on the map to set the exact position. Geolocation (arrow icon, top right) fills it in automatically. The address is pre-filled from the map position — you can overwrite it.",
+  "add.lat": "Latitude (lat)",
+  "add.lng": "Longitude (lng)",
+  "add.legendNameAddress": "Name & address",
+  "add.nameLabel": "Name *",
+  "add.district": "District",
+  "add.descPlaceholder": "What makes this Späti special?",
+  "add.payUnknown": "Unknown",
+  "add.submit": "▶ Submit suggestion",
+
+  "profile.role": "Role:",
+  "profile.stat.checkins": "Check-ins",
+  "profile.stat.signals": "Confirmations",
+  "profile.stat.ratings": "Ratings",
+  "profile.stat.corrections": "Corrections",
+  "profile.stat.suggestions": "Suggestions",
+  "profile.linkAccounts":
+    "Link more sign-in methods to your account — you keep all your ratings, corrections and check-ins.",
+  "profile.connectApple": "Connect Apple",
+  "profile.connectGoogle": "Connect Google",
+  "profile.logout": "Log out",
+  "profile.flash.submitted": "Suggestion saved. Moderators will take a look.",
+  "profile.flash.reported": "Report saved. Thanks!",
+  "profile.flash.linkOk": "Google account linked.",
+  "profile.flash.linkConflict":
+    "This Google account is already linked to another profile here. Sign in there, or write to us if you'd like us to merge the accounts.",
+  "profile.handle.heading": "Your handle",
+  "profile.handle.changed": "Handle changed.",
+  "profile.handle.invalid": "Lowercase letters, numbers, underscore only. 3–24 characters.",
+  "profile.handle.reserved": "This handle is reserved. Choose another.",
+  "profile.handle.taken": "Already taken. Choose another.",
+  "profile.handle.retired": "This handle was used before and is locked.",
+  "profile.handle.unchanged": "That's already your handle.",
+  "profile.handle.alreadyChanged": "You've already changed your handle once — it's now fixed.",
+  "profile.handle.renamePre": "You can change your handle",
+  "profile.handle.renameEmphasis": "once",
+  "profile.handle.renamePost":
+    "— after that it's fixed. 3–24 characters, lowercase, numbers, underscore.",
+  "profile.handle.newLabel": "New handle",
+  "profile.handle.changeBtn": "Change handle",
+  "profile.handle.fixed": "Your handle is set and can no longer be changed.",
+  "profile.suggestKiosk": "+ Suggest a Späti",
+  "profile.noSubmissionsPre": "Nothing suggested yet — get started",
+  "profile.noSubmissionsLink": "here",
+  "profile.noSubmissionsPost": ".",
+  "profile.noName": "(no name)",
+  "profile.prLink": "View PR →",
+  "profile.noCorrections": "You haven't reported any errors yet.",
+  "profile.deleteHeading": "Delete account",
+  "profile.deleteBodyPre":
+    "Permanently deletes your account: email, username, profile, sessions, ratings, check-ins and pending suggestions or corrections are removed. Corrections and suggestions already merged into the ",
+  "profile.deleteBodyLink": "open dataset",
+  "profile.deleteBodyPost": " stay there — the reference to your account is anonymised.",
+  "profile.deleteUnconfirmed": "Please tick the box to confirm deletion.",
+  "profile.deleteToggle": "Really delete account…",
+  "profile.deleteConfirmLabel":
+    "I understand that this action is final and my data cannot be recovered.",
+  "profile.deleteButton": "Permanently delete account",
+
+  "mod.title": "Moderation",
+  "mod.emptyHeading": "Clean inbox",
+  "mod.noSubmissions": "No open suggestions.",
+  "mod.noReports": "No open corrections.",
+  "mod.noUsers": "No accounts.",
+  "mod.noAnomalies": "No open anomalies.",
+  "mod.reason": "Reason (optional)",
+  "mod.unban": "Unban",
+  "mod.shadowban": "Shadow-ban",
+  "mod.by": "by",
+
+  "auth.login": "Log in",
+
+  "error.loginRequired": "Please log in.",
+  "error.kioskNotFound": "Kiosk not found",
+  "error.badRequest": "Bad request",
+  "error.badAction": "Bad action",
+  "error.alreadyReportedKind": "You've already reported this category for this Späti.",
+  "reports.thanksReviewing": "Thanks! We'll review it.",
+  "rating.anonymous": "Anonymous",
+  "rating.noneYet": "No ratings yet — be the first.",
+  "rating.yours": "Your rating",
+  "rating.rate": "Rate",
+  "rating.commentSr": "Comment",
+  "rating.commentPlaceholder": "Optional comment (max. 500 characters)",
+  "rating.update": "Update",
+  "rating.submit": "Submit",
+  "rating.delete": "Delete",
+  "rating.starsAria": "Stars",
+  "rating.loginToRateTail": " to rate this Späti.",
+
+  "client.confirmed": "Confirmed",
+  "client.noted": "Noted",
+  "client.errInternal": "Internal error — can't send.",
+  "client.errNetwork": "Network error — please try again.",
+  "client.alreadyReported": "Already reported.",
+  "client.rating.pickStars": "Please pick 1–5 stars.",
+  "client.rating.loginToRate": "Please log in to rate.",
+  "client.rating.saveFailed": "Couldn't save the rating. Please try again later.",
+  "client.install.description": "Trinkhallen, Spätis and Wasserhäuschen — on the map or as a list.",
+  "client.install.installDescription":
+    "Add to your home screen for full screen without the URL bar.",
+  "client.sw.newVersion": "New version available.",
+  "client.sw.reload": "Reload",
+  "client.sw.loading": "Loading …",
+  "client.sw.close": "Close",
+};
 
 export const MESSAGES: Record<Lang, Record<string, string>> = {
   de: DE,
@@ -381,7 +626,36 @@ const DE_TPL = {
   "city.showing": "{visible} von {total} angezeigt.",
 } as const;
 
-const EN_TPL: Record<string, string> = {};
+const EN_TPL: Record<string, string> = {
+  "oh.openUntil": "Open until {time}",
+  "oh.closedOpensAt": "Closed — opens {time}",
+  "kiosk.introCityDistrict": "{name} is a Späti in the {district} district of {city}.",
+  "kiosk.introCity": "{name} is a Späti in {city}.",
+  "kioskList.countAll": "{n} kiosk{suffix}",
+  "kioskList.countFiltered": "{filtered} / {total} (filtered)",
+  "kioskList.openNow": "{n} open",
+  "kioskList.navTo": "Navigate to {name}",
+  "client.signalOk": "✓ {verb} — thanks!",
+  "client.signalLow": "{verb}, without an on-site check — counts quietly only.",
+  "client.errServer": "Server error ({status}). Please try again.",
+  "rating.count": "{n} rating{suffix}",
+  "rating.starsOfFive": "{n} out of 5 stars",
+  "rating.nStars": "{n} stars",
+  "mod.tabSubmissions": "Suggestions ({n})",
+  "mod.tabReports": "Corrections ({n})",
+  "mod.tabUsers": "Accounts ({n})",
+  "mod.tabAnomalies": "Anomalies ({n})",
+  "page.kiosk.headline": "{name} — Späti in {city}",
+  "page.kiosk.description":
+    "{name} in {where} — {hours}, payment methods and one click to navigate on trinkhallen.app.",
+  "page.city.title": "Trinkhallen, Spätis & Wasserhäuschen in {city}",
+  "page.city.description":
+    "{total} Trinkhallen, Spätis and Wasserhäuschen in {city} — with opening hours, card payment and direct navigation. {openNow} open now.",
+  "city.heading": "Spätis & Trinkhallen in {city}",
+  "city.locations": "{total} locations in {city}.",
+  "city.openNow": "{n} open now.",
+  "city.showing": "Showing {visible} of {total}.",
+};
 
 export const TEMPLATES: Record<Lang, Record<string, string>> = {
   de: DE_TPL,
@@ -410,7 +684,17 @@ export const REPORT_KIND_LABELS: Record<Lang, Record<string, string>> = {
     ph_open_observed: "Feiertags-Öffnung beobachtet",
     other: "Sonstiges",
   },
-  en: {},
+  en: {
+    wrong_hours: "Opening hours",
+    wrong_address: "Address",
+    wrong_name: "Name",
+    closed: "Closed",
+    duplicate: "Duplicate",
+    update_payment: "Payment methods",
+    update_tags: "Amenities",
+    ph_open_observed: "Holiday opening observed",
+    other: "Other",
+  },
 };
 
 /** Report status labels — note pr_opened/approved deliberately collapse to one. */
@@ -423,7 +707,14 @@ export const REPORT_STATUS_LABELS: Record<Lang, Record<string, string>> = {
     merged: "Übernommen",
     dismissed: "Abgelehnt",
   },
-  en: {},
+  en: {
+    open: "Under review",
+    pending: "Under review",
+    pr_opened: "Accepted",
+    approved: "Accepted",
+    merged: "Applied",
+    dismissed: "Rejected",
+  },
 };
 
 /** Tag display overrides (lib/tags.ts); slugs not listed fall back to titlecase. */
@@ -446,7 +737,31 @@ export const TAG_LABELS: Record<Lang, Record<string, string>> = {
     wlan: "WLAN",
     geldautomat: "Geldautomat",
   },
-  en: {},
+  en: {
+    applewoi: "Cider",
+    fritz_kola: "fritz-kola",
+    backwaren: "Baked goods",
+    eis: "Ice cream",
+    zeitungen: "Newspapers",
+    snacks: "Snacks",
+    gemischte_tuete: "Pick'n'mix",
+    gluecksspiele: "Gambling",
+    innenraum: "Indoor seating",
+    stehtisch: "Standing table",
+    ueberdacht: "Covered",
+    draussen: "Outdoors",
+    gemuetlich: "Cosy",
+    wohnzimmer: "Living-room vibe",
+    craft_bier: "Craft beer",
+    raucherbereich: "Smoking area",
+    barrierefrei: "Accessible",
+    sonne: "Sunny",
+    wc: "Toilet",
+    sitzgelegenheiten: "Seating",
+    paketshop: "Parcel pickup",
+    wlan: "Wi-Fi",
+    geldautomat: "ATM",
+  },
 };
 
 /** Payment-method display labels (KioskDetail / CheckinForm); icons stay in-component. */
@@ -457,7 +772,12 @@ export const PAYMENT_LABELS: Record<Lang, Record<string, string>> = {
     contactless: "Kontaktlos",
     girocard: "Girocard",
   },
-  en: {},
+  en: {
+    cash: "Cash",
+    cards: "Card",
+    contactless: "Contactless",
+    girocard: "Girocard",
+  },
 };
 
 /** Status pills on the profile page (distinct wording from REPORT_STATUS_LABELS). */
@@ -470,7 +790,14 @@ export const STATUS_PILL_LABELS: Record<Lang, Record<string, string>> = {
     merged: "Übernommen",
     dismissed: "Abgelehnt",
   },
-  en: {},
+  en: {
+    open: "Open",
+    pending: "Waiting",
+    pr_opened: "Accepted",
+    approved: "Accepted",
+    merged: "Applied",
+    dismissed: "Rejected",
+  },
 };
 
 /** Localized payment-method label; falls back to German then the slug. */
@@ -485,7 +812,11 @@ export const TAG_GROUP_LABELS: Record<Lang, Record<string, string>> = {
     Ambiente: "Ambiente",
     Ausstattung: "Ausstattung",
   },
-  en: {},
+  en: {
+    Sortiment: "What they sell",
+    Ambiente: "Atmosphere",
+    Ausstattung: "Facilities",
+  },
 };
 
 /** Opening-hours status words + weekday abbreviations (lib/opening-hours.ts). */

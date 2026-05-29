@@ -80,7 +80,7 @@ const AggregateView: FC<{ lang: Lang; aggregate: Aggregate }> = ({ lang, aggrega
         <p class="text-sm text-fg-dim">
           {tpl(lang, "rating.count", {
             n: aggregate.count,
-            suffix: aggregate.count === 1 ? "" : "en",
+            suffix: aggregate.count === 1 ? "" : lang === "en" ? "s" : "en",
           })}
         </p>
       </div>
