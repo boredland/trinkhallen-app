@@ -190,17 +190,16 @@ document.querySelectorAll<HTMLFormElement>("[data-filter-form]").forEach(attachF
     .forEach((b) => b.addEventListener("click", () => setCollapsed(true)));
   expandBtn.addEventListener("click", () => setCollapsed(false));
 
-  // Mobile drag-to-collapse on the grab handle — same gesture as the kiosk
-  // sheet, via the shared helper.
-  const handle = sidebar.querySelector<HTMLElement>("[data-drag-handle]");
-  if (handle) {
-    installDragToDismiss({
-      handle,
-      target: sidebar,
-      threshold: 0.25,
-      onDismiss: () => setCollapsed(true),
-    });
-  }
+  // Mobile drag-to-collapse — the whole panel is draggable, not just the
+  // handle. The scroll gate (sidebar at top + downward pull) keeps normal list
+  // scrolling intact; the visible grab handle stays as the affordance.
+  installDragToDismiss({
+    surface: sidebar,
+    target: sidebar,
+    scrollContainer: sidebar,
+    threshold: 0.25,
+    onDismiss: () => setCollapsed(true),
+  });
 })();
 
 // ── data-back links: prefer history.back() when we came from same-origin ────
