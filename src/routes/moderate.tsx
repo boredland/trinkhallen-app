@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { Layout } from "../components/Layout";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
-import { type Lang, resolveLang } from "../lib/messages";
+import { type Lang, resolveLang, t, tpl } from "../lib/messages";
 import {
   approveReport,
   approveSubmission,
@@ -137,7 +137,7 @@ moderate.get("/moderate", async (c) => {
   return c.html(
     <Layout lang={lang} title="Moderation" noindex nav="me" user={user}>
       <header class="mb-6 flex items-end justify-between">
-        <h1 class="font-display text-4xl tracking-wide text-fg">Moderation</h1>
+        <h1 class="font-display text-4xl tracking-wide text-fg">{t(lang, "mod.title")}</h1>
         <p class="text-xs uppercase tracking-wider text-fg-dim">{user.role}</p>
       </header>
 
@@ -145,29 +145,29 @@ moderate.get("/moderate", async (c) => {
         <TabLink
           href="/moderate?tab=submissions"
           active={tab === "submissions"}
-          label={`Vorschläge (${subs.results.length})`}
+          label={tpl(lang, "mod.tabSubmissions", { n: subs.results.length })}
         />
         <TabLink
           href="/moderate?tab=reports"
           active={tab === "reports"}
-          label={`Korrekturen (${reportRows.length})`}
+          label={tpl(lang, "mod.tabReports", { n: reportRows.length })}
         />
         <TabLink
           href="/moderate?tab=users"
           active={tab === "users"}
-          label={`Konten (${users.results.length})`}
+          label={tpl(lang, "mod.tabUsers", { n: users.results.length })}
         />
         <TabLink
           href="/moderate?tab=anomalies"
           active={tab === "anomalies"}
-          label={`Anomalien (${anomalies.results.length})`}
+          label={tpl(lang, "mod.tabAnomalies", { n: anomalies.results.length })}
         />
       </nav>
 
       {tab === "submissions" && <SubmissionQueue lang={lang} rows={subs.results} />}
-      {tab === "reports" && <ReportQueue rows={reportRows} />}
-      {tab === "users" && <UsersQueue rows={users.results} />}
-      {tab === "anomalies" && <AnomaliesQueue rows={anomalies.results} />}
+      {tab === "reports" && <ReportQueue lang={lang} rows={reportRows} />}
+      {tab === "users" && <UsersQueue lang={lang} rows={users.results} />}
+      {tab === "anomalies" && <AnomaliesQueue lang={lang} rows={anomalies.results} />}
     </Layout>,
   );
 });
@@ -187,7 +187,7 @@ function TabLink({ href, active, label }: { href: string; active: boolean; label
   );
 }
 
-function ApproveRejectForm({ endpoint }: { endpoint: string }) {
+function ApproveRejectForm({ lang, endpoint }: { lang: Lang; endpoint: string }) {
   return (
     <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
       <form action={`${endpoint}/approve`} method="post">
@@ -201,7 +201,7 @@ function ApproveRejectForm({ endpoint }: { endpoint: string }) {
           <input
             type="text"
             name="note"
-            placeholder="Begründung (optional)"
+            placeholder={t(lang, "mod.reason")}
             class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-sm text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
           />
         </label>
@@ -217,7 +217,7 @@ function ApproveRejectForm({ endpoint }: { endpoint: string }) {
 }
 
 function SubmissionQueue({ lang, rows }: { lang: Lang; rows: PendingSubmissionRow[] }) {
-  if (rows.length === 0) return <EmptyQueue label="Keine offenen Vorschläge." />;
+  if (rows.length === 0) return <EmptyQueue lang={lang} label={t(lang, "mod.noSubmissions")} />;
   return (
     <ul class="space-y-4">
       {rows.map((s) => {
@@ -239,7 +239,8 @@ function SubmissionQueue({ lang, rows }: { lang: Lang; rows: PendingSubmissionRo
             <header class="flex flex-wrap items-baseline justify-between gap-2">
               <h2 class="font-display text-2xl tracking-wide text-fg">{p.name}</h2>
               <p class="text-xs text-fg-dim">
-                von {s.user_username ? `@${s.user_username}` : s.user_email.split("@")[0]} ·{" "}
+                {t(lang, "mod.by")}{" "}
+                {s.user_username ? `@${s.user_username}` : s.user_email.split("@")[0]} ·{" "}
                 {new Date(s.created_at * 1000).toLocaleDateString("de-DE")}
               </p>
             </header>
@@ -279,7 +280,7 @@ function SubmissionQueue({ lang, rows }: { lang: Lang; rows: PendingSubmissionRo
               </pre>
             </details>
             <div class="mt-4">
-              <ApproveRejectForm endpoint={`/api/moderate/submissions/${s.id}`} />
+              <ApproveRejectForm lang={lang} endpoint={`/api/moderate/submissions/${s.id}`} />
             </div>
           </li>
         );
@@ -288,8 +289,8 @@ function SubmissionQueue({ lang, rows }: { lang: Lang; rows: PendingSubmissionRo
   );
 }
 
-function ReportQueue({ rows }: { rows: PendingReportRow[] }) {
-  if (rows.length === 0) return <EmptyQueue label="Keine offenen Korrekturen." />;
+function ReportQueue({ lang, rows }: { lang: Lang; rows: PendingReportRow[] }) {
+  if (rows.length === 0) return <EmptyQueue lang={lang} label={t(lang, "mod.noReports")} />;
   return (
     <ul class="space-y-4">
       {rows.map((r) => {
@@ -303,7 +304,8 @@ function ReportQueue({ rows }: { rows: PendingReportRow[] }) {
                 </a>
               </h2>
               <p class="text-xs text-fg-dim">
-                von {r.user_username ? `@${r.user_username}` : r.user_email.split("@")[0]} ·{" "}
+                {t(lang, "mod.by")}{" "}
+                {r.user_username ? `@${r.user_username}` : r.user_email.split("@")[0]} ·{" "}
                 {new Date(r.created_at * 1000).toLocaleDateString("de-DE")}
               </p>
             </header>
@@ -316,7 +318,7 @@ function ReportQueue({ rows }: { rows: PendingReportRow[] }) {
               {JSON.stringify(payload, null, 2)}
             </pre>
             <div class="mt-4">
-              <ApproveRejectForm endpoint={`/api/moderate/reports/${r.id}`} />
+              <ApproveRejectForm lang={lang} endpoint={`/api/moderate/reports/${r.id}`} />
             </div>
           </li>
         );
@@ -325,17 +327,17 @@ function ReportQueue({ rows }: { rows: PendingReportRow[] }) {
   );
 }
 
-function EmptyQueue({ label }: { label: string }) {
+function EmptyQueue({ lang, label }: { lang: Lang; label: string }) {
   return (
     <div class="border-2 border-border bg-surface p-6 text-fg-muted">
-      <p class="font-display text-xl tracking-wide text-fg">▶▶▶ Saubere Inbox</p>
+      <p class="font-display text-xl tracking-wide text-fg">▶▶▶ {t(lang, "mod.emptyHeading")}</p>
       <p class="mt-2 text-sm">{label}</p>
     </div>
   );
 }
 
-function UsersQueue({ rows }: { rows: UserRow[] }) {
-  if (rows.length === 0) return <EmptyQueue label="Keine Konten." />;
+function UsersQueue({ lang, rows }: { lang: Lang; rows: UserRow[] }) {
+  if (rows.length === 0) return <EmptyQueue lang={lang} label={t(lang, "mod.noUsers")} />;
   const fmt = (n: number) => new Date(n * 1000).toLocaleDateString("de-DE");
   return (
     <ul class="divide-y-2 divide-border border-2 border-border bg-surface">
@@ -374,7 +376,7 @@ function UsersQueue({ rows }: { rows: UserRow[] }) {
                     : "cursor-pointer border-2 border-danger px-3 py-1.5 font-display text-sm tracking-wide text-danger hover:bg-danger hover:text-bg"
                 }
               >
-                {banned ? "Entbannen" : "Shadow-bannen"}
+                {banned ? t(lang, "mod.unban") : t(lang, "mod.shadowban")}
               </button>
             </form>
           </li>
@@ -384,8 +386,8 @@ function UsersQueue({ rows }: { rows: UserRow[] }) {
   );
 }
 
-function AnomaliesQueue({ rows }: { rows: PendingAnomalyRow[] }) {
-  if (rows.length === 0) return <EmptyQueue label="Keine offenen Anomalien." />;
+function AnomaliesQueue({ lang, rows }: { lang: Lang; rows: PendingAnomalyRow[] }) {
+  if (rows.length === 0) return <EmptyQueue lang={lang} label={t(lang, "mod.noAnomalies")} />;
   return (
     <ul class="space-y-4">
       {rows.map((a) => {

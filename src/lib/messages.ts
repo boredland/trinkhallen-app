@@ -141,6 +141,18 @@ const DE = {
   "kioskList.distanceAria": "Entfernung",
   "kioskList.nav": "▶ Nav",
 
+  // moderation (admin)
+  "mod.title": "Moderation",
+  "mod.emptyHeading": "Saubere Inbox",
+  "mod.noSubmissions": "Keine offenen Vorschläge.",
+  "mod.noReports": "Keine offenen Korrekturen.",
+  "mod.noUsers": "Keine Konten.",
+  "mod.noAnomalies": "Keine offenen Anomalien.",
+  "mod.reason": "Begründung (optional)",
+  "mod.unban": "Entbannen",
+  "mod.shadowban": "Shadow-bannen",
+  "mod.by": "von",
+
   // auth
   "auth.login": "Anmelden",
 
@@ -210,6 +222,10 @@ const DE_TPL = {
   "rating.count": "{n} Bewertung{suffix}",
   "rating.starsOfFive": "{n} von 5 Sternen",
   "rating.nStars": "{n} Sterne",
+  "mod.tabSubmissions": "Vorschläge ({n})",
+  "mod.tabReports": "Korrekturen ({n})",
+  "mod.tabUsers": "Konten ({n})",
+  "mod.tabAnomalies": "Anomalien ({n})",
 } as const;
 
 export const TEMPLATES: Record<Lang, Record<string, string>> = {
