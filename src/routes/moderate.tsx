@@ -135,7 +135,7 @@ moderate.get("/moderate", async (c) => {
   }));
 
   return c.html(
-    <Layout title="Moderation" noindex nav="me" user={user}>
+    <Layout lang={lang} title="Moderation" noindex nav="me" user={user}>
       <header class="mb-6 flex items-end justify-between">
         <h1 class="font-display text-4xl tracking-wide text-fg">Moderation</h1>
         <p class="text-xs uppercase tracking-wider text-fg-dim">{user.role}</p>

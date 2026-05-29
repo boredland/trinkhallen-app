@@ -1,6 +1,7 @@
 import { raw } from "hono/html";
 import type { FC, PropsWithChildren } from "hono/jsx";
 import { asset, type ClientEntry } from "../lib/assets";
+import { type Lang, OG_LOCALE, t } from "../lib/messages";
 
 export interface LayoutUser {
   id: string;
@@ -28,17 +29,17 @@ export interface LayoutProps {
   fullBleed?: boolean;
   /** Pass `c.var.user` through; controls the header right-hand area. */
   user?: LayoutUser | undefined;
+  /** Request language — drives chrome copy + `<html lang>` / og:locale. */
+  lang: Lang;
 }
 
 const SITE = "TRINKHALLEN.APP";
 const ORIGIN = "https://trinkhallen.app";
-const DESCRIPTION_DEFAULT =
-  "Finde Trinkhallen, Wasserhäuschen und Spätis in deiner Nähe. Offen jetzt, Karte akzeptiert, ein Klick zur Navigation.";
 
 export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
   children,
   title,
-  description = DESCRIPTION_DEFAULT,
+  description,
   canonicalUrl,
   noindex = false,
   jsonLd,
@@ -46,7 +47,9 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
   clientEntries = ["app"],
   fullBleed = false,
   user,
+  lang,
 }) => {
+  const desc = description ?? t(lang, "meta.descriptionDefault");
   const fullTitle = title ? `${title} · ${SITE}` : SITE;
   const canonical = canonicalUrl ?? ORIGIN + (nav === "about" ? "/about" : "/");
   // 1200×630 PNG — Slack/Discord/Twitter/LinkedIn all want this aspect
@@ -57,7 +60,7 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
   const jsonLdBlocks = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
   return (
-    <html lang="de" data-theme="dark">
+    <html lang={lang} data-theme="dark">
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -70,27 +73,24 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
             light flash between pages. The CSS still flips this to `light` for
             [data-theme="light"] once it loads. */}
         <meta name="color-scheme" content="dark" />
-        <meta name="description" content={description} />
+        <meta name="description" content={desc} />
         {noindex && <meta name="robots" content="noindex, nofollow" />}
         <link rel="canonical" href={canonical} />
         <meta property="og:title" content={fullTitle} />
-        <meta property="og:description" content={description} />
+        <meta property="og:description" content={desc} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonical} />
         <meta property="og:image" content={ogImage} />
         <meta property="og:image:type" content="image/png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta
-          property="og:image:alt"
-          content="trinkhallen.app — Karte deutscher Trinkhallen, Wasserhäuschen und Spätis"
-        />
-        <meta property="og:locale" content="de_DE" />
+        <meta property="og:image:alt" content={t(lang, "meta.ogImageAlt")} />
+        <meta property="og:locale" content={OG_LOCALE[lang]} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={fullTitle} />
-        <meta name="twitter:description" content={description} />
+        <meta name="twitter:description" content={desc} />
         <meta name="twitter:image" content={ogImage} />
-        <link rel="alternate" hreflang="de" href={canonical} />
+        <link rel="alternate" hreflang={lang} href={canonical} />
         <title>{fullTitle}</title>
 
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -166,7 +166,7 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         </script>
       </head>
       <body class={fullBleed ? "h-dvh overflow-hidden" : "min-h-dvh"}>
-        <Header nav={nav} user={user} />
+        <Header lang={lang} nav={nav} user={user} />
         <main
           class={
             fullBleed
@@ -176,32 +176,33 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         >
           {children}
         </main>
-        {!fullBleed && <Footer />}
+        {!fullBleed && <Footer lang={lang} />}
       </body>
     </html>
   );
 };
 
-const Header: FC<{ nav: NonNullable<LayoutProps["nav"]>; user?: LayoutUser | undefined }> = ({
-  nav,
-  user,
-}) => (
+const Header: FC<{
+  lang: Lang;
+  nav: NonNullable<LayoutProps["nav"]>;
+  user?: LayoutUser | undefined;
+}> = ({ lang, nav, user }) => (
   <header class="sticky top-0 z-40 h-[var(--header-h)] border-b-2 border-border bg-bg/95 backdrop-blur">
     <div class="mx-auto flex h-full w-full max-w-7xl items-center gap-6 px-4">
       <a href="/" class="font-display text-xl tracking-wide text-fg">
         TRINKHALLEN<span class="text-neon-pink">.</span>APP
       </a>
       <nav class="hidden flex-1 items-center gap-4 sm:flex">
-        <NavLink href="/" active={nav === "map"} label="Karte" />
-        <NavLink href="/about" active={nav === "about"} label="Über" />
+        <NavLink href="/" active={nav === "map"} label={t(lang, "nav.map")} />
+        <NavLink href="/about" active={nav === "about"} label={t(lang, "nav.about")} />
         {user && (user.role === "moderator" || user.role === "admin") && (
-          <NavLink href="/moderate" active={nav === "moderate"} label="Mod" />
+          <NavLink href="/moderate" active={nav === "moderate"} label={t(lang, "nav.mod")} />
         )}
       </nav>
       <div class="flex flex-1 items-center justify-end gap-3 sm:flex-none">
         <button
           type="button"
-          aria-label="Theme wechseln"
+          aria-label={t(lang, "nav.themeToggle")}
           class="cursor-pointer text-fg-muted transition-colors hover:text-neon-pink"
           data-theme-toggle
         >
@@ -291,21 +292,21 @@ const NavLink: FC<{ href: string; active: boolean; label: string }> = ({ href, a
   </a>
 );
 
-const Footer: FC = () => (
+const Footer: FC<{ lang: Lang }> = ({ lang }) => (
   <footer class="mt-16 border-t-2 border-border">
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-fg-dim sm:flex-row sm:items-center sm:justify-between">
       <p>
-        Daten: CC BY-NC 4.0 ·{" "}
+        {t(lang, "footer.dataLicense")} ·{" "}
         <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="/about">
-          Über &amp; Mitwirken
+          {t(lang, "footer.aboutContribute")}
         </a>
       </p>
       <nav class="flex flex-wrap gap-x-4 gap-y-1">
         <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="/impressum">
-          Impressum
+          {t(lang, "footer.imprint")}
         </a>
         <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="/datenschutz">
-          Datenschutz
+          {t(lang, "footer.privacy")}
         </a>
         <a
           class="underline-offset-2 hover:text-neon-cyan hover:underline"

@@ -263,6 +263,7 @@ async function renderMapPage(
 
   return c.html(
     <Layout
+      lang={lang}
       title={title}
       description={description}
       canonicalUrl={canonicalUrl}
@@ -388,6 +389,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/jetzt", (c) =>
     c.html(
       <Layout
+        lang={resolveLang(c.req.header("accept-language"))}
         title="Jetzt navigieren"
         description="Direkt zum nächsten geöffneten Späti per Karten-App."
         noindex
@@ -476,7 +478,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const region = manifest.regions.find((r) => r.slug === slug);
     if (!region || kiosks.length === 0) {
       return c.html(
-        <Layout title="Stadt nicht gefunden" noindex nav="map" user={c.get("user")}>
+        <Layout lang={lang} title="Stadt nicht gefunden" noindex nav="map" user={c.get("user")}>
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Stadt nicht gefunden</h1>
           <p class="mt-3 text-fg-muted">
             <code class="font-mono">{slug}</code> ist nicht in unserem Datensatz.{" "}
@@ -532,6 +534,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
 
     return c.html(
       <Layout
+        lang={lang}
         title={`Trinkhallen, Spätis & Wasserhäuschen in ${city}`}
         description={`${total} Trinkhallen, Spätis und Wasserhäuschen in ${city} — mit Öffnungszeiten, Kartenzahlung und Direktnavigation. ${openNowCount} jetzt offen.`}
         canonicalUrl={`${ORIGIN}/stadt/${slug}`}
@@ -596,6 +599,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     ]);
     return c.html(
       <Layout
+        lang={resolveLang(c.req.header("accept-language"))}
         title="Über trinkhallen.app"
         description="trinkhallen.app ist der offene Nachfolger von HopfenStop — Trinkhallen, Spätis und Wasserhäuschen in ganz Deutschland mit Öffnungszeiten, Kartenzahlung-Filter und Direktnavigation. Daten aus OpenStreetMap und der Community, offen auf GitHub."
         canonicalUrl="https://trinkhallen.app/about"
@@ -790,6 +794,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/impressum", (c) =>
     c.html(
       <Layout
+        lang={resolveLang(c.req.header("accept-language"))}
         title="Impressum"
         description="Impressum von trinkhallen.app — Angaben gemäß §5 TMG."
         canonicalUrl="https://trinkhallen.app/impressum"
@@ -901,6 +906,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/datenschutz", (c) =>
     c.html(
       <Layout
+        lang={resolveLang(c.req.header("accept-language"))}
         title="Datenschutz"
         description="Datenschutzerklärung von trinkhallen.app — welche Daten wir verarbeiten, warum, und wie du deine Rechte ausübst."
         canonicalUrl="https://trinkhallen.app/datenschutz"
@@ -1169,7 +1175,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     if (!kiosk) {
       if (partial) return c.text("not found", 404);
       return c.html(
-        <Layout title="Nicht gefunden" noindex nav="map" user={user}>
+        <Layout lang={lang} title="Nicht gefunden" noindex nav="map" user={user}>
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Kiosk nicht gefunden</h1>
           <p class="mt-3 text-fg-muted">
             Die ID <code class="font-mono">{id}</code> existiert nicht.{" "}
@@ -1221,6 +1227,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const city = kiosk.address["city"];
     return c.html(
       <Layout
+        lang={lang}
         title={kioskHeadline(kiosk)}
         description={kioskDescription(kiosk)}
         canonicalUrl={`${ORIGIN}/k/${kiosk.id}`}
@@ -1263,6 +1270,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const error = url.searchParams.get("error");
     return c.html(
       <Layout
+        lang={resolveLang(c.req.header("accept-language"))}
         title="Späti hinzufügen"
         noindex
         nav="map"
@@ -1462,7 +1470,13 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     if (!user) {
       const magic = c.req.query("magic");
       return c.html(
-        <Layout title="Anmelden" noindex nav="me" user={undefined}>
+        <Layout
+          lang={resolveLang(c.req.header("accept-language"))}
+          title="Anmelden"
+          noindex
+          nav="me"
+          user={undefined}
+        >
           <section class="border-2 border-border bg-surface p-8">
             <h1 class="font-display text-3xl tracking-wide text-fg sm:text-4xl">Anmelden</h1>
             <p class="mt-3 text-fg-muted">
@@ -1689,7 +1703,7 @@ async function renderProfile(
   const fmtDate = (s: number) => new Date(s * 1000).toLocaleDateString("de-DE");
 
   return c.html(
-    <Layout title="Profil" noindex nav="me" user={user}>
+    <Layout lang={lang} title="Profil" noindex nav="me" user={user}>
       <section class="border-2 border-border bg-surface p-6">
         <div class="flex items-center gap-4">
           <span class="grid h-16 w-16 place-items-center border-2 border-border-hi bg-neon-pink/20 font-display text-2xl text-neon-pink">

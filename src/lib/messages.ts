@@ -23,6 +23,9 @@ const SUPPORTED: readonly Lang[] = ["de"];
 /** BCP-47 locale per language, for Intl date/number formatting. */
 export const INTL_LOCALE: Record<Lang, string> = { de: "de-DE" };
 
+/** Open Graph locale per language (`<meta property="og:locale">`). */
+export const OG_LOCALE: Record<Lang, string> = { de: "de_DE" };
+
 /**
  * Resolve the request/document language. Placeholder until detection lands
  * (Accept-Language / URL / cookie) — always German for now, but every caller
@@ -39,7 +42,13 @@ export function resolveLang(candidate?: string | null): Lang {
 
 const DE = {
   // nav / chrome
+  "nav.map": "Karte",
   "nav.about": "Über",
+  "nav.mod": "Mod",
+  "nav.themeToggle": "Theme wechseln",
+  "meta.descriptionDefault":
+    "Finde Trinkhallen, Wasserhäuschen und Spätis in deiner Nähe. Offen jetzt, Karte akzeptiert, ein Klick zur Navigation.",
+  "meta.ogImageAlt": "trinkhallen.app — Karte deutscher Trinkhallen, Wasserhäuschen und Spätis",
   "footer.dataLicense": "Daten: CC BY-NC 4.0",
   "footer.aboutContribute": "Über & Mitwirken",
   "footer.imprint": "Impressum",
