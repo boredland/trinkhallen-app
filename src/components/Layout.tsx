@@ -311,6 +311,14 @@ const Footer: FC = () => (
         >
           HopfenStop
         </a>
+        <button
+          type="button"
+          data-tk-refresh
+          class="underline-offset-2 hover:text-neon-cyan hover:underline disabled:opacity-60"
+          title="Caches leeren und neu laden — hilft, wenn die App nach einem Update veraltet wirkt"
+        >
+          App aktualisieren
+        </button>
       </nav>
     </div>
   </footer>
