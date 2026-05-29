@@ -344,6 +344,17 @@ async function renderMapPage(
           data-collapsed="false"
           class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 max-h-[80dvh] overflow-y-auto overscroll-contain border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out [touch-action:pan-y] data-[collapsed=true]:translate-y-full sm:top-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
         >
+          {/* Mobile grab handle — mirrors the kiosk sheet: sits at the top of
+              the panel, drag down to collapse. Hidden on desktop where the
+              panel docks to the left edge instead. */}
+          <button
+            type="button"
+            data-sidebar-handle
+            aria-label="Filter ausblenden — nach unten ziehen"
+            class="flex w-full cursor-grab touch-none items-center justify-center bg-surface py-2 sm:hidden"
+          >
+            <span class="block h-1 w-10 rounded-full bg-border-hi" />
+          </button>
           <div class="sticky top-0 z-10 border-b-2 border-border bg-surface p-3 pr-10">
             <FilterChips filter={filter} formAction="/" />
             {/* Direction-aware glyph: ← on desktop (sidebar slides off left),

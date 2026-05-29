@@ -165,6 +165,41 @@ document.querySelectorAll<HTMLFormElement>("[data-filter-form]").forEach(attachF
     .querySelectorAll<HTMLButtonElement>("[data-sidebar-collapse]")
     .forEach((b) => b.addEventListener("click", () => setCollapsed(true)));
   expandBtn.addEventListener("click", () => setCollapsed(false));
+
+  // Mobile drag-to-collapse on the grab handle — mirrors the kiosk sheet
+  // (src/client/sheet.ts). Drag the panel down; release past ~25% of its
+  // height collapses it, otherwise it springs back.
+  const handle = sidebar.querySelector<HTMLElement>("[data-sidebar-handle]");
+  if (handle) {
+    let startY = 0;
+    let lastDy = 0;
+    let dragging = false;
+    const onDown = (e: PointerEvent) => {
+      if (window.matchMedia("(min-width: 640px)").matches) return; // mobile only
+      dragging = true;
+      startY = e.clientY;
+      lastDy = 0;
+      handle.setPointerCapture(e.pointerId);
+      sidebar.style.transition = "none";
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      lastDy = Math.max(0, e.clientY - startY);
+      sidebar.style.transform = `translateY(${lastDy}px)`;
+    };
+    const end = (cancelled: boolean) => {
+      if (!dragging) return;
+      dragging = false;
+      sidebar.style.transition = "";
+      sidebar.style.transform = "";
+      const height = sidebar.getBoundingClientRect().height || 400;
+      if (!cancelled && lastDy > height * 0.25) setCollapsed(true);
+    };
+    handle.addEventListener("pointerdown", onDown);
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", () => end(false));
+    handle.addEventListener("pointercancel", () => end(true));
+  }
 })();
 
 // ── data-back links: prefer history.back() when we came from same-origin ────
