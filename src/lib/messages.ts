@@ -162,6 +162,27 @@ const DE = {
   "page.kiosk.hours": "Öffnungszeiten",
   "page.kiosk.hoursHint": "Öffnungszeiten (Hinweise willkommen)",
   "page.kiosk.germany": "Deutschland",
+  "city.breadcrumb": "Trinkhallen",
+  "city.viewOnMap": "▶ Auf der Karte ansehen",
+  "city.allOnMap": "Alle auf der Karte →",
+  "notFound.heading": "404 — Kiosk nicht gefunden",
+  "notFound.idMissingPre": "Die ID",
+  "notFound.idMissingPost": "existiert nicht.",
+  "notFound.backToMap": "Zurück zur Karte",
+  "jetzt.intro":
+    "Wir holen kurz deinen Standort, suchen den nächsten geöffneten Späti und öffnen deine Karten-App.",
+  "jetzt.toMap": "Zur Karte",
+  "jetzt.retry": "Erneut versuchen",
+  "jetzt.noGeo":
+    "Dein Browser unterstützt keine Standort-Anfrage. Öffne die Karte und such manuell.",
+  "jetzt.locating": "Standort wird ermittelt …",
+  "jetzt.searching": "Suche den nächsten geöffneten Späti …",
+  "jetzt.noneOpen":
+    "In deiner Nähe ist gerade nichts geöffnet. Schau auf die Karte für die volle Übersicht.",
+  "jetzt.openingSuffix": " — Karten-App wird geöffnet …",
+  "jetzt.lookupFailed": "Konnte den nächsten Späti nicht ermitteln. Öffne die Karte manuell.",
+  "jetzt.geoFailed":
+    "Wir konnten deinen Standort nicht lesen. Öffne die Karte und navigiere von dort.",
 
   // profile (/me)
   "profile.role": "Rolle:",
@@ -306,6 +327,10 @@ const DE_TPL = {
   "page.city.title": "Trinkhallen, Spätis & Wasserhäuschen in {city}",
   "page.city.description":
     "{total} Trinkhallen, Spätis und Wasserhäuschen in {city} — mit Öffnungszeiten, Kartenzahlung und Direktnavigation. {openNow} jetzt offen.",
+  "city.heading": "Spätis & Trinkhallen in {city}",
+  "city.locations": "{total} Standorte in {city}.",
+  "city.openNow": "{n} jetzt offen.",
+  "city.showing": "{visible} von {total} angezeigt.",
 } as const;
 
 export const TEMPLATES: Record<Lang, Record<string, string>> = {

@@ -16,7 +16,7 @@ import {
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox, parseLatLng } from "../lib/geo";
-import { type Lang, resolveLang, STATUS_PILL_LABELS, t, tpl } from "../lib/messages";
+import { INTL_LOCALE, type Lang, resolveLang, STATUS_PILL_LABELS, t, tpl } from "../lib/messages";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating, listComments } from "../lib/ratings";
@@ -384,28 +384,39 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   // open native Maps for navigation". Requires browser geolocation; the
   // page below holds the user-gesture flow that pre-permission iOS Safari
   // needs and degrades gracefully to the map on denial or no-results.
-  app.get("/jetzt", (c) =>
-    c.html(
+  app.get("/jetzt", (c) => {
+    const lang = resolveLang(c.req.header("accept-language"));
+    const jsMsg = {
+      noGeo: t(lang, "jetzt.noGeo"),
+      locating: t(lang, "jetzt.locating"),
+      searching: t(lang, "jetzt.searching"),
+      noneOpen: t(lang, "jetzt.noneOpen"),
+      openingSuffix: t(lang, "jetzt.openingSuffix"),
+      lookupFailed: t(lang, "jetzt.lookupFailed"),
+      geoFailed: t(lang, "jetzt.geoFailed"),
+    };
+    return c.html(
       <Layout
-        lang={resolveLang(c.req.header("accept-language"))}
-        title={t(resolveLang(c.req.header("accept-language")), "page.jetzt.title")}
-        description={t(resolveLang(c.req.header("accept-language")), "page.jetzt.description")}
+        lang={lang}
+        title={t(lang, "page.jetzt.title")}
+        description={t(lang, "page.jetzt.description")}
         noindex
         nav="map"
         user={c.get("user")}
       >
         <article class="border-2 border-border bg-surface p-6">
-          <h1 class="font-display text-3xl tracking-wide text-fg sm:text-4xl">Jetzt navigieren</h1>
+          <h1 class="font-display text-3xl tracking-wide text-fg sm:text-4xl">
+            {t(lang, "page.jetzt.title")}
+          </h1>
           <p id="jetzt-status" class="mt-4 text-fg-muted" aria-live="polite">
-            Wir holen kurz deinen Standort, suchen den nächsten geöffneten Späti und öffnen deine
-            Karten-App.
+            {t(lang, "jetzt.intro")}
           </p>
           <div id="jetzt-actions" class="mt-6 hidden flex-col gap-3 sm:flex-row sm:flex-wrap">
             <a href="/" class="btn-neon">
-              Zur Karte
+              {t(lang, "jetzt.toMap")}
             </a>
             <button type="button" id="jetzt-retry" class="btn-neon">
-              Erneut versuchen
+              {t(lang, "jetzt.retry")}
             </button>
           </div>
         </article>
@@ -423,33 +434,34 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                     actions.classList.add("flex");
                   }
                 };
+                const M = ${JSON.stringify(jsMsg)};
                 const go = () => {
                   if (!("geolocation" in navigator)) {
-                    setMsg("Dein Browser unterstützt keine Standort-Anfrage. Öffne die Karte und such manuell.");
+                    setMsg(M.noGeo);
                     showFallback();
                     return;
                   }
-                  setMsg("Standort wird ermittelt …");
+                  setMsg(M.locating);
                   navigator.geolocation.getCurrentPosition(async (pos) => {
                     const { latitude: lat, longitude: lng } = pos.coords;
-                    setMsg("Suche den nächsten geöffneten Späti …");
+                    setMsg(M.searching);
                     try {
                       const res = await fetch(\`/api/kiosks/nearest-open?origin=\${lat},\${lng}\`);
                       if (res.status === 404) {
-                        setMsg("In deiner Nähe ist gerade nichts geöffnet. Schau auf die Karte für die volle Übersicht.");
+                        setMsg(M.noneOpen);
                         showFallback();
                         return;
                       }
                       if (!res.ok) throw new Error("nearest lookup failed");
                       const data = await res.json();
-                      setMsg(\`\${data.name} — Karten-App wird geöffnet …\`);
+                      setMsg(data.name + M.openingSuffix);
                       window.location.href = data.nav_url;
                     } catch {
-                      setMsg("Konnte den nächsten Späti nicht ermitteln. Öffne die Karte manuell.");
+                      setMsg(M.lookupFailed);
                       showFallback();
                     }
                   }, () => {
-                    setMsg("Wir konnten deinen Standort nicht lesen. Öffne die Karte und navigiere von dort.");
+                    setMsg(M.geoFailed);
                     showFallback();
                   }, { enableHighAccuracy: true, timeout: 8000 });
                 };
@@ -460,8 +472,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           }}
         />
       </Layout>,
-    ),
-  );
+    );
+  });
 
   // Per-city directory pages. SERP analysis (see SXO audit) showed that
   // "trinkhallen frankfurt" / "späti berlin" rank curated lists, not maps —
@@ -554,25 +566,30 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <header>
             <p class="font-display text-sm uppercase tracking-wider text-fg-muted">
               <a class="hover:text-neon-pink" href="/">
-                Trinkhallen
+                {t(lang, "city.breadcrumb")}
               </a>{" "}
               · {city}
             </p>
             <h1 class="mt-2 font-display text-4xl tracking-wide text-fg sm:text-6xl">
-              Spätis & Trinkhallen in {city}
+              {tpl(lang, "city.heading", { city })}
             </h1>
             <p class="mt-3 text-lg text-fg-muted">
-              {total.toLocaleString("de-DE")} Standorte in {city}.
+              {tpl(lang, "city.locations", {
+                total: total.toLocaleString(INTL_LOCALE[lang]),
+                city,
+              })}
               {openNowCount > 0 && (
                 <>
                   {" "}
-                  <span class="text-status-open">▶▶▶ {openNowCount} jetzt offen.</span>
+                  <span class="text-status-open">
+                    ▶▶▶ {tpl(lang, "city.openNow", { n: openNowCount })}
+                  </span>
                 </>
               )}
             </p>
             <p class="mt-4">
               <a class="btn-neon" href={mapHref}>
-                ▶ Auf der Karte ansehen
+                {t(lang, "city.viewOnMap")}
               </a>
             </p>
           </header>
@@ -588,9 +605,12 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
 
           {total > visible.length && (
             <p class="text-sm text-fg-dim">
-              {visible.length} von {total.toLocaleString("de-DE")} angezeigt.{" "}
+              {tpl(lang, "city.showing", {
+                visible: visible.length,
+                total: total.toLocaleString(INTL_LOCALE[lang]),
+              })}{" "}
               <a class="text-neon-cyan underline-offset-2 hover:underline" href={mapHref}>
-                Alle auf der Karte →
+                {t(lang, "city.allOnMap")}
               </a>
             </p>
           )}
@@ -1188,11 +1208,12 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       if (partial) return c.text("not found", 404);
       return c.html(
         <Layout lang={lang} title={t(lang, "page.notFound.title")} noindex nav="map" user={user}>
-          <h1 class="font-display text-4xl tracking-wide text-fg">404 — Kiosk nicht gefunden</h1>
+          <h1 class="font-display text-4xl tracking-wide text-fg">{t(lang, "notFound.heading")}</h1>
           <p class="mt-3 text-fg-muted">
-            Die ID <code class="font-mono">{id}</code> existiert nicht.{" "}
+            {t(lang, "notFound.idMissingPre")} <code class="font-mono">{id}</code>{" "}
+            {t(lang, "notFound.idMissingPost")}{" "}
             <a class="text-neon-cyan underline-offset-2 hover:underline" href="/">
-              Zurück zur Karte
+              {t(lang, "notFound.backToMap")}
             </a>
           </p>
         </Layout>,
