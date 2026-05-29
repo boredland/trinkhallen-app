@@ -26,7 +26,7 @@
  * Bump VERSION below to invalidate everything.
  */
 
-const VERSION = "v7";
+const VERSION = "v8";
 const OFFLINE_URL = "/offline.html";
 const STATIC_CACHE = `tk-static-${VERSION}`;
 const TILES_CACHE = `tk-tiles-${VERSION}`;
@@ -43,7 +43,11 @@ const STATIC_PATH_PREFIXES = ["/assets/", "/favicon.svg", "/apple-touch-icon.svg
 const PRIVATE_PATH_PREFIXES = ["/me", "/moderate", "/add", "/auth"];
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
+  // Intentionally NOT calling self.skipWaiting() here. A freshly-installed SW
+  // sits in the "waiting" state until the open page tells it to take over (via
+  // the SKIP_WAITING message below). That hand-off is what lets the client show
+  // a "new version — reload" prompt instead of silently swapping bundles under
+  // a running page (the stale-bundle class of bug).
   // Pre-warm the app shell so the first offline visit lands on something.
   // `/me` is intentionally NOT pre-warmed — it's a per-user page.
   // OFFLINE_URL goes into STATIC_CACHE because it's the same on every
@@ -76,6 +80,15 @@ self.addEventListener("activate", (event) => {
       await self.clients.claim();
     })(),
   );
+});
+
+// The page posts this once the user accepts the update prompt; we then activate
+// immediately, the browser fires `controllerchange`, and the page reloads onto
+// the fresh bundle. See src/client/sw-update.ts.
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING" || event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {

@@ -21,6 +21,7 @@ import { setupIosInstallPrompt } from "./install-prompt";
 import { installLogoutForm } from "./logout";
 import { installRatingForm } from "./rating";
 import { installKioskSheet } from "./sheet";
+import { installServiceWorker } from "./sw-update";
 
 // ── Theme toggle ────────────────────────────────────────────────────────────
 const root = document.documentElement;
@@ -240,16 +241,9 @@ installRatingForm();
 // instantly on non-iOS / already-installed / recently-dismissed visits.
 void setupIosInstallPrompt();
 
-// Service worker — caches assets + tile bytes for fast repeat visits
-// and basic offline (last map view + last viewed pages stay accessible).
-if ("serviceWorker" in navigator && location.protocol === "https:") {
-  // Defer until after first paint to not contend with critical bundles.
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js", { scope: "/" })
-      .catch((err) => console.warn("SW registration failed:", err));
-  });
-}
+// Service worker — caches assets + tile bytes for fast repeat visits and basic
+// offline, plus the update-prompt flow (waiting SW → "neu laden" toast).
+installServiceWorker();
 
 // Only spin Alpine up when the page actually carries `[x-data]` directives.
 // SSR detail pages and most static routes have none and don't need ~30 KB of
