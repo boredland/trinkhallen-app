@@ -43,6 +43,11 @@ export function installCheckinForm(_scope: ParentNode = document): void {
     ev.preventDefault();
     void onFormSubmit(form);
   });
+
+  // Marker for the e2e smoke test: confirms the bundle loaded AND the install
+  // function actually ran (i.e. no JS error, no CSP block, no SW serving an
+  // ancient bundle that's missing this code). Cheap to set, easy to assert.
+  (globalThis as unknown as { __tkCheckinInstalled?: boolean }).__tkCheckinInstalled = true;
 }
 
 async function onCheckinClick(btn: HTMLButtonElement): Promise<void> {

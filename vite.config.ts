@@ -48,7 +48,13 @@ export default defineConfig(({ mode }) => {
       devServer({
         adapter,
         entry: "src/index.ts",
-        exclude: [/^\/assets\/.+/, /^\/static\/.+/, /^\/@.+$/, /^\/node_modules\/.*/],
+        exclude: [
+          /^\/assets\/.+/,
+          /^\/static\/.+/,
+          /^\/src\/.+/, // vite serves the client entries + their CSS imports
+          /^\/@.+$/,
+          /^\/node_modules\/.*/,
+        ],
       }),
       tailwindcss(),
     ],

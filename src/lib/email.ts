@@ -6,7 +6,6 @@
  * so mail clients can pick what they render.
  */
 
-import { EmailMessage } from "cloudflare:email";
 import type { Env } from "../env";
 
 export const FROM_ADDRESS = "feedback@trinkhallen.app";
@@ -20,6 +19,11 @@ export interface EmailPayload {
 }
 
 export async function sendEmail(env: Env, msg: EmailPayload): Promise<void> {
+  // Lazy import: `cloudflare:email` is a workerd runtime virtual that Vite's
+  // dev module-runner can't resolve. Pulling it in at the callsite means it's
+  // never touched during `bun run dev` / e2e boot (no email flows fire there)
+  // but still works in prod where workerd resolves it.
+  const { EmailMessage } = await import("cloudflare:email");
   const raw = compose(msg);
   const message = new EmailMessage(FROM_ADDRESS, msg.to, raw);
   await env.EMAIL.send(message);

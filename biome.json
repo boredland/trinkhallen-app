@@ -11,6 +11,8 @@
       "!.vite",
       "!android",
       "!ios",
+      "!test-results",
+      "!playwright-report",
       "!src/lib/manifest.generated.ts",
       "!**/*.css"
     ]
