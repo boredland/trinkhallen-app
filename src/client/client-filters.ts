@@ -23,13 +23,6 @@ export interface ClientFilter {
   q?: string;
 }
 
-export const EMPTY_FILTER: ClientFilter = {
-  tags: [],
-  payment: {},
-  openNow: false,
-  needsHours: false,
-};
-
 interface FeatureProps {
   id: string;
   name: string;

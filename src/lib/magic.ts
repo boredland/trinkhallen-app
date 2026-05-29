@@ -76,7 +76,16 @@ export async function redeemMagicLink(env: Env, rawToken: string): Promise<Redee
   const candidate = await sha256Hex(token);
   if (!timingSafeEqual(candidate, row.token_hash)) return null;
 
-  await env.DB.prepare(`UPDATE magic_links SET consumed_at = ? WHERE id = ?`).bind(now, id).run();
+  // The conditional UPDATE — not the SELECT above — is the single-use source of
+  // truth. Two requests redeeming the same token concurrently both clear the
+  // `consumed_at` check above, then race here; exactly one sees changes === 1,
+  // and the loser is treated as already-consumed.
+  const consume = await env.DB.prepare(
+    `UPDATE magic_links SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL`,
+  )
+    .bind(now, id)
+    .run();
+  if (consume.meta.changes === 0) return null;
   return { email: row.email };
 }
 

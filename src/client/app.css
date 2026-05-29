@@ -18,7 +18,8 @@
   --color-border-hi: #3a3a3a;
   --color-fg: #f5f2ec;
   --color-fg-muted: #a8a39a;
-  --color-fg-dim: #6b6862;
+  /* ≥4.5:1 on #0a0a0a for WCAG AA body text (was #6b6862 → 3.56:1). */
+  --color-fg-dim: #8a8780;
 
   --color-neon-pink: #ff2d6f;
   --color-neon-amber: #ffd93d;

@@ -16,7 +16,7 @@ import {
 } from "../lib/asset-kiosks";
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
-import { parseBbox, parseLatLng } from "../lib/geo";
+import { bboxAround, parseBbox, parseLatLng } from "../lib/geo";
 import {
   INTL_LOCALE,
   type Lang,
@@ -26,14 +26,14 @@ import {
   t,
   tpl,
 } from "../lib/messages";
-import { computeStatus, kioskLocation } from "../lib/opening-hours";
+import { countOpenNow } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating, listComments } from "../lib/ratings";
 import { getUserReports, kindLabel } from "../lib/reports";
 import { destroySession } from "../lib/session";
 import { tagLabel } from "../lib/tags";
 import { renameUsername } from "../lib/usernames";
-import { countUsers } from "../lib/users";
+import { countUsers, DELETED_USER_SENTINEL } from "../lib/users";
 
 const ORIGIN = "https://trinkhallen.app";
 
@@ -61,6 +61,12 @@ function cityDisplayName(slug: string): string {
   return CITY_DISPLAY[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
 }
 
+/** Trailing segment of `kiosk.region` (e.g. "de/hessen/frankfurt" → "frankfurt"),
+ *  the slug that matches /stadt/:slug. */
+function citySlug(kiosk: KioskRecord): string | null {
+  return kiosk.region.split("/").pop() ?? null;
+}
+
 function kioskHeadline(lang: Lang, kiosk: KioskRecord): string {
   const city = kiosk.address["city"];
   return city ? tpl(lang, "page.kiosk.headline", { name: kiosk.name, city }) : kiosk.name;
@@ -82,10 +88,7 @@ const PAYMENT_TO_SCHEMA: Record<string, string> = {
 };
 
 function kioskBreadcrumbJsonLd(kiosk: KioskRecord): object {
-  // `kiosk.region` is the full path like "de/hessen/frankfurt" or
-  // "de/nordrhein-westfalen/duesseldorf"; the trailing segment is the
-  // slug that matches /stadt/:slug.
-  const cityStub = kiosk.region.split("/").pop() ?? null;
+  const cityStub = citySlug(kiosk);
   const cityCrumb =
     cityStub != null
       ? {
@@ -217,21 +220,9 @@ async function renderMapPage(
   //   4. Frankfurt fallback.
   const centerHint = parseLatLng(url.searchParams.get("c"));
   const initialBbox = focused
-    ? {
-        west: focused.kiosk.lng - 0.05,
-        south: focused.kiosk.lat - 0.04,
-        east: focused.kiosk.lng + 0.05,
-        north: focused.kiosk.lat + 0.04,
-      }
+    ? bboxAround(focused.kiosk)
     : (parseBbox(url.searchParams.get("bbox")) ??
-      (centerHint
-        ? {
-            west: centerHint.lng - 0.05,
-            south: centerHint.lat - 0.04,
-            east: centerHint.lng + 0.05,
-            north: centerHint.lat + 0.04,
-          }
-        : parseBbox("8.4,50.0,8.9,50.3")));
+      (centerHint ? bboxAround(centerHint) : parseBbox("8.4,50.0,8.9,50.3")));
 
   let initialPanel = (
     <KioskList lang={lang} kiosks={[]} totalInBbox={0} filteredCount={0} userAgent={null} />
@@ -241,10 +232,7 @@ async function renderMapPage(
     const filtered = applyFilters(all, filter);
     filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
     const now = new Date();
-    const openNowCount = filtered.reduce(
-      (n, r) => (computeStatus(r.hours?.raw, now, kioskLocation(r)).kind === "open" ? n + 1 : n),
-      0,
-    );
+    const openNowCount = countOpenNow(filtered, now);
     initialPanel = (
       <KioskList
         lang={lang}
@@ -511,10 +499,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Stadt nicht gefunden</h1>
           <p class="mt-3 text-fg-muted">
             <code class="font-mono">{slug}</code> ist nicht in unserem Datensatz.{" "}
-            <a
-              class="text-neon-cyan underline-offset-2 hover:underline"
-              href={pathForLang("/", lang)}
-            >
+            <a class="text-neon-cyan underline underline-offset-2" href={pathForLang("/", lang)}>
               Zurück zur Karte
             </a>
           </p>
@@ -527,11 +512,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const total = kiosks.length;
     const sorted = [...kiosks].sort((a, b) => a.name.localeCompare(b.name, "de"));
     const cityNow = new Date();
-    const openNowCount = sorted.reduce(
-      (n, r) =>
-        computeStatus(r.hours?.raw, cityNow, kioskLocation(r)).kind === "open" ? n + 1 : n,
-      0,
-    );
+    const openNowCount = countOpenNow(sorted, cityNow);
     const visible = sorted.slice(0, 100);
     const [w, s, e, n] = region.bbox;
     const centerLat = (s + n) / 2;
@@ -626,7 +607,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 visible: visible.length,
                 total: total.toLocaleString(INTL_LOCALE[lang]),
               })}{" "}
-              <a class="text-neon-cyan underline-offset-2 hover:underline" href={mapHref}>
+              <a class="text-neon-cyan underline underline-offset-2" href={mapHref}>
                 {t(lang, "city.allOnMap")}
               </a>
             </p>
@@ -682,7 +663,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               <p class="mt-3 text-fg-muted">
                 trinkhallen.app ist der offene Nachfolger von{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://app.hopfenstop.de/"
                 >
                   HopfenStop
@@ -703,7 +684,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               <ul class="mt-3 space-y-2 text-fg-muted">
                 <li>
                   <a
-                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    class="text-neon-cyan underline underline-offset-2"
                     href="https://github.com/boredland/trinkhallen-data"
                   >
                     boredland/trinkhallen-data
@@ -712,7 +693,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 </li>
                 <li>
                   <a
-                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    class="text-neon-cyan underline underline-offset-2"
                     href="https://github.com/boredland/trinkhallen-app"
                   >
                     boredland/trinkhallen-app
@@ -723,14 +704,14 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               <p class="mt-3 text-sm text-fg-dim">
                 <strong>Quellen:</strong> HopfenStop (Frankfurt-Seed,{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://creativecommons.org/licenses/by-nc/4.0/"
                 >
                   CC BY-NC 4.0
                 </a>
                 ) · OpenStreetMap (
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://www.openstreetmap.org/copyright"
                 >
                   ODbL
@@ -760,7 +741,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 <li>
                   <span class="font-display text-fg">Vorschlagen:</span>{" "}
                   <a
-                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    class="text-neon-cyan underline underline-offset-2"
                     href={pathForLang("/add", lang)}
                   >
                     /add
@@ -771,7 +752,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                   <span class="font-display text-fg">Direkt PR auf GitHub:</span> Wer mag, kann den
                   Datensatz auch direkt forken und PRs gegen{" "}
                   <a
-                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    class="text-neon-cyan underline underline-offset-2"
                     href="https://github.com/boredland/trinkhallen-data"
                   >
                     trinkhallen-data
@@ -813,14 +794,14 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               <p class="mt-3 text-fg-muted">
                 trinkhallen.app wird von{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://github.com/boredland"
                 >
                   Jonas (boredland)
                 </a>{" "}
                 als nicht-kommerzielles Open-Source-Projekt betrieben. Kontakt &amp; Issues über{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://github.com/boredland/trinkhallen-app/issues"
                 >
                   GitHub
@@ -832,7 +813,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             <footer class="pt-4 text-xs text-fg-dim">
               Bugs &amp; Wünsche →{" "}
               <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
+                class="text-neon-cyan underline underline-offset-2"
                 href="https://github.com/boredland/trinkhallen-app/issues"
               >
                 GitHub Issues
@@ -884,7 +865,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               <p class="mt-3 text-fg-muted">
                 E-Mail:{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="mailto:feedback@trinkhallen.app"
                 >
                   feedback@trinkhallen.app
@@ -900,7 +881,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 Jonas Strassel (Anschrift wie oben). trinkhallen.app ist ein nicht-kommerzielles
                 Open-Source-Projekt; der Datensatz lebt in einem öffentlichen{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://github.com/boredland/trinkhallen-data"
                 >
                   GitHub-Repository
@@ -935,21 +916,21 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               <p class="mt-3 text-fg-muted">
                 Der Quellcode dieser Anwendung steht unter{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://www.gnu.org/licenses/agpl-3.0.de.html"
                 >
                   AGPL-3.0-or-later
                 </a>
                 , der Datensatz unter{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://creativecommons.org/licenses/by-nc/4.0/deed.de"
                 >
                   CC BY-NC 4.0
                 </a>
                 . Kartendaten © OpenStreetMap-Mitwirkende (
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://www.openstreetmap.org/copyright"
                 >
                   ODbL
@@ -1000,7 +981,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 <br />
                 E-Mail:{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="mailto:feedback@trinkhallen.app"
                 >
                   feedback@trinkhallen.app
@@ -1048,7 +1029,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 Anbieter: Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland.
                 Datenschutz:{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://policies.google.com/privacy"
                 >
                   policies.google.com/privacy
@@ -1072,7 +1053,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 Anbieter: Apple Distribution International Ltd., Hollyhill Industrial Estate,
                 Hollyhill, Cork, Irland. Datenschutz:{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://www.apple.com/legal/privacy/"
                 >
                   apple.com/legal/privacy
@@ -1101,7 +1082,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 Nutzerkonto verknüpft gespeichert. Freigegebene Korrekturen und Vorschläge werden
                 außerdem in den öffentlichen, offen lizenzierten Datensatz{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://github.com/boredland/trinkhallen-data"
                 >
                   trinkhallen-data
@@ -1133,7 +1114,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                   Anzeigen der Karte teilt dein Browser deine IP-Adresse mit OpenFreeMap, um die
                   Kacheln auszuliefern. Anbieter:{" "}
                   <a
-                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    class="text-neon-cyan underline underline-offset-2"
                     href="https://openfreemap.org/"
                   >
                     openfreemap.org
@@ -1146,7 +1127,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                   Koordinaten an Photon (basiert auf OpenStreetMap-Daten), die IP-Adresse ist
                   technisch unvermeidbar. Anbieter: Komoot GmbH;{" "}
                   <a
-                    class="text-neon-cyan underline-offset-2 hover:underline"
+                    class="text-neon-cyan underline underline-offset-2"
                     href="https://photon.komoot.io/"
                   >
                     photon.komoot.io
@@ -1174,7 +1155,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit
                 (Art. 20) und Widerspruch (Art. 21). Eine kurze Mail an{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="mailto:feedback@trinkhallen.app"
                 >
                   feedback@trinkhallen.app
@@ -1185,7 +1166,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 Außerdem hast du das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu
                 beschweren — für uns zuständig:{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://datenschutz.hessen.de/"
                 >
                   Der Hessische Beauftragte für Datenschutz und Informationsfreiheit
@@ -1213,7 +1194,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 optionale Absturzberichte). Auf diese Daten haben wir keinen direkten Zugriff; sie
                 unterliegen den{" "}
                 <a
-                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  class="text-neon-cyan underline underline-offset-2"
                   href="https://policies.google.com/privacy"
                 >
                   Google-Datenschutzbestimmungen
@@ -1256,10 +1237,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <p class="mt-3 text-fg-muted">
             {t(lang, "notFound.idMissingPre")} <code class="font-mono">{id}</code>{" "}
             {t(lang, "notFound.idMissingPost")}{" "}
-            <a
-              class="text-neon-cyan underline-offset-2 hover:underline"
-              href={pathForLang("/", lang)}
-            >
+            <a class="text-neon-cyan underline underline-offset-2" href={pathForLang("/", lang)}>
               {t(lang, "notFound.backToMap")}
             </a>
           </p>
@@ -1305,6 +1283,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     // hit. The in-app sheet flow still uses ?partial=1 (above), so the
     // map experience is unaffected for clicks inside the app.
     const city = kiosk.address["city"];
+    const stub = citySlug(kiosk);
     return c.html(
       <Layout
         lang={lang}
@@ -1320,14 +1299,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <a class="hover:text-neon-pink" href={pathForLang("/", lang)}>
             Trinkhallen
           </a>
-          {city && (
+          {city && stub && (
             <>
               {" · "}
-              <a
-                class="hover:text-neon-pink"
-                href={pathForLang(`/stadt/${kiosk.region.split("/").pop()}`, lang)}
-              >
-                {cityDisplayName(kiosk.region.split("/").pop() ?? "")}
+              <a class="hover:text-neon-pink" href={pathForLang(`/stadt/${stub}`, lang)}>
+                {cityDisplayName(stub)}
               </a>
             </>
           )}
@@ -1335,7 +1311,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         {detail}
         <p class="mt-4">
           <a
-            class="text-neon-cyan underline-offset-2 hover:underline"
+            class="text-neon-cyan underline underline-offset-2"
             href={`${pathForLang("/", lang)}?c=${kiosk.lat.toFixed(4)},${kiosk.lng.toFixed(4)}&z=16`}
           >
             ▶ Auf der Karte ansehen
@@ -1676,8 +1652,6 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 }
 
-const DELETED_USER_SENTINEL = "00000000-0000-0000-0000-000000000000";
-
 async function deleteAccount(db: D1Database, userId: string, email: string): Promise<void> {
   // 1. Anonymize contributions that have already escaped D1 (a PR was opened
   //    or merged on trinkhallen-data). We can't unmerge those, but we can
@@ -1977,10 +1951,7 @@ async function renderProfile(
         {submissions.length === 0 ? (
           <p class="p-4 text-fg-muted">
             {t(lang, "profile.noSubmissionsPre")}{" "}
-            <a
-              class="text-neon-cyan underline-offset-2 hover:underline"
-              href={pathForLang("/add", lang)}
-            >
+            <a class="text-neon-cyan underline underline-offset-2" href={pathForLang("/add", lang)}>
               {t(lang, "profile.noSubmissionsLink")}
             </a>{" "}
             {t(lang, "profile.noSubmissionsPost")}
@@ -2000,7 +1971,7 @@ async function renderProfile(
                   <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
                     <StatusPill lang={lang} status={s.status} />
                     {s.pr_url && (
-                      <a class="text-neon-cyan underline-offset-2 hover:underline" href={s.pr_url}>
+                      <a class="text-neon-cyan underline underline-offset-2" href={s.pr_url}>
                         {t(lang, "profile.prLink")}
                       </a>
                     )}
@@ -2050,7 +2021,7 @@ async function renderProfile(
         <p class="mt-2 text-fg-muted">
           {t(lang, "profile.deleteBodyPre")}
           <a
-            class="text-neon-cyan underline-offset-2 hover:underline"
+            class="text-neon-cyan underline underline-offset-2"
             href="https://github.com/boredland/trinkhallen-data"
           >
             {t(lang, "profile.deleteBodyLink")}

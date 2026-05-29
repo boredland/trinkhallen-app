@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
+import { csrf } from "hono/csrf";
+import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
@@ -49,6 +51,17 @@ app.use(
 );
 
 app.use("*", attachUser);
+
+// CSRF: Origin-header check on state-changing requests, as defence-in-depth
+// alongside the SameSite=Lax session cookie. Scoped to the app's own POST
+// surfaces (JSON/form APIs + the /me account actions) — deliberately NOT
+// /auth/*, because Apple's sign-in callback is a legitimate cross-origin form
+// POST and is guarded instead by its own state-cookie match. csrf() is a no-op
+// on safe methods, so mounting it on these globs leaves GETs untouched.
+app.use("/api/*", csrf());
+app.use("/me/*", csrf());
+app.use("/en/me/*", csrf());
+
 app.route("/", auth);
 app.route("/", apiKiosks);
 app.route("/", apiCheckins);
@@ -119,6 +132,10 @@ app.route("/en", moderate);
 
 app.notFound((c) => c.text("404 — Hier gibt's nix.", 404));
 app.onError((err, c) => {
+  // Honour deliberate HTTP errors (e.g. the csrf() middleware's 403) instead of
+  // masking every thrown response as a 500. Only genuinely unexpected errors
+  // get logged + the generic 500.
+  if (err instanceof HTTPException) return err.getResponse();
   console.error(err);
   return c.text("500 — Da ist was schiefgegangen.", 500);
 });

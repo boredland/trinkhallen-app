@@ -229,3 +229,15 @@ export function formatHoursTable(
     return null;
   }
 }
+
+/**
+ * Count records currently open at `now`. Extracted so the map panel, city
+ * pages, and the kiosks API share one definition instead of re-inlining the
+ * same reduce.
+ */
+export function countOpenNow(records: KioskRecord[], now: Date): number {
+  return records.reduce(
+    (n, r) => (computeStatus(r.hours?.raw, now, kioskLocation(r)).kind === "open" ? n + 1 : n),
+    0,
+  );
+}

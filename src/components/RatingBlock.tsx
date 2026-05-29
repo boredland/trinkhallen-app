@@ -187,7 +187,7 @@ const Stars: FC<{ lang: Lang; current: number }> = ({ lang, current }) => (
 
 const LoggedOutCta: FC<{ lang: Lang }> = ({ lang }) => (
   <div class="border-t-2 border-border pt-4 text-sm text-fg-muted">
-    <a href={pathForLang("/me", lang)} class="text-neon-cyan underline-offset-2 hover:underline">
+    <a href={pathForLang("/me", lang)} class="text-neon-cyan underline underline-offset-2">
       {t(lang, "auth.login")}
     </a>
     {t(lang, "rating.loginToRateTail")}

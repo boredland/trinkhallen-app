@@ -9,7 +9,7 @@ import { type Lang, pathForLang } from "../lib/messages";
  * Wasserhäuschen) are kept untranslated — they are the app's proper nouns.
  */
 
-const A = "text-neon-cyan underline-offset-2 hover:underline";
+const A = "text-neon-cyan underline underline-offset-2";
 const H2 = "font-display text-2xl tracking-wide text-fg";
 const H2_SM = "font-display text-xl tracking-wide text-fg";
 

@@ -152,18 +152,18 @@ export const KioskDetail: FC<{
           <summary class="cursor-pointer hover:text-fg">{t(lang, "kiosk.openOtherMaps")}</summary>
           <ul class="mt-2 space-y-1 pl-4">
             <li>
-              <a class="text-neon-cyan underline-offset-2 hover:underline" href={nav.apple.href}>
+              <a class="text-neon-cyan underline underline-offset-2" href={nav.apple.href}>
                 {nav.apple.label}
               </a>
             </li>
             <li>
-              <a class="text-neon-cyan underline-offset-2 hover:underline" href={nav.geo.href}>
+              <a class="text-neon-cyan underline underline-offset-2" href={nav.geo.href}>
                 {nav.geo.label}
               </a>
             </li>
             <li>
               <a
-                class="text-neon-cyan underline-offset-2 hover:underline"
+                class="text-neon-cyan underline underline-offset-2"
                 href={nav.google.href}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -354,7 +354,7 @@ export const KioskDetail: FC<{
           href={`https://github.com/boredland/trinkhallen-data/blob/main/data/${kiosk.region}.geojson`}
           target="_blank"
           rel="noopener noreferrer"
-          class="text-neon-cyan underline-offset-2 hover:underline"
+          class="text-neon-cyan underline underline-offset-2"
         >
           {t(lang, "kiosk.editOnGithub")}
         </a>

@@ -80,128 +80,134 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
   const jsonLdBlocks = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
   return (
-    <html lang={lang} data-theme="dark">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        {/* Dark default for the system bar; app.entry.ts's paintThemeColor()
+    <>
+      {/* Explicit doctype keeps browsers in standards mode — Hono's c.html()
+          does not prepend one for a JSX root, and without it the page renders
+          in quirks mode. */}
+      {raw("<!DOCTYPE html>")}
+      <html lang={lang} data-theme="dark">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+          {/* Dark default for the system bar; app.entry.ts's paintThemeColor()
             updates this to match --color-bg when the stored theme is light. */}
-        <meta name="theme-color" content="#0A0A0A" />
-        {/* Declared in the HTML (before any CSS) so the browser paints a dark
+          <meta name="theme-color" content="#0A0A0A" />
+          {/* Declared in the HTML (before any CSS) so the browser paints a dark
             canvas during the cross-page navigation gap — without it the UA
             falls back to a white backdrop and dark-mode users see a brief
             light flash between pages. The CSS still flips this to `light` for
             [data-theme="light"] once it loads. */}
-        <meta name="color-scheme" content="dark" />
-        <meta name="description" content={desc} />
-        {noindex && <meta name="robots" content="noindex, nofollow" />}
-        <link rel="canonical" href={canonical} />
-        <meta property="og:title" content={fullTitle} />
-        <meta property="og:description" content={desc} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={canonical} />
-        <meta property="og:image" content={ogImage} />
-        <meta property="og:image:type" content="image/png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content={t(lang, "meta.ogImageAlt")} />
-        <meta property="og:locale" content={OG_LOCALE[lang]} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={fullTitle} />
-        <meta name="twitter:description" content={desc} />
-        <meta name="twitter:image" content={ogImage} />
-        {SUPPORTED_LANGS.map((l) => (
-          <link rel="alternate" hreflang={l} href={urlForLang(l)} />
-        ))}
-        <link rel="alternate" hreflang="x-default" href={urlForLang(DEFAULT_LANG)} />
-        <title>{fullTitle}</title>
+          <meta name="color-scheme" content="dark" />
+          <meta name="description" content={desc} />
+          {noindex && <meta name="robots" content="noindex, nofollow" />}
+          <link rel="canonical" href={canonical} />
+          <meta property="og:title" content={fullTitle} />
+          <meta property="og:description" content={desc} />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={canonical} />
+          <meta property="og:image" content={ogImage} />
+          <meta property="og:image:type" content="image/png" />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta property="og:image:alt" content={t(lang, "meta.ogImageAlt")} />
+          <meta property="og:locale" content={OG_LOCALE[lang]} />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={fullTitle} />
+          <meta name="twitter:description" content={desc} />
+          <meta name="twitter:image" content={ogImage} />
+          {SUPPORTED_LANGS.map((l) => (
+            <link rel="alternate" hreflang={l} href={urlForLang(l)} />
+          ))}
+          <link rel="alternate" hreflang="x-default" href={urlForLang(DEFAULT_LANG)} />
+          <title>{fullTitle}</title>
 
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
-        <link rel="manifest" href="/manifest.webmanifest" />
+          <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+          <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+          <link rel="manifest" href="/manifest.webmanifest" />
 
-        {/* iOS only honours these — without them, "Add to Home Screen" still
+          {/* iOS only honours these — without them, "Add to Home Screen" still
             shows Safari chrome. The translucent status bar matches the
             #0A0A0A theme-color above. */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="trinkhallen" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="apple-mobile-web-app-title" content="trinkhallen" />
 
-        {isMapPage && (
-          <>
-            <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin="" />
-            {/* Style JSON is the first request MapLibre makes; preload it so
+          {isMapPage && (
+            <>
+              <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin="" />
+              {/* Style JSON is the first request MapLibre makes; preload it so
                 the browser's lookahead scanner fires before our JS executes
                 and parses the URL out of build-style.ts. */}
-            <link
-              rel="preload"
-              href="https://tiles.openfreemap.org/styles/dark"
-              as="fetch"
-              crossorigin=""
-            />
-          </>
-        )}
-        {/* Fonts (Anton + Inter) are self-hosted via @fontsource and bundled
+              <link
+                rel="preload"
+                href="https://tiles.openfreemap.org/styles/dark"
+                as="fetch"
+                crossorigin=""
+              />
+            </>
+          )}
+          {/* Fonts (Anton + Inter) are self-hosted via @fontsource and bundled
             into the client CSS chunk by Vite — see src/client/app.entry.ts.
             No render-blocking cross-origin stylesheet load. */}
 
-        {(() => {
-          const assets = clientEntries.map(asset);
-          const cssHrefs = new Set<string>();
-          for (const a of assets) for (const href of a.css) cssHrefs.add(href);
-          return (
-            <>
-              {[...cssHrefs].map((href) => (
-                <link rel="stylesheet" href={href} />
-              ))}
-              {assets.map((a) => (
-                <script type="module" src={a.js} />
-              ))}
-            </>
-          );
-        })()}
+          {(() => {
+            const assets = clientEntries.map(asset);
+            const cssHrefs = new Set<string>();
+            for (const a of assets) for (const href of a.css) cssHrefs.add(href);
+            return (
+              <>
+                {[...cssHrefs].map((href) => (
+                  <link rel="stylesheet" href={href} />
+                ))}
+                {assets.map((a) => (
+                  <script type="module" src={a.js} />
+                ))}
+              </>
+            );
+          })()}
 
-        {jsonLdBlocks.map((block) => (
-          <script type="application/ld+json">
-            {raw(JSON.stringify(block).replace(/</g, "\\u003c"))}
-          </script>
-        ))}
+          {jsonLdBlocks.map((block) => (
+            <script type="application/ld+json">
+              {raw(JSON.stringify(block).replace(/</g, "\\u003c"))}
+            </script>
+          ))}
 
-        {/* Speculation Rules — Chromium browsers prerender same-origin
+          {/* Speculation Rules — Chromium browsers prerender same-origin
             /k/* and /stadt/* targets on user intent (hover / pointerdown
             via `eagerness: moderate`). Cap is enforced by the browser
             (~10 concurrent prerenders). Falls back silently elsewhere.
             ?partial=1 links never appear as <a href> so don't need an
             exclusion — they only fire from HTMX fetches. */}
-        <script type="speculationrules">
-          {raw(
-            JSON.stringify({
-              prerender: [
-                {
-                  where: {
-                    or: [{ href_matches: "/k/*" }, { href_matches: "/stadt/*" }],
+          <script type="speculationrules">
+            {raw(
+              JSON.stringify({
+                prerender: [
+                  {
+                    where: {
+                      or: [{ href_matches: "/k/*" }, { href_matches: "/stadt/*" }],
+                    },
+                    eagerness: "moderate",
                   },
-                  eagerness: "moderate",
-                },
-              ],
-            }),
-          )}
-        </script>
-      </head>
-      <body class={fullBleed ? "h-dvh overflow-hidden" : "min-h-dvh"}>
-        <Header lang={lang} path={barePath} nav={nav} user={user} />
-        <main
-          class={
-            fullBleed
-              ? "absolute inset-0 top-[var(--header-h)]"
-              : "mx-auto w-full max-w-5xl px-4 py-8"
-          }
-        >
-          {children}
-        </main>
-        {!fullBleed && <Footer lang={lang} />}
-      </body>
-    </html>
+                ],
+              }),
+            )}
+          </script>
+        </head>
+        <body class={fullBleed ? "h-dvh overflow-hidden" : "min-h-dvh"}>
+          <Header lang={lang} path={barePath} nav={nav} user={user} />
+          <main
+            class={
+              fullBleed
+                ? "absolute inset-0 top-[var(--header-h)]"
+                : "mx-auto w-full max-w-5xl px-4 py-8"
+            }
+          >
+            {children}
+          </main>
+          {!fullBleed && <Footer lang={lang} />}
+        </body>
+      </html>
+    </>
   );
 };
 

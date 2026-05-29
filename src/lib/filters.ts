@@ -17,13 +17,6 @@ export interface KioskFilter {
   q?: string;
 }
 
-export const EMPTY_FILTER: KioskFilter = {
-  tags: [],
-  payment: {},
-  openNow: false,
-  needsHours: false,
-};
-
 /** Stable string used as a cache-key suffix. Empty filter → empty string. */
 export function filterSignature(f: KioskFilter): string {
   const parts: string[] = [];
@@ -83,17 +76,7 @@ export function applyFilters(
   f: KioskFilter,
   now = new Date(),
 ): KioskRecord[] {
-  if (
-    f.tags.length === 0 &&
-    !f.payment.cards &&
-    !f.payment.contactless &&
-    !f.payment.cash &&
-    !f.openNow &&
-    !f.needsHours &&
-    !f.q
-  ) {
-    return records;
-  }
+  if (!isFilterActive(f)) return records;
 
   let candidates = records;
 

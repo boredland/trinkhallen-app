@@ -66,16 +66,19 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
   "node_modules/@fontsource/inter/files/inter-latin-ext-700-normal.woff2": {
     "file": "assets/inter-latin-ext-700-normal-Ca8adRJv.woff2"
   },
+  "node_modules/@khmyznikov/pwa-install/dist/pwa-install.es.js": {
+    "file": "assets/pwa-install.es-XuEJvKJ2.js"
+  },
   "src/client/app.entry.ts": {
-    "file": "assets/app-Ca6JpcMA.js",
+    "file": "assets/app-BIMcUnPQ.js",
     "css": [
-      "assets/app-k0TaeESo.css"
+      "assets/app-DMHfMawu.css"
     ]
   },
   "src/client/map.entry.ts": {
-    "file": "assets/map-ClOuSoZ_.js"
+    "file": "assets/map-lD-yW8i1.js"
   },
   "src/client/pick.entry.ts": {
-    "file": "assets/pick-BswTFIQ5.js"
+    "file": "assets/pick-UnWo5eMc.js"
   }
 };

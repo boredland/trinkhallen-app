@@ -60,7 +60,7 @@ export const KioskList: FC<KioskListProps> = ({
         {isFiltered && resetHref && (
           <a
             href={resetHref}
-            class="mt-3 inline-block text-sm text-neon-cyan underline-offset-2 hover:underline"
+            class="mt-3 inline-block text-sm text-neon-cyan underline underline-offset-2"
           >
             {t(lang, "kioskList.resetLong")}
           </a>

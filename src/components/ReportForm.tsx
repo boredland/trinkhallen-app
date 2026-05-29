@@ -37,10 +37,7 @@ export const ReportForm: FC<ReportFormProps> = ({
   if (!isLoggedIn) {
     return (
       <p class="text-sm text-fg-muted">
-        <a
-          href={pathForLang("/me", lang)}
-          class="text-neon-cyan underline-offset-2 hover:underline"
-        >
+        <a href={pathForLang("/me", lang)} class="text-neon-cyan underline underline-offset-2">
           {t(lang, "auth.login")}
         </a>{" "}
         {t(lang, "reportForm.loginHint")}

@@ -10,6 +10,7 @@ import {
   rejectSubmission,
 } from "../lib/moderation";
 import { tagLabel } from "../lib/tags";
+import { DELETED_USER_SENTINEL } from "../lib/users";
 
 export const moderate = new Hono<{ Bindings: Env }>();
 
@@ -107,10 +108,12 @@ moderate.get("/moderate", async (c) => {
           (SELECT COUNT(*) FROM submissions s WHERE s.user_id = u.id) AS submissions_count,
           (SELECT COUNT(*) FROM checkins   c WHERE c.user_id = u.id) AS checkins_count
          FROM users u
-         WHERE u.id != '00000000-0000-0000-0000-000000000000'
+         WHERE u.id != ?
          ORDER BY u.banned_at IS NULL ASC, u.created_at DESC
          LIMIT 200`,
-    ).all<UserRow>(),
+    )
+      .bind(DELETED_USER_SENTINEL)
+      .all<UserRow>(),
     c.env.DB.prepare(
       `SELECT a.id, a.user_id, a.kind, a.payload, a.created_at,
               u.username AS user_username, u.email AS user_email
@@ -525,8 +528,6 @@ moderate.post("/api/moderate/reports/:id/reject", async (c) => {
 });
 
 // ── shadow-ban ──────────────────────────────────────────────────────────────
-
-const DELETED_USER_SENTINEL = "00000000-0000-0000-0000-000000000000";
 
 moderate.post("/api/moderate/users/:id/ban", async (c) => {
   const id = c.req.param("id");

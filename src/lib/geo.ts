@@ -50,6 +50,15 @@ export function parseLatLng(raw: string | null | undefined): LatLng | null {
   return { lat: lat!, lng: lng! };
 }
 
+/**
+ * A small box around a point, used to seed the SSR side-panel for a focused
+ * kiosk or a `?c=lat,lng` deep link. The ~±0.05°/±0.04° padding mirrors the
+ * initial viewport map.entry.ts opens around a centre.
+ */
+export function bboxAround(p: LatLng): Bbox {
+  return { west: p.lng - 0.05, south: p.lat - 0.04, east: p.lng + 0.05, north: p.lat + 0.04 };
+}
+
 export function parseBbox(raw: string | null | undefined): Bbox | null {
   if (!raw) return null;
   const parts = raw.split(",").map((s) => parseFloat(s));

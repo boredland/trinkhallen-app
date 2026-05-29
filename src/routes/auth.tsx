@@ -105,6 +105,7 @@ auth.get("/auth/google/callback", async (c) => {
   const userId = await upsertUser(c.env.DB, {
     googleSub: profile.id,
     email: profile.email,
+    emailVerified: profile.verified_email === true,
     now,
   });
 
@@ -199,19 +200,18 @@ auth.post("/auth/apple/callback", async (c) => {
   const userId = await upsertUserByApple(c.env.DB, {
     appleSub: idToken.sub,
     email: idToken.email,
+    // Apple encodes this as a boolean or the strings "true"/"false".
+    emailVerified: idToken.email_verified === true || idToken.email_verified === "true",
     now,
   });
   await createSession(c, userId);
   return c.redirect("/me");
 });
 
+// POST-only: logout deletes the server-side session row, so a GET would be
+// CSRF-able (SameSite=Lax cookies ride top-level cross-site GETs). The profile
+// page submits this via a form; no GET entry point exists.
 auth.post("/auth/logout", async (c) => {
-  await destroySession(c);
-  return c.redirect("/");
-});
-
-// Convenience GET for the "log out" link in the header (no JS needed).
-auth.get("/auth/logout", async (c) => {
   await destroySession(c);
   return c.redirect("/");
 });
@@ -367,6 +367,8 @@ async function upsertUser(
   args: {
     googleSub: string;
     email: string;
+    /** Google's `verified_email`. Gates the merge-by-email branch below. */
+    emailVerified: boolean;
     now: number;
   },
 ): Promise<string> {
@@ -386,11 +388,15 @@ async function upsertUser(
   //    row is safe. Guard on `email:` prefix so a real Google sub belonging
   //    to a different person sharing the email never gets clobbered. The
   //    existing handle is kept; no SSO profile data (name or picture) is stored.
+  //    Crucially, only merge when Google asserts the email is *verified* —
+  //    Workspace/custom-domain admins can set an arbitrary unverified profile
+  //    email, which would otherwise let them seize a magic-link account by its
+  //    address. Unverified emails fall through to a fresh, distinct account (3).
   const byEmail = await db
     .prepare(`SELECT id, google_sub FROM users WHERE email = ?`)
     .bind(args.email)
     .first<{ id: string; google_sub: string }>();
-  if (byEmail?.google_sub.startsWith("email:")) {
+  if (args.emailVerified && byEmail?.google_sub.startsWith("email:")) {
     await db
       .prepare(`UPDATE users SET google_sub = ? WHERE id = ?`)
       .bind(args.googleSub, byEmail.id)
@@ -451,6 +457,8 @@ async function upsertUserByApple(
   args: {
     appleSub: string;
     email: string;
+    /** Apple's `email_verified`. Gates the merge-by-email branch below. */
+    emailVerified: boolean;
     now: number;
   },
 ): Promise<string> {
@@ -463,11 +471,14 @@ async function upsertUserByApple(
     return existing.id;
   }
 
+  // Only merge into an existing magic-link account when Apple asserts the
+  // email is verified (mirrors the Google path). Unverified → fall through
+  // to a fresh, distinct account rather than risk an address-based takeover.
   const byEmail = await db
     .prepare(`SELECT id, google_sub FROM users WHERE email = ?`)
     .bind(args.email)
     .first<{ id: string; google_sub: string }>();
-  if (byEmail?.google_sub.startsWith("email:")) {
+  if (args.emailVerified && byEmail?.google_sub.startsWith("email:")) {
     await db
       .prepare(`UPDATE users SET apple_sub = ? WHERE id = ?`)
       .bind(args.appleSub, byEmail.id)

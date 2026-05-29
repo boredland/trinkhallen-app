@@ -5,7 +5,7 @@ import type { Env } from "../env";
  * get repointed to (see migrations/0008_delete_ban.sql). Excluded from
  * public counts so it doesn't inflate the user total.
  */
-const DELETED_USER_SENTINEL = "00000000-0000-0000-0000-000000000000";
+export const DELETED_USER_SENTINEL = "00000000-0000-0000-0000-000000000000";
 
 /**
  * Count of "real" registered accounts for the /about stats block.

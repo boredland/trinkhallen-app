@@ -17,21 +17,27 @@ Disallow: /en/moderate
 Disallow: /*?partial=1
 
 # AI retrieval / grounding bots — explicitly allowed (they answer live queries
-# rather than vacuuming for training corpora).
+# rather than vacuuming for training corpora). The UAs are grouped so the
+# Disallow rules below apply to all of them: a crawler obeys ONLY its own
+# most-specific group, so without repeating these the bots would crawl
+# /api/, /me, /add, /moderate and the ?partial=1 fragments.
 User-agent: GPTBot
-Allow: /
 User-agent: OAI-SearchBot
-Allow: /
 User-agent: ChatGPT-User
-Allow: /
 User-agent: PerplexityBot
-Allow: /
 User-agent: ClaudeBot
-Allow: /
 User-agent: Claude-Web
-Allow: /
 User-agent: Google-Extended
 Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /me
+Disallow: /add
+Disallow: /moderate
+Disallow: /en/me
+Disallow: /en/add
+Disallow: /en/moderate
+Disallow: /*?partial=1
 
 # Training-only crawlers — declined.
 User-agent: CCBot

@@ -17,7 +17,7 @@ import {
 import { haversineMeters, parseBbox, parseLatLng, quantizeBbox } from "../lib/geo";
 import { pathForLang, resolveLang } from "../lib/messages";
 import { buildNavigateTargets } from "../lib/navigate";
-import { computeStatus, kioskLocation } from "../lib/opening-hours";
+import { computeStatus, countOpenNow, kioskLocation } from "../lib/opening-hours";
 
 export const apiKiosks = new Hono<{ Bindings: Env }>();
 
@@ -91,10 +91,7 @@ apiKiosks.get("/api/kiosks/panel", async (c) => {
     filtered.sort((a, b) => a.name.localeCompare(b.name, "de"));
   }
   const now = new Date();
-  const openNowCount = filtered.reduce(
-    (n, r) => (computeStatus(r.hours?.raw, now, kioskLocation(r)).kind === "open" ? n + 1 : n),
-    0,
-  );
+  const openNowCount = countOpenNow(filtered, now);
   return c.html(
     <KioskList
       lang={lang}
