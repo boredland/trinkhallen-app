@@ -61,6 +61,8 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        {/* Dark default for the system bar; app.entry.ts's paintThemeColor()
+            updates this to match --color-bg when the stored theme is light. */}
         <meta name="theme-color" content="#0A0A0A" />
         {/* Declared in the HTML (before any CSS) so the browser paints a dark
             canvas during the cross-page navigation gap — without it the UA

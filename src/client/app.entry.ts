@@ -39,14 +39,37 @@ function paintThemeIcons(): void {
     el.textContent = glyph;
   });
 }
-paintThemeIcons();
+
+// Keep the system UI (Android/desktop browser chrome via theme-color, plus the
+// color-scheme hint for native scrollbars/controls) in sync with the chosen
+// theme. The value comes from --color-bg so the CSS stays the single source of
+// truth; the hardcoded fallbacks mirror app.css in case the var isn't resolved
+// yet. The SSR default in Layout.tsx is the dark value, so only light-theme
+// users see a correction here (same one-frame trade-off as the icon paint).
+function paintThemeColor(): void {
+  const isLight = root.dataset["theme"] === "light";
+  const bg = getComputedStyle(root).getPropertyValue("--color-bg").trim();
+  const color = bg || (isLight ? "#f5f2ec" : "#0a0a0a");
+  document
+    .querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+    ?.setAttribute("content", color);
+  document
+    .querySelector<HTMLMetaElement>('meta[name="color-scheme"]')
+    ?.setAttribute("content", isLight ? "light" : "dark");
+}
+
+function paintTheme(): void {
+  paintThemeIcons();
+  paintThemeColor();
+}
+paintTheme();
 
 document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]").forEach((btn) => {
   btn.addEventListener("click", () => {
     const next = root.dataset.theme === "light" ? "dark" : "light";
     root.dataset.theme = next;
     localStorage.setItem("tk-theme", next);
-    paintThemeIcons();
+    paintTheme();
     // Map islands listen and reload their style to match.
     window.dispatchEvent(new CustomEvent("tk:theme-changed", { detail: next }));
   });
