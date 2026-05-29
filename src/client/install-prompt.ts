@@ -8,6 +8,8 @@
  * it at all — the cost is a single UA check.
  */
 
+import { resolveLang, t } from "../lib/messages";
+
 const STORAGE_KEY = "tk-install-prompt-dismissed-at";
 const DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // a week between nags
 
@@ -43,17 +45,12 @@ export async function setupIosInstallPrompt(): Promise<void> {
   // since dismissal. Vite code-splits this into its own chunk.
   await import("@khmyznikov/pwa-install");
 
+  const lang = resolveLang(document.documentElement.lang);
   const el = document.createElement("pwa-install");
   el.setAttribute("manifest-url", "/manifest.webmanifest");
   el.setAttribute("name", "trinkhallen");
-  el.setAttribute(
-    "description",
-    "Trinkhallen, Spätis und Wasserhäuschen — auf der Karte oder als Liste.",
-  );
-  el.setAttribute(
-    "install-description",
-    "Zum Home-Bildschirm hinzufügen für Vollbild ohne URL-Leiste.",
-  );
+  el.setAttribute("description", t(lang, "client.install.description"));
+  el.setAttribute("install-description", t(lang, "client.install.installDescription"));
   el.setAttribute("disable-screenshots", "");
   // Dark-theme mapping. Library exposes these as CSS custom properties; the
   // `styles` attribute takes a JSON object and re-applies on every render.

@@ -15,6 +15,10 @@
  * "rating just got replaced by the server fragment" reflow.
  */
 
+import { resolveLang, t } from "../lib/messages";
+
+const lang = resolveLang(document.documentElement.lang);
+
 const ACTIVE_CLASS = "text-neon-amber";
 const INACTIVE_CLASSES = ["text-fg-dim", "hover:text-neon-amber/60"];
 
@@ -79,7 +83,7 @@ async function onSubmit(form: HTMLFormElement, submitter: HTMLButtonElement | nu
   // those are sr-only, so a native unfilled-required block fires no submit
   // event and the button just looks dead. Delete needs no star.
   if (!isDelete && !form.querySelector("input[name='stars']:checked")) {
-    showError(form, "Bitte wähle 1–5 Sterne aus.");
+    showError(form, t(lang, "client.rating.pickStars"));
     form.querySelector<HTMLElement>("[data-stars-group]")?.scrollIntoView({ block: "nearest" });
     return;
   }
@@ -98,8 +102,8 @@ async function onSubmit(form: HTMLFormElement, submitter: HTMLButtonElement | nu
       showError(
         form,
         resp.status === 401
-          ? "Bitte melde dich an, um zu bewerten."
-          : "Konnte die Bewertung nicht speichern. Bitte später erneut versuchen.",
+          ? t(lang, "client.rating.loginToRate")
+          : t(lang, "client.rating.saveFailed"),
       );
       return;
     }
@@ -108,6 +112,6 @@ async function onSubmit(form: HTMLFormElement, submitter: HTMLButtonElement | nu
     if (host) host.outerHTML = html;
   } catch {
     buttons.forEach((b) => (b.disabled = false));
-    showError(form, "Netzwerkfehler — bitte erneut versuchen.");
+    showError(form, t(lang, "client.errNetwork"));
   }
 }

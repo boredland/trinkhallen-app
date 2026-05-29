@@ -14,6 +14,10 @@
  * now a no-op after the first call.
  */
 
+import { resolveLang, t, tpl } from "../lib/messages";
+
+const lang = resolveLang(document.documentElement.lang);
+
 let installed = false;
 
 export function installCheckinForm(_scope: ParentNode = document): void {
@@ -60,7 +64,7 @@ async function onCheckinClick(btn: HTMLButtonElement): Promise<void> {
   if (!kioskId) return;
 
   btn.disabled = true;
-  btn.textContent = "Danke! Was hat gefehlt?";
+  btn.textContent = t(lang, "checkin.thanksWhatMissing");
   wrapper.dataset["open"] = "true";
   const questions = wrapper.querySelector<HTMLElement>("[data-checkin-questions]");
   if (questions) questions.hidden = false;
@@ -108,7 +112,7 @@ async function onSignalSubmit(
   const kioskId = wrapper?.dataset["kioskId"];
   const fieldKey = btn.dataset["fieldKey"];
   if (!wrapper || !kioskId || !fieldKey) {
-    showSignalError(block, btn, "Interner Fehler — kann nicht senden.");
+    showSignalError(block, btn, t(lang, "client.errInternal"));
     return;
   }
 
@@ -140,9 +144,9 @@ async function onSignalSubmit(
       showSignalSuccess(block, action, data.verified !== false);
       return;
     }
-    showSignalError(block, btn, `Server-Fehler (${resp.status}). Bitte erneut versuchen.`);
+    showSignalError(block, btn, tpl(lang, "client.errServer", { status: resp.status }));
   } catch {
-    showSignalError(block, btn, "Netzwerkfehler — bitte erneut versuchen.");
+    showSignalError(block, btn, t(lang, "client.errNetwork"));
   }
 }
 
@@ -152,8 +156,10 @@ function showSignalSuccess(
   verified: boolean,
 ): void {
   if (!block) return;
-  const verb = action === "dispute" ? "Notiert" : "Bestätigt";
-  const msg = verified ? `✓ ${verb} — danke!` : `${verb}, ohne Vor-Ort-Prüfung — zählt nur leise.`;
+  const verb = action === "dispute" ? t(lang, "client.noted") : t(lang, "client.confirmed");
+  const msg = verified
+    ? tpl(lang, "client.signalOk", { verb })
+    : tpl(lang, "client.signalLow", { verb });
   const cls = verified
     ? "border-success/60 bg-success/10 text-success"
     : "border-neon-amber/60 bg-neon-amber/10 text-neon-amber";
@@ -184,7 +190,7 @@ async function onFormSubmit(form: HTMLFormElement): Promise<void> {
       // German message; surface it so the user sees why their submit didn't
       // land instead of staring at a silently re-enabled button.
       if (resp.status === 409) {
-        const msg = (await resp.text()).trim() || "Bereits gemeldet.";
+        const msg = (await resp.text()).trim() || t(lang, "client.alreadyReported");
         form.outerHTML = `<p class="border-2 border-border bg-bg p-4 text-sm italic text-fg-muted">${escapeHtml(msg)}</p>`;
         return;
       }

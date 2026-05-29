@@ -139,6 +139,25 @@ const DE = {
   "error.loginRequired": "Bitte anmelden.",
   "error.kioskNotFound": "Kiosk nicht gefunden",
   "error.badRequest": "Bad request",
+
+  // client islands (rendered in the browser; lang read from <html lang>)
+  "client.confirmed": "Bestätigt",
+  "client.noted": "Notiert",
+  "client.errInternal": "Interner Fehler — kann nicht senden.",
+  "client.errNetwork": "Netzwerkfehler — bitte erneut versuchen.",
+  "client.alreadyReported": "Bereits gemeldet.",
+  "client.rating.pickStars": "Bitte wähle 1–5 Sterne aus.",
+  "client.rating.loginToRate": "Bitte melde dich an, um zu bewerten.",
+  "client.rating.saveFailed":
+    "Konnte die Bewertung nicht speichern. Bitte später erneut versuchen.",
+  "client.install.description":
+    "Trinkhallen, Spätis und Wasserhäuschen — auf der Karte oder als Liste.",
+  "client.install.installDescription":
+    "Zum Home-Bildschirm hinzufügen für Vollbild ohne URL-Leiste.",
+  "client.sw.newVersion": "Neue Version verfügbar.",
+  "client.sw.reload": "Neu laden",
+  "client.sw.loading": "Lädt …",
+  "client.sw.close": "Schließen",
 } as const;
 
 export const MESSAGES: Record<Lang, Record<string, string>> = {
@@ -162,6 +181,9 @@ const DE_TPL = {
   "kioskList.countFiltered": "{filtered} / {total} (gefiltert)",
   "kioskList.openNow": "{n} offen",
   "kioskList.navTo": "Hin navigieren zu {name}",
+  "client.signalOk": "✓ {verb} — danke!",
+  "client.signalLow": "{verb}, ohne Vor-Ort-Prüfung — zählt nur leise.",
+  "client.errServer": "Server-Fehler ({status}). Bitte erneut versuchen.",
 } as const;
 
 export const TEMPLATES: Record<Lang, Record<string, string>> = {

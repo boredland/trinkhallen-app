@@ -14,6 +14,10 @@
  * within one focus instead of never.
  */
 
+import { resolveLang, t } from "../lib/messages";
+
+const lang = resolveLang(document.documentElement.lang);
+
 export function installServiceWorker(): void {
   if (!("serviceWorker" in navigator) || location.protocol !== "https:") return;
 
@@ -73,16 +77,16 @@ function showUpdateToast(reg: ServiceWorkerRegistration): void {
 
   const label = document.createElement("span");
   label.className = "flex-1";
-  label.textContent = "Neue Version verfügbar.";
+  label.textContent = t(lang, "client.sw.newVersion");
 
   const reload = document.createElement("button");
   reload.type = "button";
   reload.className =
     "shrink-0 cursor-pointer border-2 border-neon-pink bg-neon-pink px-3 py-1 font-bold uppercase tracking-wider text-bg hover:opacity-90";
-  reload.textContent = "Neu laden";
+  reload.textContent = t(lang, "client.sw.reload");
   reload.addEventListener("click", () => {
     reload.disabled = true;
-    reload.textContent = "Lädt …";
+    reload.textContent = t(lang, "client.sw.loading");
     const worker = reg.waiting ?? reg.active;
     // If the worker is already controlling (edge case), just reload.
     if (worker) worker.postMessage({ type: "SKIP_WAITING" });
@@ -92,7 +96,7 @@ function showUpdateToast(reg: ServiceWorkerRegistration): void {
   const dismiss = document.createElement("button");
   dismiss.type = "button";
   dismiss.className = "shrink-0 cursor-pointer px-2 py-1 text-fg-dim hover:text-fg";
-  dismiss.setAttribute("aria-label", "Schließen");
+  dismiss.setAttribute("aria-label", t(lang, "client.sw.close"));
   dismiss.textContent = "✕";
   dismiss.addEventListener("click", () => toast.remove());
 
