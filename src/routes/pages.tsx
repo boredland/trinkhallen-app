@@ -16,7 +16,7 @@ import {
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox, parseLatLng } from "../lib/geo";
-import { type Lang, resolveLang, t, tpl } from "../lib/messages";
+import { type Lang, resolveLang, STATUS_PILL_LABELS, t, tpl } from "../lib/messages";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating, listComments } from "../lib/ratings";
@@ -1722,22 +1722,21 @@ async function renderProfile(
               {user.username ? `@${user.username}` : user.email}
             </h1>
             <p class="text-fg-muted">{user.email}</p>
-            <p class="mt-1 text-xs uppercase tracking-wider text-fg-dim">Rolle: {user.role}</p>
+            <p class="mt-1 text-xs uppercase tracking-wider text-fg-dim">
+              {t(lang, "profile.role")} {user.role}
+            </p>
           </div>
         </div>
         <dl class="mt-6 grid grid-cols-2 gap-3 text-center sm:grid-cols-5">
-          <Stat n={checkinsCount} label="Check-ins" />
-          <Stat n={signalsCount} label="Bestätigungen" />
-          <Stat n={ratingsCount} label="Bewertungen" />
-          <Stat n={reports.length} label="Korrekturen" />
-          <Stat n={submissions.length} label="Vorschläge" />
+          <Stat n={checkinsCount} label={t(lang, "profile.stat.checkins")} />
+          <Stat n={signalsCount} label={t(lang, "profile.stat.signals")} />
+          <Stat n={ratingsCount} label={t(lang, "profile.stat.ratings")} />
+          <Stat n={reports.length} label={t(lang, "profile.stat.corrections")} />
+          <Stat n={submissions.length} label={t(lang, "profile.stat.suggestions")} />
         </dl>
         {(!user.hasGoogle || !user.hasApple) && (
           <div class="mt-6 border-2 border-border-hi bg-surface-2 p-4 space-y-3">
-            <p class="text-sm text-fg-muted">
-              Verknüpfe weitere Anmelde-Wege mit deinem Konto — du behältst dabei alle Bewertungen,
-              Korrekturen und Check-ins.
-            </p>
+            <p class="text-sm text-fg-muted">{t(lang, "profile.linkAccounts")}</p>
             <div class="flex flex-wrap gap-2">
               {!user.hasApple && (
                 <a
@@ -1745,7 +1744,7 @@ async function renderProfile(
                   class="inline-flex items-center gap-2 border-2 border-neon-cyan bg-transparent px-3 py-1.5 font-display tracking-wider uppercase text-neon-cyan transition-colors hover:bg-neon-cyan hover:text-bg"
                 >
                   <span aria-hidden="true">▶</span>
-                  Apple verbinden
+                  {t(lang, "profile.connectApple")}
                 </a>
               )}
               {!user.hasGoogle && (
@@ -1754,7 +1753,7 @@ async function renderProfile(
                   class="inline-flex items-center gap-2 border-2 border-neon-cyan bg-transparent px-3 py-1.5 font-display tracking-wider uppercase text-neon-cyan transition-colors hover:bg-neon-cyan hover:text-bg"
                 >
                   <span aria-hidden="true">▶</span>
-                  Google verbinden
+                  {t(lang, "profile.connectGoogle")}
                 </a>
               )}
             </div>
@@ -1765,76 +1764,78 @@ async function renderProfile(
             type="submit"
             class="cursor-pointer border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg-muted transition-colors hover:border-neon-pink hover:text-neon-pink"
           >
-            Abmelden
+            {t(lang, "profile.logout")}
           </button>
         </form>
       </section>
 
       {submittedFlag === "ok" && (
         <div class="mt-6 border-2 border-success/60 bg-success/10 p-4 text-success">
-          ▶▶▶ Vorschlag gespeichert. Moderator:innen schauen drüber.
+          ▶▶▶ {t(lang, "profile.flash.submitted")}
         </div>
       )}
       {reportedFlag === "ok" && (
         <div class="mt-6 border-2 border-success/60 bg-success/10 p-4 text-success">
-          ▶▶▶ Hinweis gespeichert. Danke!
+          ▶▶▶ {t(lang, "profile.flash.reported")}
         </div>
       )}
       {linkFlag === "ok" && (
         <div class="mt-6 border-2 border-success/60 bg-success/10 p-4 text-success">
-          ▶▶▶ Google-Konto verknüpft.
+          ▶▶▶ {t(lang, "profile.flash.linkOk")}
         </div>
       )}
       {linkFlag === "conflict" && (
         <div class="mt-6 border-2 border-danger/60 bg-danger/10 p-4 text-danger">
-          ✗ Dieses Google-Konto ist bereits mit einem anderen Profil hier verbunden. Melde dich dort
-          an oder schreib uns, wenn wir die Konten zusammenführen sollen.
+          ✗ {t(lang, "profile.flash.linkConflict")}
         </div>
       )}
 
       <section class="mt-6 border-2 border-border bg-surface p-6">
-        <h2 class="font-display text-xl tracking-wide text-fg">Dein Handle</h2>
+        <h2 class="font-display text-xl tracking-wide text-fg">
+          {t(lang, "profile.handle.heading")}
+        </h2>
         <p class="mt-2 font-mono text-neon-cyan">@{user.username ?? "—"}</p>
         {usernameFlag === "ok" && (
           <p class="mt-3 border-2 border-success/60 bg-success/10 p-3 text-success">
-            ▶▶▶ Handle geändert.
+            ▶▶▶ {t(lang, "profile.handle.changed")}
           </p>
         )}
         {usernameFlag === "invalid" && (
           <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-            Nur Kleinbuchstaben, Zahlen, Unterstrich. 3–24 Zeichen.
+            {t(lang, "profile.handle.invalid")}
           </p>
         )}
         {usernameFlag === "reserved" && (
           <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-            Dieser Handle ist reserviert. Wähl einen anderen.
+            {t(lang, "profile.handle.reserved")}
           </p>
         )}
         {usernameFlag === "taken" && (
           <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-            Schon vergeben. Wähl einen anderen.
+            {t(lang, "profile.handle.taken")}
           </p>
         )}
         {usernameFlag === "retired" && (
           <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-            Dieser Handle war schon mal vergeben und ist gesperrt.
+            {t(lang, "profile.handle.retired")}
           </p>
         )}
         {usernameFlag === "unchanged" && (
           <p class="mt-3 border-2 border-border-hi bg-surface-2 p-3 text-fg-muted">
-            Das ist bereits dein Handle.
+            {t(lang, "profile.handle.unchanged")}
           </p>
         )}
         {usernameFlag === "already_changed" && (
           <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-            Du hast deinen Handle bereits einmal geändert — er ist jetzt fest.
+            {t(lang, "profile.handle.alreadyChanged")}
           </p>
         )}
         {canRename ? (
           <>
             <p class="mt-4 text-fg-muted">
-              Du kannst deinen Handle <strong>einmal</strong> ändern — danach ist er fest. 3–24
-              Zeichen, Kleinbuchstaben, Zahlen, Unterstrich.
+              {t(lang, "profile.handle.renamePre")}{" "}
+              <strong>{t(lang, "profile.handle.renameEmphasis")}</strong>{" "}
+              {t(lang, "profile.handle.renamePost")}
             </p>
             <form
               action="/me/username"
@@ -1842,7 +1843,7 @@ async function renderProfile(
               class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-stretch"
             >
               <label class="flex-1">
-                <span class="sr-only">Neuer Handle</span>
+                <span class="sr-only">{t(lang, "profile.handle.newLabel")}</span>
                 <input
                   type="text"
                   name="username"
@@ -1859,34 +1860,34 @@ async function renderProfile(
                 />
               </label>
               <button type="submit" class="btn-neon shrink-0">
-                ▶ Handle ändern
+                ▶ {t(lang, "profile.handle.changeBtn")}
               </button>
             </form>
           </>
         ) : (
-          <p class="mt-4 text-fg-dim">
-            Dein Handle ist festgelegt und kann nicht mehr geändert werden.
-          </p>
+          <p class="mt-4 text-fg-dim">{t(lang, "profile.handle.fixed")}</p>
         )}
       </section>
 
       <section class="mt-6 border-2 border-border bg-surface">
         <header class="flex items-center justify-between border-b-2 border-border px-4 py-3">
-          <h2 class="font-display text-xl tracking-wide text-fg">Vorschläge</h2>
+          <h2 class="font-display text-xl tracking-wide text-fg">
+            {t(lang, "profile.stat.suggestions")}
+          </h2>
           <a
             href="/add"
             class="border-2 border-border-hi px-2 py-1 font-display text-xs tracking-wider uppercase text-fg-muted hover:border-neon-pink hover:text-neon-pink"
           >
-            + Späti vorschlagen
+            {t(lang, "profile.suggestKiosk")}
           </a>
         </header>
         {submissions.length === 0 ? (
           <p class="p-4 text-fg-muted">
-            Noch nichts vorgeschlagen — leg{" "}
+            {t(lang, "profile.noSubmissionsPre")}{" "}
             <a class="text-neon-cyan underline-offset-2 hover:underline" href="/add">
-              hier
+              {t(lang, "profile.noSubmissionsLink")}
             </a>{" "}
-            los.
+            {t(lang, "profile.noSubmissionsPost")}
           </p>
         ) : (
           <ul class="divide-y-2 divide-border">
@@ -1896,15 +1897,15 @@ async function renderProfile(
                 <li class="px-4 py-3 text-sm">
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <span class="font-display text-base tracking-wide text-fg">
-                      {payload.properties?.name ?? "(ohne Name)"}
+                      {payload.properties?.name ?? t(lang, "profile.noName")}
                     </span>
                     <span class="text-xs text-fg-dim">{fmtDate(s.created_at)}</span>
                   </div>
                   <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
-                    <StatusPill status={s.status} />
+                    <StatusPill lang={lang} status={s.status} />
                     {s.pr_url && (
                       <a class="text-neon-cyan underline-offset-2 hover:underline" href={s.pr_url}>
-                        PR ansehen →
+                        {t(lang, "profile.prLink")}
                       </a>
                     )}
                   </div>
@@ -1917,10 +1918,12 @@ async function renderProfile(
 
       <section class="mt-6 border-2 border-border bg-surface">
         <header class="border-b-2 border-border px-4 py-3">
-          <h2 class="font-display text-xl tracking-wide text-fg">Korrekturen</h2>
+          <h2 class="font-display text-xl tracking-wide text-fg">
+            {t(lang, "profile.stat.corrections")}
+          </h2>
         </header>
         {reports.length === 0 ? (
-          <p class="p-4 text-fg-muted">Du hast noch keine Fehler gemeldet.</p>
+          <p class="p-4 text-fg-muted">{t(lang, "profile.noCorrections")}</p>
         ) : (
           <ul class="divide-y-2 divide-border">
             {reports.map((r) => (
@@ -1936,7 +1939,7 @@ async function renderProfile(
                 </div>
                 <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
                   <span class="border-2 border-border px-2 py-0.5">{kindLabel(lang, r.kind)}</span>
-                  <StatusPill status={r.status} />
+                  <StatusPill lang={lang} status={r.status} />
                 </div>
               </li>
             ))}
@@ -1945,27 +1948,27 @@ async function renderProfile(
       </section>
 
       <section class="mt-12 border-2 border-danger/40 bg-surface p-6">
-        <h2 class="font-display text-xl tracking-wide text-danger">Konto löschen</h2>
+        <h2 class="font-display text-xl tracking-wide text-danger">
+          {t(lang, "profile.deleteHeading")}
+        </h2>
         <p class="mt-2 text-fg-muted">
-          Löscht dein Konto unwiderruflich: E-Mail, Username, Profil, Sitzungen, Bewertungen,
-          Check-ins und offene Vorschläge oder Korrekturen werden entfernt. Korrekturen und
-          Vorschläge, die bereits in den{" "}
+          {t(lang, "profile.deleteBodyPre")}
           <a
             class="text-neon-cyan underline-offset-2 hover:underline"
             href="https://github.com/boredland/trinkhallen-data"
           >
-            offenen Datensatz
-          </a>{" "}
-          übernommen wurden, bleiben dort bestehen — der Verweis auf dein Konto wird anonymisiert.
+            {t(lang, "profile.deleteBodyLink")}
+          </a>
+          {t(lang, "profile.deleteBodyPost")}
         </p>
         {c.req.query("delete") === "unconfirmed" && (
           <p class="mt-3 border-2 border-danger/60 bg-danger/10 p-3 text-danger">
-            Bitte das Häkchen setzen, um die Löschung zu bestätigen.
+            {t(lang, "profile.deleteUnconfirmed")}
           </p>
         )}
         <details class="mt-4">
           <summary class="cursor-pointer text-sm uppercase tracking-wider text-fg-muted hover:text-danger">
-            Konto wirklich löschen…
+            {t(lang, "profile.deleteToggle")}
           </summary>
           <form action="/me/delete" method="post" class="mt-4 space-y-3" data-logout-form>
             <label class="flex items-start gap-2 text-sm text-fg-muted">
@@ -1976,16 +1979,13 @@ async function renderProfile(
                 required
                 class="mt-1 accent-danger"
               />
-              <span>
-                Ich verstehe, dass diese Aktion endgültig ist und meine Daten nicht
-                wiederhergestellt werden können.
-              </span>
+              <span>{t(lang, "profile.deleteConfirmLabel")}</span>
             </label>
             <button
               type="submit"
               class="cursor-pointer border-2 border-danger px-3 py-1.5 font-display text-sm tracking-wide text-danger transition-colors hover:bg-danger hover:text-bg"
             >
-              Konto unwiderruflich löschen
+              {t(lang, "profile.deleteButton")}
             </button>
           </form>
         </details>
@@ -2018,15 +2018,19 @@ function Metric({ value, label }: { value: number; label: string }) {
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const map: Record<string, { de: string; cls: string }> = {
-    open: { de: "Offen", cls: "border-status-open text-status-open" },
-    pending: { de: "Wartet", cls: "border-status-open text-status-open" },
-    pr_opened: { de: "Akzeptiert", cls: "border-neon-cyan text-neon-cyan" },
-    approved: { de: "Akzeptiert", cls: "border-neon-cyan text-neon-cyan" },
-    merged: { de: "Übernommen", cls: "border-success text-success" },
-    dismissed: { de: "Abgelehnt", cls: "border-border text-fg-dim" },
+function StatusPill({ lang, status }: { lang: Lang; status: string }) {
+  const cls: Record<string, string> = {
+    open: "border-status-open text-status-open",
+    pending: "border-status-open text-status-open",
+    pr_opened: "border-neon-cyan text-neon-cyan",
+    approved: "border-neon-cyan text-neon-cyan",
+    merged: "border-success text-success",
+    dismissed: "border-border text-fg-dim",
   };
-  const cfg = map[status] ?? { de: status, cls: "border-border text-fg-dim" };
-  return <span class={`border-2 px-2 py-0.5 ${cfg.cls}`}>{cfg.de}</span>;
+  const label = STATUS_PILL_LABELS[lang][status] ?? status;
+  return (
+    <span class={`border-2 px-2 py-0.5 ${cls[status] ?? "border-border text-fg-dim"}`}>
+      {label}
+    </span>
+  );
 }

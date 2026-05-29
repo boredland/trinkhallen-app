@@ -163,6 +163,58 @@ const DE = {
   "page.kiosk.hoursHint": "Öffnungszeiten (Hinweise willkommen)",
   "page.kiosk.germany": "Deutschland",
 
+  // profile (/me)
+  "profile.role": "Rolle:",
+  "profile.stat.checkins": "Check-ins",
+  "profile.stat.signals": "Bestätigungen",
+  "profile.stat.ratings": "Bewertungen",
+  "profile.stat.corrections": "Korrekturen",
+  "profile.stat.suggestions": "Vorschläge",
+  "profile.linkAccounts":
+    "Verknüpfe weitere Anmelde-Wege mit deinem Konto — du behältst dabei alle Bewertungen, Korrekturen und Check-ins.",
+  "profile.connectApple": "Apple verbinden",
+  "profile.connectGoogle": "Google verbinden",
+  "profile.logout": "Abmelden",
+  "profile.flash.submitted": "Vorschlag gespeichert. Moderator:innen schauen drüber.",
+  "profile.flash.reported": "Hinweis gespeichert. Danke!",
+  "profile.flash.linkOk": "Google-Konto verknüpft.",
+  "profile.flash.linkConflict":
+    "Dieses Google-Konto ist bereits mit einem anderen Profil hier verbunden. Melde dich dort an oder schreib uns, wenn wir die Konten zusammenführen sollen.",
+  "profile.handle.heading": "Dein Handle",
+  "profile.handle.changed": "Handle geändert.",
+  "profile.handle.invalid": "Nur Kleinbuchstaben, Zahlen, Unterstrich. 3–24 Zeichen.",
+  "profile.handle.reserved": "Dieser Handle ist reserviert. Wähl einen anderen.",
+  "profile.handle.taken": "Schon vergeben. Wähl einen anderen.",
+  "profile.handle.retired": "Dieser Handle war schon mal vergeben und ist gesperrt.",
+  "profile.handle.unchanged": "Das ist bereits dein Handle.",
+  "profile.handle.alreadyChanged":
+    "Du hast deinen Handle bereits einmal geändert — er ist jetzt fest.",
+  "profile.handle.renamePre": "Du kannst deinen Handle",
+  "profile.handle.renameEmphasis": "einmal",
+  "profile.handle.renamePost":
+    "ändern — danach ist er fest. 3–24 Zeichen, Kleinbuchstaben, Zahlen, Unterstrich.",
+  "profile.handle.newLabel": "Neuer Handle",
+  "profile.handle.changeBtn": "Handle ändern",
+  "profile.handle.fixed": "Dein Handle ist festgelegt und kann nicht mehr geändert werden.",
+  "profile.suggestKiosk": "+ Späti vorschlagen",
+  "profile.noSubmissionsPre": "Noch nichts vorgeschlagen — leg",
+  "profile.noSubmissionsLink": "hier",
+  "profile.noSubmissionsPost": "los.",
+  "profile.noName": "(ohne Name)",
+  "profile.prLink": "PR ansehen →",
+  "profile.noCorrections": "Du hast noch keine Fehler gemeldet.",
+  "profile.deleteHeading": "Konto löschen",
+  "profile.deleteBodyPre":
+    "Löscht dein Konto unwiderruflich: E-Mail, Username, Profil, Sitzungen, Bewertungen, Check-ins und offene Vorschläge oder Korrekturen werden entfernt. Korrekturen und Vorschläge, die bereits in den ",
+  "profile.deleteBodyLink": "offenen Datensatz",
+  "profile.deleteBodyPost":
+    " übernommen wurden, bleiben dort bestehen — der Verweis auf dein Konto wird anonymisiert.",
+  "profile.deleteUnconfirmed": "Bitte das Häkchen setzen, um die Löschung zu bestätigen.",
+  "profile.deleteToggle": "Konto wirklich löschen…",
+  "profile.deleteConfirmLabel":
+    "Ich verstehe, dass diese Aktion endgültig ist und meine Daten nicht wiederhergestellt werden können.",
+  "profile.deleteButton": "Konto unwiderruflich löschen",
+
   // moderation (admin)
   "mod.title": "Moderation",
   "mod.emptyHeading": "Saubere Inbox",
@@ -325,6 +377,18 @@ export const PAYMENT_LABELS: Record<Lang, Record<string, string>> = {
     cards: "Karte",
     contactless: "Kontaktlos",
     girocard: "Girocard",
+  },
+};
+
+/** Status pills on the profile page (distinct wording from REPORT_STATUS_LABELS). */
+export const STATUS_PILL_LABELS: Record<Lang, Record<string, string>> = {
+  de: {
+    open: "Offen",
+    pending: "Wartet",
+    pr_opened: "Akzeptiert",
+    approved: "Akzeptiert",
+    merged: "Übernommen",
+    dismissed: "Abgelehnt",
   },
 };
 
