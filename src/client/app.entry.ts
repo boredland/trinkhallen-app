@@ -20,7 +20,6 @@ import { installCheckinForm } from "./checkin";
 import { setupIosInstallPrompt } from "./install-prompt";
 import { installLogoutForm } from "./logout";
 import { installRatingForm } from "./rating";
-import { installRefreshButton } from "./refresh";
 import { installKioskSheet } from "./sheet";
 
 // ── Theme toggle ────────────────────────────────────────────────────────────
@@ -232,7 +231,6 @@ window.addEventListener("tk:sheet-body-swapped", () => installCheckinForm());
 // Logout — intercepts the form submit so we can drop the SW runtime cache
 // before navigating; otherwise the cached logged-in shell flashes back.
 installLogoutForm();
-installRefreshButton();
 
 // Star rating + form submit interception for the kiosk detail page.
 installRatingForm();
