@@ -11,6 +11,9 @@ Disallow: /auth/
 Disallow: /me
 Disallow: /add
 Disallow: /moderate
+Disallow: /en/me
+Disallow: /en/add
+Disallow: /en/moderate
 Disallow: /*?partial=1
 
 # AI retrieval / grounding bots — explicitly allowed (they answer live queries

@@ -24,6 +24,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { resolve } from "node:path";
 import Supercluster from "supercluster";
 import YAML from "yaml";
+import { DEFAULT_LANG, pathForLang, SUPPORTED_LANGS } from "../src/lib/messages";
 
 const REPO_URL = "https://github.com/boredland/trinkhallen-data.git";
 const OUT_DIR = resolve("dist/static/data");
@@ -165,21 +166,34 @@ function main(): void {
   // ── sitemap.xml ───────────────────────────────────────────────────────────
   const today = new Date().toISOString().slice(0, 10);
   const base = "https://trinkhallen.app";
+  // One <url> per locale, each carrying the full hreflang alternate set
+  // (Google's required reciprocal form) + x-default pointing at the default
+  // locale. `bare` is the locale-neutral path (no language prefix).
+  const localized = (bare: string, extra = ""): string[] => {
+    const alternates = [
+      ...SUPPORTED_LANGS.map(
+        (l) =>
+          `<xhtml:link rel="alternate" hreflang="${l}" href="${base}${pathForLang(bare, l)}"/>`,
+      ),
+      `<xhtml:link rel="alternate" hreflang="x-default" href="${base}${pathForLang(bare, DEFAULT_LANG)}"/>`,
+    ].join("");
+    return SUPPORTED_LANGS.map(
+      (l) => `  <url><loc>${base}${pathForLang(bare, l)}</loc>${extra}${alternates}</url>`,
+    );
+  };
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    `  <url><loc>${base}/</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq></url>`,
-    `  <url><loc>${base}/about</loc><lastmod>${today}</lastmod></url>`,
-    `  <url><loc>${base}/impressum</loc><lastmod>${today}</lastmod></url>`,
-    `  <url><loc>${base}/datenschutz</loc><lastmod>${today}</lastmod></url>`,
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+    ...localized("/", `<lastmod>${today}</lastmod><changefreq>daily</changefreq>`),
+    ...localized("/about", `<lastmod>${today}</lastmod>`),
+    ...localized("/impressum", `<lastmod>${today}</lastmod>`),
+    ...localized("/datenschutz", `<lastmod>${today}</lastmod>`),
     // Per-city directory pages (one per region in the manifest).
-    ...manifest.map(
-      (r) =>
-        `  <url><loc>${base}/stadt/${r.slug}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq></url>`,
+    ...manifest.flatMap((r) =>
+      localized(`/stadt/${r.slug}`, `<lastmod>${today}</lastmod><changefreq>daily</changefreq>`),
     ),
-    ...sitemapEntries.map(
-      ({ id, lastmod }) =>
-        `  <url><loc>${base}/k/${id}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}</url>`,
+    ...sitemapEntries.flatMap(({ id, lastmod }) =>
+      localized(`/k/${id}`, lastmod ? `<lastmod>${lastmod}</lastmod>` : ""),
     ),
     "</urlset>",
   ].join("\n");
