@@ -264,7 +264,7 @@ function installSheetDrag(): void {
   if (!handle || !panel) return;
 
   installDragToDismiss({
-    surface: handle,
+    handle,
     target: sheet,
     measure: panel,
     threshold: 0.3,
