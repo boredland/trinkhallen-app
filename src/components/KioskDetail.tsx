@@ -261,6 +261,7 @@ export const KioskDetail: FC<{
           {t(lang, "kiosk.ratingsHeading")}
         </h2>
         <RatingBlock
+          lang={lang}
           kioskId={kiosk.id}
           aggregate={aggregate}
           own={ownRating}

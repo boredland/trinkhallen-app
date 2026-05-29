@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { RatingBlock } from "../components/RatingBlock";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
+import { type Lang, resolveLang, t } from "../lib/messages";
 import {
   deleteRating,
   getAggregate,
@@ -13,8 +14,9 @@ import {
 export const apiRatings = new Hono<{ Bindings: Env }>();
 
 apiRatings.post("/api/ratings", async (c) => {
+  const lang = resolveLang(c.req.header("accept-language"));
   const user = c.get("user");
-  if (!user) return c.text("Bitte anmelden.", 401);
+  if (!user) return c.text(t(lang, "error.loginRequired"), 401);
 
   const form = await c.req.formData();
   const kioskId = (form.get("kiosk_id") ?? "").toString();
@@ -36,21 +38,23 @@ apiRatings.post("/api/ratings", async (c) => {
     comment: comment && comment.length <= 500 ? comment : null,
   });
 
-  return renderFragmentOrRedirect(c, kioskId, user.id);
+  return renderFragmentOrRedirect(c, lang, kioskId, user.id);
 });
 
 apiRatings.post("/api/ratings/delete", async (c) => {
+  const lang = resolveLang(c.req.header("accept-language"));
   const user = c.get("user");
-  if (!user) return c.text("Bitte anmelden.", 401);
+  if (!user) return c.text(t(lang, "error.loginRequired"), 401);
   const form = await c.req.formData();
   const kioskId = (form.get("kiosk_id") ?? "").toString();
   if (!kioskId) return c.text("kiosk_id missing", 400);
   await deleteRating(c.env, kioskId, user.id);
-  return renderFragmentOrRedirect(c, kioskId, user.id);
+  return renderFragmentOrRedirect(c, lang, kioskId, user.id);
 });
 
 async function renderFragmentOrRedirect(
   c: import("hono").Context<{ Bindings: Env }>,
+  lang: Lang,
   kioskId: string,
   userId: string,
 ) {
@@ -61,11 +65,12 @@ async function renderFragmentOrRedirect(
   const [aggregate, own, comments] = await Promise.all([
     getAggregate(c.env, kioskId),
     getOwnRating(c.env, kioskId, userId),
-    listComments(c.env, kioskId),
+    listComments(c.env, lang, kioskId),
   ]);
   if (wantsFragment) {
     return c.html(
       <RatingBlock
+        lang={lang}
         kioskId={kioskId}
         aggregate={aggregate}
         own={own}

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
 import { regionSlugFromPath } from "../lib/checkins";
+import { resolveLang, t } from "../lib/messages";
 import { recordSignal, type SignalAction } from "../lib/signals";
 
 export const apiSignals = new Hono<{ Bindings: Env }>();
@@ -19,18 +20,19 @@ const ALLOWED_ACTIONS: ReadonlySet<SignalAction> = new Set(["confirm", "dispute"
  * nur leise.").
  */
 apiSignals.post("/api/signals", async (c) => {
+  const lang = resolveLang(c.req.header("accept-language"));
   const user = c.get("user");
-  if (!user) return c.text("Bitte anmelden.", 401);
+  if (!user) return c.text(t(lang, "error.loginRequired"), 401);
 
   const form = await c.req.formData();
   const kioskId = (form.get("kiosk_id") ?? "").toString();
   const fieldKey = (form.get("field_key") ?? "").toString();
   const action = (form.get("action") ?? "").toString();
-  if (!kioskId || !fieldKey || !action) return c.text("Bad request", 400);
-  if (!ALLOWED_ACTIONS.has(action as SignalAction)) return c.text("Bad action", 400);
+  if (!kioskId || !fieldKey || !action) return c.text(t(lang, "error.badRequest"), 400);
+  if (!ALLOWED_ACTIONS.has(action as SignalAction)) return c.text(t(lang, "error.badAction"), 400);
 
   const kiosk = await getKioskById(c.env, kioskId);
-  if (!kiosk) return c.text("Kiosk nicht gefunden", 404);
+  if (!kiosk) return c.text(t(lang, "error.kioskNotFound"), 404);
 
   const userLatRaw = (form.get("lat") ?? "").toString();
   const userLngRaw = (form.get("lng") ?? "").toString();

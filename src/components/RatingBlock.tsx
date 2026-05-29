@@ -1,7 +1,9 @@
 import type { FC } from "hono/jsx";
+import { INTL_LOCALE, type Lang, t, tpl } from "../lib/messages";
 import type { Aggregate, RatingComment, RatingRow } from "../lib/ratings";
 
 export interface RatingBlockProps {
+  lang: Lang;
   kioskId: string;
   aggregate: Aggregate;
   own: RatingRow | null;
@@ -15,6 +17,7 @@ export interface RatingBlockProps {
  * returns the exact same fragment to replace it.
  */
 export const RatingBlock: FC<RatingBlockProps> = ({
+  lang,
   kioskId,
   aggregate,
   own,
@@ -23,28 +26,32 @@ export const RatingBlock: FC<RatingBlockProps> = ({
 }) => {
   return (
     <div id="rating-block" class="space-y-5">
-      <AggregateView aggregate={aggregate} />
-      <CommentsList comments={comments} />
-      {isLoggedIn ? <OwnRatingForm kioskId={kioskId} own={own} /> : <LoggedOutCta />}
+      <AggregateView lang={lang} aggregate={aggregate} />
+      <CommentsList lang={lang} comments={comments} />
+      {isLoggedIn ? (
+        <OwnRatingForm lang={lang} kioskId={kioskId} own={own} />
+      ) : (
+        <LoggedOutCta lang={lang} />
+      )}
     </div>
   );
 };
 
-const CommentsList: FC<{ comments: RatingComment[] }> = ({ comments }) => {
+const CommentsList: FC<{ lang: Lang; comments: RatingComment[] }> = ({ lang, comments }) => {
   if (comments.length === 0) return null;
   return (
     <ul class="space-y-3 border-t-2 border-border pt-4">
       {comments.map((c) => (
         <li class="space-y-1">
           <div class="flex flex-wrap items-center gap-x-2 text-sm">
-            <span aria-label={`${c.stars} von 5 Sternen`}>
+            <span aria-label={tpl(lang, "rating.starsOfFive", { n: c.stars })}>
               <span class="text-neon-amber">{"★".repeat(c.stars)}</span>
               <span class="text-fg-dim">{"★".repeat(5 - c.stars)}</span>
             </span>
             <span class="font-display text-xs tracking-wider uppercase text-fg-muted">
               {c.author}
             </span>
-            <span class="ml-auto text-xs text-fg-dim">{fmtDate(c.updatedAt)}</span>
+            <span class="ml-auto text-xs text-fg-dim">{fmtDate(lang, c.updatedAt)}</span>
           </div>
           <p class="whitespace-pre-line text-sm text-fg">{c.comment}</p>
         </li>
@@ -53,17 +60,17 @@ const CommentsList: FC<{ comments: RatingComment[] }> = ({ comments }) => {
   );
 };
 
-function fmtDate(unixSeconds: number): string {
-  return new Date(unixSeconds * 1000).toLocaleDateString("de-DE", {
+function fmtDate(lang: Lang, unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleDateString(INTL_LOCALE[lang], {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 }
 
-const AggregateView: FC<{ aggregate: Aggregate }> = ({ aggregate }) => {
+const AggregateView: FC<{ lang: Lang; aggregate: Aggregate }> = ({ lang, aggregate }) => {
   if (aggregate.count === 0) {
-    return <p class="text-fg-muted">Noch keine Bewertungen — sei die erste Person.</p>;
+    return <p class="text-fg-muted">{t(lang, "rating.noneYet")}</p>;
   }
   return (
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -71,7 +78,10 @@ const AggregateView: FC<{ aggregate: Aggregate }> = ({ aggregate }) => {
         <span class="text-4xl text-neon-amber">{aggregate.avg.toFixed(1)}</span>
         <span class="ml-1 text-sm text-fg-muted">/ 5</span>
         <p class="text-sm text-fg-dim">
-          {aggregate.count} Bewertung{aggregate.count === 1 ? "" : "en"}
+          {tpl(lang, "rating.count", {
+            n: aggregate.count,
+            suffix: aggregate.count === 1 ? "" : "en",
+          })}
         </p>
       </div>
       <ul class="flex-1 space-y-0.5">
@@ -93,7 +103,11 @@ const AggregateView: FC<{ aggregate: Aggregate }> = ({ aggregate }) => {
   );
 };
 
-const OwnRatingForm: FC<{ kioskId: string; own: RatingRow | null }> = ({ kioskId, own }) => (
+const OwnRatingForm: FC<{ lang: Lang; kioskId: string; own: RatingRow | null }> = ({
+  lang,
+  kioskId,
+  own,
+}) => (
   <form
     action={`/api/ratings`}
     method="post"
@@ -102,17 +116,17 @@ const OwnRatingForm: FC<{ kioskId: string; own: RatingRow | null }> = ({ kioskId
   >
     <input type="hidden" name="kiosk_id" value={kioskId} />
     <p class="font-display text-sm tracking-wider uppercase text-fg-muted">
-      {own ? "Deine Bewertung" : "Bewerten"}
+      {own ? t(lang, "rating.yours") : t(lang, "rating.rate")}
     </p>
-    <Stars current={own?.stars ?? 0} />
+    <Stars lang={lang} current={own?.stars ?? 0} />
     <p data-rating-error hidden class="text-sm text-danger" aria-live="polite" />
     <label class="block">
-      <span class="sr-only">Kommentar</span>
+      <span class="sr-only">{t(lang, "rating.commentSr")}</span>
       <textarea
         name="comment"
         rows={2}
         maxLength={500}
-        placeholder="Optionaler Kommentar (max. 500 Zeichen)"
+        placeholder={t(lang, "rating.commentPlaceholder")}
         class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-sm text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
       >
         {own?.comment ?? ""}
@@ -120,7 +134,7 @@ const OwnRatingForm: FC<{ kioskId: string; own: RatingRow | null }> = ({ kioskId
     </label>
     <div class="flex flex-wrap gap-2">
       <button type="submit" class="btn-neon">
-        ▶ {own ? "Aktualisieren" : "Abgeben"}
+        ▶ {own ? t(lang, "rating.update") : t(lang, "rating.submit")}
       </button>
       {own && (
         <button
@@ -128,17 +142,17 @@ const OwnRatingForm: FC<{ kioskId: string; own: RatingRow | null }> = ({ kioskId
           formaction="/api/ratings/delete"
           class="cursor-pointer border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wider uppercase text-fg-muted hover:border-danger hover:text-danger"
         >
-          Löschen
+          {t(lang, "rating.delete")}
         </button>
       )}
     </div>
   </form>
 );
 
-const Stars: FC<{ current: number }> = ({ current }) => (
+const Stars: FC<{ lang: Lang; current: number }> = ({ lang, current }) => (
   <div
     role="radiogroup"
-    aria-label="Sterne"
+    aria-label={t(lang, "rating.starsAria")}
     class="flex items-center gap-1 text-2xl"
     data-stars-group
   >
@@ -164,18 +178,18 @@ const Stars: FC<{ current: number }> = ({ current }) => (
           >
             ★
           </span>
-          <span class="sr-only">{star} Sterne</span>
+          <span class="sr-only">{tpl(lang, "rating.nStars", { n: star })}</span>
         </label>
       );
     })}
   </div>
 );
 
-const LoggedOutCta: FC = () => (
+const LoggedOutCta: FC<{ lang: Lang }> = ({ lang }) => (
   <div class="border-t-2 border-border pt-4 text-sm text-fg-muted">
     <a href="/me" class="text-neon-cyan underline-offset-2 hover:underline">
-      Anmelden
+      {t(lang, "auth.login")}
     </a>
-    , um diesen Späti zu bewerten.
+    {t(lang, "rating.loginToRateTail")}
   </div>
 );

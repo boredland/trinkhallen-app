@@ -1190,7 +1190,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const [aggregate, ownRating, ratingComments, nearbyHits, userReports] = await Promise.all([
       getAggregate(c.env, kiosk.id),
       user ? getOwnRating(c.env, kiosk.id, user.id) : Promise.resolve(null),
-      listComments(c.env, kiosk.id),
+      listComments(c.env, lang, kiosk.id),
       findNearbyKiosks(c.env, { lat: kiosk.lat, lng: kiosk.lng }, kiosk.id, 5),
       user ? getUserReports(c.env, kiosk.id, user.id) : Promise.resolve([]),
     ]);

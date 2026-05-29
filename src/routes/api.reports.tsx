@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
+import { resolveLang, t } from "../lib/messages";
 import { hasBlockingReport } from "../lib/reports";
 import { REPORTABLE_TAGS } from "../lib/tags";
 
@@ -21,22 +22,23 @@ const PAYMENT_KEYS = ["cash", "cards", "contactless", "girocard"] as const;
 const PAYMENT_STATES = new Set(["yes", "no", "unknown"]);
 
 apiReports.post("/api/reports", async (c) => {
+  const lang = resolveLang(c.req.header("accept-language"));
   const user = c.get("user");
-  if (!user) return c.text("Bitte anmelden.", 401);
+  if (!user) return c.text(t(lang, "error.loginRequired"), 401);
 
   const form = await c.req.formData();
   const kioskId = (form.get("kiosk_id") ?? "").toString();
   const kind = (form.get("kind") ?? "").toString();
-  if (!kioskId || !ALLOWED_KINDS.has(kind)) return c.text("Bad request", 400);
+  if (!kioskId || !ALLOWED_KINDS.has(kind)) return c.text(t(lang, "error.badRequest"), 400);
 
   const kiosk = await getKioskById(c.env, kioskId);
-  if (!kiosk) return c.text("Kiosk nicht gefunden", 404);
+  if (!kiosk) return c.text(t(lang, "error.kioskNotFound"), 404);
 
   // One report per (user, kiosk, kind) at a time. The UI already filters
   // out kinds the user has in flight, but a stale tab + a fresh submit can
   // still race — reject here too.
   if (await hasBlockingReport(c.env, kioskId, user.id, kind)) {
-    return c.text("Du hast diese Kategorie für diesen Späti bereits gemeldet.", 409);
+    return c.text(t(lang, "error.alreadyReportedKind"), 409);
   }
 
   // Capture per-kind structured payload so moderators see a one-glance diff.
@@ -98,7 +100,9 @@ apiReports.post("/api/reports", async (c) => {
   const requiredKeys = STRUCTURED_KEYS[kind];
   if (requiredKeys && !requiredKeys.some((k) => k in payload)) {
     if (c.req.header("X-Tk-Fragment") === "1") {
-      return c.html('<p class="text-sm italic text-fg-dim">Danke! Wir prüfen das.</p>');
+      return c.html(
+        `<p class="text-sm italic text-fg-dim">${t(lang, "reports.thanksReviewing")}</p>`,
+      );
     }
     return c.redirect(`/k/${kioskId}?reported=ok`);
   }
@@ -119,7 +123,9 @@ apiReports.post("/api/reports", async (c) => {
   // src/client/checkin.ts) get the HTML "Danke!" fragment for in-place swap.
   // Plain form submissions (legacy ReportForm "Daten falsch?") redirect.
   if (c.req.header("X-Tk-Fragment") === "1") {
-    return c.html('<p class="text-sm italic text-fg-dim">Danke! Wir prüfen das.</p>');
+    return c.html(
+      `<p class="text-sm italic text-fg-dim">${t(lang, "reports.thanksReviewing")}</p>`,
+    );
   }
   return c.redirect(`/k/${kioskId}?reported=ok`);
 });

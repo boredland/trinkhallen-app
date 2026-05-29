@@ -6,6 +6,7 @@
  */
 
 import type { Env } from "../env";
+import { type Lang, t } from "./messages";
 
 export interface RatingRow {
   kiosk_id: string;
@@ -74,6 +75,7 @@ export interface RatingComment {
  *  @handle; every account has one, so the SSO display name never appears. */
 export async function listComments(
   env: Env,
+  lang: Lang,
   kioskId: string,
   limit = 50,
 ): Promise<RatingComment[]> {
@@ -96,7 +98,7 @@ export async function listComments(
       updatedAt: number;
     }>();
   return results.map((r) => ({
-    author: r.username?.trim() || "Anonym",
+    author: r.username?.trim() || t(lang, "rating.anonymous"),
     stars: r.stars,
     comment: r.comment,
     updatedAt: r.updatedAt,

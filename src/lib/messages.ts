@@ -148,6 +148,20 @@ const DE = {
   "error.loginRequired": "Bitte anmelden.",
   "error.kioskNotFound": "Kiosk nicht gefunden",
   "error.badRequest": "Bad request",
+  "error.badAction": "Bad action",
+  "error.alreadyReportedKind": "Du hast diese Kategorie für diesen Späti bereits gemeldet.",
+  "reports.thanksReviewing": "Danke! Wir prüfen das.",
+  "rating.anonymous": "Anonym",
+  "rating.noneYet": "Noch keine Bewertungen — sei die erste Person.",
+  "rating.yours": "Deine Bewertung",
+  "rating.rate": "Bewerten",
+  "rating.commentSr": "Kommentar",
+  "rating.commentPlaceholder": "Optionaler Kommentar (max. 500 Zeichen)",
+  "rating.update": "Aktualisieren",
+  "rating.submit": "Abgeben",
+  "rating.delete": "Löschen",
+  "rating.starsAria": "Sterne",
+  "rating.loginToRateTail": ", um diesen Späti zu bewerten.",
 
   // client islands (rendered in the browser; lang read from <html lang>)
   "client.confirmed": "Bestätigt",
@@ -193,6 +207,9 @@ const DE_TPL = {
   "client.signalOk": "✓ {verb} — danke!",
   "client.signalLow": "{verb}, ohne Vor-Ort-Prüfung — zählt nur leise.",
   "client.errServer": "Server-Fehler ({status}). Bitte erneut versuchen.",
+  "rating.count": "{n} Bewertung{suffix}",
+  "rating.starsOfFive": "{n} von 5 Sternen",
+  "rating.nStars": "{n} Sterne",
 } as const;
 
 export const TEMPLATES: Record<Lang, Record<string, string>> = {

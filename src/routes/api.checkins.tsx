@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
 import { recordCheckin, regionSlugFromPath } from "../lib/checkins";
+import { resolveLang, t } from "../lib/messages";
 import { hasPHToken, isPublicHolidayToday, kioskLocation } from "../lib/opening-hours";
 
 export const apiCheckins = new Hono<{ Bindings: Env }>();
@@ -49,15 +50,16 @@ async function fileObservationIfNew(
  * Same-day re-taps are no-ops (UNIQUE index handles dedupe in lib/checkins).
  */
 apiCheckins.post("/api/checkins", async (c) => {
+  const lang = resolveLang(c.req.header("accept-language"));
   const user = c.get("user");
-  if (!user) return c.text("Bitte anmelden.", 401);
+  if (!user) return c.text(t(lang, "error.loginRequired"), 401);
 
   const form = await c.req.formData();
   const kioskId = (form.get("kiosk_id") ?? "").toString();
-  if (!kioskId) return c.text("Bad request", 400);
+  if (!kioskId) return c.text(t(lang, "error.badRequest"), 400);
 
   const kiosk = await getKioskById(c.env, kioskId);
-  if (!kiosk) return c.text("Kiosk nicht gefunden", 404);
+  if (!kiosk) return c.text(t(lang, "error.kioskNotFound"), 404);
 
   const userLatRaw = (form.get("lat") ?? "").toString();
   const userLngRaw = (form.get("lng") ?? "").toString();
