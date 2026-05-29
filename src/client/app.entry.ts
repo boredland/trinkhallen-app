@@ -192,7 +192,7 @@ document.querySelectorAll<HTMLFormElement>("[data-filter-form]").forEach(attachF
 
   // Mobile drag-to-collapse on the grab handle — same gesture as the kiosk
   // sheet, via the shared helper.
-  const handle = sidebar.querySelector<HTMLElement>("[data-sidebar-handle]");
+  const handle = sidebar.querySelector<HTMLElement>("[data-drag-handle]");
   if (handle) {
     installDragToDismiss({
       handle,

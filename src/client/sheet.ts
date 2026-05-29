@@ -257,7 +257,7 @@ export function installKioskSheet(): void {
 function installSheetDrag(): void {
   const sheet = el(SHEET_ID);
   if (!sheet) return;
-  const handle = sheet.querySelector<HTMLElement>("[data-sheet-handle]");
+  const handle = sheet.querySelector<HTMLElement>("[data-drag-handle]");
   // The inner panel is the only direct child (the backdrop is a sibling of
   // #kiosk-sheet); its height sets the dismiss distance.
   const panel = sheet.querySelector<HTMLElement>(":scope > div");

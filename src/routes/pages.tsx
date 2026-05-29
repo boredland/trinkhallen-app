@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import { DragHandle } from "../components/DragHandle";
 import { FilterChips } from "../components/FilterChips";
 import { KioskDetail } from "../components/KioskDetail";
 import { KioskList } from "../components/KioskList";
@@ -308,14 +309,7 @@ async function renderMapPage(
           aria-hidden={sheetOpen ? "false" : "true"}
         >
           <div class="relative flex max-h-[90dvh] flex-col bg-surface border-t-2 border-border sm:h-full sm:max-h-none sm:border-l-2 sm:border-t-0">
-            <button
-              type="button"
-              aria-label="Sheet schließen — nach unten ziehen"
-              data-sheet-handle
-              class="flex w-full cursor-grab touch-none items-center justify-center py-2 sm:hidden"
-            >
-              <span class="block h-1 w-10 rounded-full bg-border-hi" />
-            </button>
+            <DragHandle label="Sheet schließen — nach unten ziehen" />
             <button
               type="button"
               aria-label="Schließen"
@@ -344,17 +338,7 @@ async function renderMapPage(
           data-collapsed="false"
           class="pointer-events-auto absolute inset-x-0 bottom-0 z-10 max-h-[80dvh] overflow-y-auto overscroll-contain border-t-2 border-border bg-surface/95 backdrop-blur transition-transform duration-200 ease-out [touch-action:pan-y] data-[collapsed=true]:translate-y-full sm:top-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[380px] sm:border-r-2 sm:border-t-0 sm:data-[collapsed=true]:translate-x-[-100%] sm:data-[collapsed=true]:translate-y-0"
         >
-          {/* Mobile grab handle — mirrors the kiosk sheet: sits at the top of
-              the panel, drag down to collapse. Hidden on desktop where the
-              panel docks to the left edge instead. */}
-          <button
-            type="button"
-            data-sidebar-handle
-            aria-label="Filter ausblenden — nach unten ziehen"
-            class="flex w-full cursor-grab touch-none items-center justify-center bg-surface py-2 sm:hidden"
-          >
-            <span class="block h-1 w-10 rounded-full bg-border-hi" />
-          </button>
+          <DragHandle label="Filter ausblenden — nach unten ziehen" />
           <div class="sticky top-0 z-10 border-b-2 border-border bg-surface p-3 sm:pr-10">
             <FilterChips filter={filter} formAction="/" />
             {/* Desktop-only collapse (← slides the sidebar off the left edge).
