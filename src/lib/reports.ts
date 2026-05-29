@@ -58,11 +58,11 @@ export async function hasBlockingReport(
 }
 
 export function kindLabel(lang: Lang, kind: string): string {
-  return REPORT_KIND_LABELS[lang][kind] ?? kind;
+  return REPORT_KIND_LABELS[lang][kind] ?? REPORT_KIND_LABELS.de[kind] ?? kind;
 }
 
 export function statusLabel(lang: Lang, status: string): string {
   // `approved`/`pr_opened` deliberately collapse to one label — we don't
   // expose the PR mechanism to end users (see REPORT_STATUS_LABELS).
-  return REPORT_STATUS_LABELS[lang][status] ?? status;
+  return REPORT_STATUS_LABELS[lang][status] ?? REPORT_STATUS_LABELS.de[status] ?? status;
 }

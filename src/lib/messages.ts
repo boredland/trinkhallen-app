@@ -16,24 +16,49 @@
  *   - GitHub commit messages, test assertions, and `"de-DE"` Intl locale tags.
  */
 
-export type Lang = "de";
+export type Lang = "de" | "en";
 export const DEFAULT_LANG: Lang = "de";
-const SUPPORTED: readonly Lang[] = ["de"];
+export const SUPPORTED_LANGS: readonly Lang[] = ["de", "en"];
+/** Languages other than the default get a URL path prefix (e.g. /en/...). */
+export const PREFIXED_LANGS: readonly Exclude<Lang, typeof DEFAULT_LANG>[] = ["en"];
 
 /** BCP-47 locale per language, for Intl date/number formatting. */
-export const INTL_LOCALE: Record<Lang, string> = { de: "de-DE" };
+export const INTL_LOCALE: Record<Lang, string> = { de: "de-DE", en: "en-GB" };
 
 /** Open Graph locale per language (`<meta property="og:locale">`). */
-export const OG_LOCALE: Record<Lang, string> = { de: "de_DE" };
+export const OG_LOCALE: Record<Lang, string> = { de: "de_DE", en: "en_GB" };
 
 /**
- * Resolve the request/document language. Placeholder until detection lands
- * (Accept-Language / URL / cookie) — always German for now, but every caller
- * already routes through here so step 2 is a one-spot change.
+ * Best-effort match of an Accept-Language header (or any candidate) to a
+ * supported language. Used only for first-visit redirects; the authoritative
+ * per-request language comes from the URL path (langFromPath).
  */
 export function resolveLang(candidate?: string | null): Lang {
   const v = (candidate ?? "").slice(0, 2).toLowerCase();
-  return (SUPPORTED as readonly string[]).includes(v) ? (v as Lang) : DEFAULT_LANG;
+  return (SUPPORTED_LANGS as readonly string[]).includes(v) ? (v as Lang) : DEFAULT_LANG;
+}
+
+/** The language a request URL path encodes (the /en prefix → "en", else "de"). */
+export function langFromPath(path: string): Lang {
+  for (const l of PREFIXED_LANGS) {
+    if (path === `/${l}` || path.startsWith(`/${l}/`)) return l;
+  }
+  return DEFAULT_LANG;
+}
+
+/**
+ * Rewrite a path to a target language: strips any existing lang prefix, then
+ * adds the target's prefix (default lang has none). Used by the switcher and
+ * hreflang alternates. Always returns a leading-slash path.
+ */
+export function pathForLang(path: string, target: Lang): string {
+  let bare = path;
+  for (const l of PREFIXED_LANGS) {
+    if (bare === `/${l}`) bare = "/";
+    else if (bare.startsWith(`/${l}/`)) bare = bare.slice(`/${l}`.length);
+  }
+  if (target === DEFAULT_LANG) return bare;
+  return bare === "/" ? `/${target}` : `/${target}${bare}`;
 }
 
 // ── Flat UI strings ──────────────────────────────────────────────────────────
@@ -308,8 +333,13 @@ const DE = {
   "client.sw.close": "Schließen",
 } as const;
 
+// English overrides. Missing keys fall back to German per-key (see `t`), so this
+// can be filled incrementally without breaking EN pages.
+const EN: Record<string, string> = {};
+
 export const MESSAGES: Record<Lang, Record<string, string>> = {
   de: DE,
+  en: EN,
 };
 
 export type MessageKey = keyof typeof DE;
@@ -351,8 +381,11 @@ const DE_TPL = {
   "city.showing": "{visible} von {total} angezeigt.",
 } as const;
 
+const EN_TPL: Record<string, string> = {};
+
 export const TEMPLATES: Record<Lang, Record<string, string>> = {
   de: DE_TPL,
+  en: EN_TPL,
 };
 
 export type TemplateKey = keyof typeof DE_TPL;
@@ -377,6 +410,7 @@ export const REPORT_KIND_LABELS: Record<Lang, Record<string, string>> = {
     ph_open_observed: "Feiertags-Öffnung beobachtet",
     other: "Sonstiges",
   },
+  en: {},
 };
 
 /** Report status labels — note pr_opened/approved deliberately collapse to one. */
@@ -389,6 +423,7 @@ export const REPORT_STATUS_LABELS: Record<Lang, Record<string, string>> = {
     merged: "Übernommen",
     dismissed: "Abgelehnt",
   },
+  en: {},
 };
 
 /** Tag display overrides (lib/tags.ts); slugs not listed fall back to titlecase. */
@@ -411,6 +446,7 @@ export const TAG_LABELS: Record<Lang, Record<string, string>> = {
     wlan: "WLAN",
     geldautomat: "Geldautomat",
   },
+  en: {},
 };
 
 /** Payment-method display labels (KioskDetail / CheckinForm); icons stay in-component. */
@@ -421,6 +457,7 @@ export const PAYMENT_LABELS: Record<Lang, Record<string, string>> = {
     contactless: "Kontaktlos",
     girocard: "Girocard",
   },
+  en: {},
 };
 
 /** Status pills on the profile page (distinct wording from REPORT_STATUS_LABELS). */
@@ -433,11 +470,12 @@ export const STATUS_PILL_LABELS: Record<Lang, Record<string, string>> = {
     merged: "Übernommen",
     dismissed: "Abgelehnt",
   },
+  en: {},
 };
 
-/** Localized payment-method label; unknown keys fall back to the slug. */
+/** Localized payment-method label; falls back to German then the slug. */
 export function paymentLabel(lang: Lang, key: string): string {
-  return PAYMENT_LABELS[lang][key] ?? key;
+  return PAYMENT_LABELS[lang][key] ?? PAYMENT_LABELS[DEFAULT_LANG][key] ?? key;
 }
 
 /** Reportable-tag group headings (lib/tags.ts). */
@@ -447,6 +485,7 @@ export const TAG_GROUP_LABELS: Record<Lang, Record<string, string>> = {
     Ambiente: "Ambiente",
     Ausstattung: "Ausstattung",
   },
+  en: {},
 };
 
 /** Opening-hours status words + weekday abbreviations (lib/opening-hours.ts). */
@@ -460,5 +499,12 @@ export const OH_LABELS: Record<
     closed: "Geschlossen",
     closedLower: "geschlossen",
     days: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+  },
+  en: {
+    unknown: "Opening hours unknown",
+    open: "Open",
+    closed: "Closed",
+    closedLower: "closed",
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   },
 };

@@ -35,12 +35,12 @@ export function isReportableTag(slug: string): slug is ReportableTag {
 }
 
 export function tagLabel(lang: Lang, slug: string): string {
-  return TAG_LABELS[lang][slug] ?? titlecase(slug);
+  return TAG_LABELS[lang][slug] ?? TAG_LABELS.de[slug] ?? titlecase(slug);
 }
 
 /** Localized heading for a REPORTABLE_TAG_GROUPS group (keyed by its `label`). */
 export function tagGroupLabel(lang: Lang, key: string): string {
-  return TAG_GROUP_LABELS[lang][key] ?? key;
+  return TAG_GROUP_LABELS[lang][key] ?? TAG_GROUP_LABELS.de[key] ?? key;
 }
 
 function titlecase(slug: string): string {

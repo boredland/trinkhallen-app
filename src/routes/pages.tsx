@@ -2048,7 +2048,7 @@ function StatusPill({ lang, status }: { lang: Lang; status: string }) {
     merged: "border-success text-success",
     dismissed: "border-border text-fg-dim",
   };
-  const label = STATUS_PILL_LABELS[lang][status] ?? status;
+  const label = STATUS_PILL_LABELS[lang][status] ?? STATUS_PILL_LABELS.de[status] ?? status;
   return (
     <span class={`border-2 px-2 py-0.5 ${cls[status] ?? "border-border text-fg-dim"}`}>
       {label}
