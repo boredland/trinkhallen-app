@@ -17,6 +17,7 @@ import "@fontsource/inter/latin-ext-700.css";
 import "@fontsource/anton/latin-400.css";
 import "@fontsource/anton/latin-ext-400.css";
 import { installCheckinForm } from "./checkin";
+import { installDragToDismiss } from "./drag-dismiss";
 import { setupIosInstallPrompt } from "./install-prompt";
 import { installLogoutForm } from "./logout";
 import { installRatingForm } from "./rating";
@@ -166,39 +167,16 @@ document.querySelectorAll<HTMLFormElement>("[data-filter-form]").forEach(attachF
     .forEach((b) => b.addEventListener("click", () => setCollapsed(true)));
   expandBtn.addEventListener("click", () => setCollapsed(false));
 
-  // Mobile drag-to-collapse on the grab handle — mirrors the kiosk sheet
-  // (src/client/sheet.ts). Drag the panel down; release past ~25% of its
-  // height collapses it, otherwise it springs back.
+  // Mobile drag-to-collapse on the grab handle — same gesture as the kiosk
+  // sheet, via the shared helper.
   const handle = sidebar.querySelector<HTMLElement>("[data-sidebar-handle]");
   if (handle) {
-    let startY = 0;
-    let lastDy = 0;
-    let dragging = false;
-    const onDown = (e: PointerEvent) => {
-      if (window.matchMedia("(min-width: 640px)").matches) return; // mobile only
-      dragging = true;
-      startY = e.clientY;
-      lastDy = 0;
-      handle.setPointerCapture(e.pointerId);
-      sidebar.style.transition = "none";
-    };
-    const onMove = (e: PointerEvent) => {
-      if (!dragging) return;
-      lastDy = Math.max(0, e.clientY - startY);
-      sidebar.style.transform = `translateY(${lastDy}px)`;
-    };
-    const end = (cancelled: boolean) => {
-      if (!dragging) return;
-      dragging = false;
-      sidebar.style.transition = "";
-      sidebar.style.transform = "";
-      const height = sidebar.getBoundingClientRect().height || 400;
-      if (!cancelled && lastDy > height * 0.25) setCollapsed(true);
-    };
-    handle.addEventListener("pointerdown", onDown);
-    handle.addEventListener("pointermove", onMove);
-    handle.addEventListener("pointerup", () => end(false));
-    handle.addEventListener("pointercancel", () => end(true));
+    installDragToDismiss({
+      handle,
+      target: sidebar,
+      threshold: 0.25,
+      onDismiss: () => setCollapsed(true),
+    });
   }
 })();
 

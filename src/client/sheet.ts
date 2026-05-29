@@ -5,8 +5,11 @@
  * /k/:id page is the no-JS fallback).
  *
  * Vaul-inspired but vanilla — we don't pull in React just for this. The
- * touch drag-to-dismiss is hand-rolled with pointer events.
+ * touch drag-to-dismiss lives in ./drag-dismiss (shared with the filter
+ * sidebar).
  */
+
+import { installDragToDismiss } from "./drag-dismiss";
 
 const SHEET_ID = "kiosk-sheet";
 const BACKDROP_ID = "kiosk-sheet-backdrop";
@@ -246,52 +249,25 @@ export function installKioskSheet(): void {
   // If the page loaded at /k/... directly, the SSR full page is rendered —
   // we don't intercept that. The sheet only activates from the map page.
 
-  installDragToDismiss();
+  installSheetDrag();
 }
 
 // ── touch drag-to-dismiss (mobile only) ─────────────────────────────────────
 
-function installDragToDismiss(): void {
+function installSheetDrag(): void {
   const sheet = el(SHEET_ID);
   if (!sheet) return;
   const handle = sheet.querySelector<HTMLElement>("[data-sheet-handle]");
-  if (!handle) return;
-
-  let startY = 0;
-  let lastDy = 0;
-  let dragging = false;
-
-  // The sheet panel we translate during the drag — now the only direct
-  // child since the backdrop moved out to be a sibling of #kiosk-sheet.
+  // The inner panel is the only direct child (the backdrop is a sibling of
+  // #kiosk-sheet); its height sets the dismiss distance.
   const panel = sheet.querySelector<HTMLElement>(":scope > div");
-  if (!panel) return;
+  if (!handle || !panel) return;
 
-  const onPointerDown = (e: PointerEvent) => {
-    if (window.matchMedia("(min-width: 640px)").matches) return; // mobile only
-    dragging = true;
-    startY = e.clientY;
-    lastDy = 0;
-    handle.setPointerCapture(e.pointerId);
-    sheet.style.transition = "none";
-  };
-  const onPointerMove = (e: PointerEvent) => {
-    if (!dragging) return;
-    const dy = Math.max(0, e.clientY - startY);
-    lastDy = dy;
-    sheet.style.transform = `translateY(${dy}px)`;
-  };
-  const endDrag = (cancelled: boolean) => {
-    if (!dragging) return;
-    dragging = false;
-    sheet.style.transition = "";
-    sheet.style.transform = "";
-    const sheetHeight = panel.getBoundingClientRect().height || 600;
-    if (!cancelled && lastDy > sheetHeight * 0.3) {
-      closeSheet();
-    }
-  };
-  handle.addEventListener("pointerdown", onPointerDown);
-  handle.addEventListener("pointermove", onPointerMove);
-  handle.addEventListener("pointerup", () => endDrag(false));
-  handle.addEventListener("pointercancel", () => endDrag(true));
+  installDragToDismiss({
+    handle,
+    target: sheet,
+    measure: panel,
+    threshold: 0.3,
+    onDismiss: closeSheet,
+  });
 }
