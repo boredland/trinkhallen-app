@@ -2,6 +2,7 @@ import build from "@hono/vite-build/cloudflare-workers";
 import devServer from "@hono/vite-dev-server";
 import adapter from "@hono/vite-dev-server/cloudflare";
 import tailwindcss from "@tailwindcss/vite";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 import { defineConfig } from "vite";
 
 export default defineConfig(({ mode }) => {
@@ -57,6 +58,10 @@ export default defineConfig(({ mode }) => {
         ],
       }),
       tailwindcss(),
+      // Self-signed HTTPS in dev — needed because `__Host-tk_sess` is a Secure
+      // cookie that browsers refuse to set over `http://127.0.0.1`. Production
+      // already terminates TLS at Cloudflare so this only fires for `vite`.
+      basicSsl(),
     ],
     ssr: {
       // `cloudflare:email` etc. are Workers runtime virtuals — the bundler

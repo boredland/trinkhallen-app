@@ -15,6 +15,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
+  globalSetup: "./tests/e2e/global-setup.ts",
   webServer: {
     // `--host 127.0.0.1` forces an IPv4 bind so Playwright's poll on the same
     // URL actually reaches Vite (default is `[::1]` only). `cloudflare:*`
@@ -23,15 +24,19 @@ export default defineConfig({
     command: "bun run dev -- --host 127.0.0.1",
     // /datenschutz is a static SSR page that doesn't hit the ASSETS binding
     // (vite-dev-server's emulation of which is shaky); / does and would crash
-    // the readiness probe. Tests target /datenschutz too.
-    url: "http://127.0.0.1:5173/datenschutz",
+    // the readiness probe. Tests target /datenschutz too. https because
+    // `__Host-tk_sess` is a Secure cookie (basic-ssl serves a self-signed
+    // cert in dev; Playwright ignores it via `ignoreHTTPSErrors`).
+    url: "https://127.0.0.1:5173/datenschutz",
     reuseExistingServer: !process.env.CI,
     timeout: 90_000,
+    ignoreHTTPSErrors: true,
   },
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: "https://127.0.0.1:5173",
     headless: true,
     trace: "retain-on-failure",
+    ignoreHTTPSErrors: true,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
