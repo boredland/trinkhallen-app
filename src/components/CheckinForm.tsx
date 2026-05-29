@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
-import type { Lang } from "../lib/messages";
+import { type Lang, PAYMENT_LABELS, t } from "../lib/messages";
 import { kindLabel, statusLabel, type UserKioskReport } from "../lib/reports";
 import { REPORTABLE_TAG_GROUPS, tagGroupLabel, tagLabel } from "../lib/tags";
 
@@ -20,10 +20,10 @@ import { REPORTABLE_TAG_GROUPS, tagGroupLabel, tagLabel } from "../lib/tags";
  * none" or "nobody answered yet".
  */
 
-const PAYMENT_LABELS: Record<string, { de: string; icon: string }> = {
-  cards: { de: "Karte", icon: "💳" },
-  contactless: { de: "Kontaktlos", icon: "📲" },
-  girocard: { de: "Girocard", icon: "🟦" },
+const PAYMENT_ICONS: Record<string, string> = {
+  cards: "💳",
+  contactless: "📲",
+  girocard: "🟦",
 };
 // Cash is the implicit German default — the enrichment never records it, so
 // asking "Bar?" on every kiosk is just noise. The "can I pay without cash?"
@@ -52,7 +52,7 @@ const TAG_ICONS: Record<string, string> = {
  * the `data-signal-confirm` vs `data-signal-dispute` attribute and POSTs to
  * /api/signals with action='confirm' / 'dispute' accordingly.
  */
-const ConfirmDisputeButtons: FC<{ fieldKey: string }> = ({ fieldKey }) => (
+const ConfirmDisputeButtons: FC<{ lang: Lang; fieldKey: string }> = ({ lang, fieldKey }) => (
   <div class="flex flex-wrap gap-2">
     <button
       type="button"
@@ -61,7 +61,7 @@ const ConfirmDisputeButtons: FC<{ fieldKey: string }> = ({ fieldKey }) => (
       class="inline-flex cursor-pointer items-center gap-2 border-2 border-neon-cyan px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-cyan hover:bg-neon-cyan hover:text-bg disabled:opacity-60"
     >
       <span aria-hidden="true">✓</span>
-      Passt — bestätigen
+      {t(lang, "checkin.confirm")}
     </button>
     <button
       type="button"
@@ -70,7 +70,7 @@ const ConfirmDisputeButtons: FC<{ fieldKey: string }> = ({ fieldKey }) => (
       class="inline-flex cursor-pointer items-center gap-2 border-2 border-border-hi px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-fg-muted hover:border-danger hover:text-danger disabled:opacity-60"
     >
       <span aria-hidden="true">✕</span>
-      Stimmt nicht
+      {t(lang, "checkin.dispute")}
     </button>
   </div>
 );
@@ -85,9 +85,9 @@ export const CheckinForm: FC<{
     return (
       <p class="text-sm text-fg-muted">
         <a href="/me" class="text-neon-cyan underline-offset-2 hover:underline">
-          Anmelden
+          {t(lang, "auth.login")}
         </a>
-        , um deinen Besuch festzuhalten und Daten zu ergänzen.
+        , {t(lang, "checkin.loginToContribute")}
       </p>
     );
   }
@@ -119,19 +119,17 @@ export const CheckinForm: FC<{
         {/* Monochrome glyph (not a coloured emoji) so it inherits the dark
             button text and stays legible on the neon-pink fill. */}
         <span aria-hidden="true">✓</span>
-        Ich war hier
+        {t(lang, "checkin.iWasHere")}
       </button>
 
       <div data-checkin-questions hidden class="space-y-5">
-        <p class="text-sm text-fg-dim">
-          Was hat gefehlt? Jede Antwort hilft. Du kannst auch nichts angeben.
-        </p>
+        <p class="text-sm text-fg-dim">{t(lang, "checkin.whatMissingHint")}</p>
 
         {hoursMissing &&
           (isAnswered("wrong_hours") ? (
             <AnsweredStub lang={lang} report={reportByKind.get("wrong_hours")!} />
           ) : (
-            <HoursGroup kioskId={kiosk.id} />
+            <HoursGroup lang={lang} kioskId={kiosk.id} />
           ))}
         {kiosk.hours?.raw && (
           <div
@@ -139,16 +137,16 @@ export const CheckinForm: FC<{
             data-field-key="opening_hours"
             class="space-y-2 border-2 border-border-hi bg-surface-2 p-4"
           >
-            <p class="text-sm text-fg-muted">Stimmen die Öffnungszeiten?</p>
+            <p class="text-sm text-fg-muted">{t(lang, "checkin.hoursOk")}</p>
             <p class="font-mono text-sm text-fg">{kiosk.hours.raw}</p>
-            <ConfirmDisputeButtons fieldKey="opening_hours" />
+            <ConfirmDisputeButtons lang={lang} fieldKey="opening_hours" />
           </div>
         )}
         {missingPayment.length > 0 &&
           (isAnswered("update_payment") ? (
             <AnsweredStub lang={lang} report={reportByKind.get("update_payment")!} />
           ) : (
-            <PaymentGroup kioskId={kiosk.id} missing={missingPayment} />
+            <PaymentGroup lang={lang} kioskId={kiosk.id} missing={missingPayment} />
           ))}
         {settledPayment.length > 0 && (
           <div
@@ -156,16 +154,20 @@ export const CheckinForm: FC<{
             data-field-key="payment"
             class="space-y-2 border-2 border-border-hi bg-surface-2 p-4"
           >
-            <p class="text-sm text-fg-muted">Stimmen die Zahlungsoptionen?</p>
+            <p class="text-sm text-fg-muted">{t(lang, "checkin.paymentOk")}</p>
             <p class="font-mono text-sm text-fg">
               {settledPayment
                 .map(
                   (k) =>
-                    `${PAYMENT_LABELS[k]?.de ?? k}: ${kiosk.payment?.[k] === "yes" ? "ja" : "nein"}`,
+                    `${PAYMENT_LABELS[lang][k] ?? k}: ${
+                      kiosk.payment?.[k] === "yes"
+                        ? t(lang, "payment.yesLower")
+                        : t(lang, "payment.noLower")
+                    }`,
                 )
                 .join(" · ")}
             </p>
-            <ConfirmDisputeButtons fieldKey="payment" />
+            <ConfirmDisputeButtons lang={lang} fieldKey="payment" />
           </div>
         )}
         {isAnswered("update_tags") ? (
@@ -179,17 +181,17 @@ export const CheckinForm: FC<{
             data-field-key="tags"
             class="space-y-2 border-2 border-border-hi bg-surface-2 p-4"
           >
-            <p class="text-sm text-fg-muted">Stimmen die hinterlegten Tags?</p>
+            <p class="text-sm text-fg-muted">{t(lang, "checkin.tagsOk")}</p>
             <p class="font-mono text-sm text-fg">
-              {kiosk.tags!.map((t) => tagLabel(lang, t)).join(" · ")}
+              {kiosk.tags!.map((slug) => tagLabel(lang, slug)).join(" · ")}
             </p>
-            <ConfirmDisputeButtons fieldKey="tags" />
+            <ConfirmDisputeButtons lang={lang} fieldKey="tags" />
           </div>
         )}
         {isAnswered("wrong_name") ? (
           <AnsweredStub lang={lang} report={reportByKind.get("wrong_name")!} />
         ) : (
-          <NameGroup kioskId={kiosk.id} currentName={kiosk.name} />
+          <NameGroup lang={lang} kioskId={kiosk.id} currentName={kiosk.name} />
         )}
       </div>
     </div>
@@ -201,7 +203,7 @@ const AnsweredStub: FC<{ lang: Lang; report: UserKioskReport }> = ({ lang, repor
     <span class="font-display text-xs tracking-wider uppercase text-fg-dim">
       {kindLabel(lang, report.kind)} —{" "}
     </span>
-    <span>{statusLabel(lang, report.status)}</span>. Danke!
+    <span>{statusLabel(lang, report.status)}</span>. {t(lang, "checkin.thanks")}
   </p>
 );
 
@@ -224,11 +226,11 @@ const formAttrs = {
   "data-checkin-form": "1",
 };
 
-const HoursGroup: FC<{ kioskId: string }> = ({ kioskId }) => (
+const HoursGroup: FC<{ lang: Lang; kioskId: string }> = ({ lang, kioskId }) => (
   <form {...formAttrs} class={groupCls}>
     <input type="hidden" name="kiosk_id" value={kioskId} />
     <input type="hidden" name="kind" value="wrong_hours" />
-    <span class={labelCls}>Öffnungszeiten?</span>
+    <span class={labelCls}>{t(lang, "checkin.hoursQ")}</span>
     <input
       type="text"
       name="new_hours"
@@ -238,38 +240,45 @@ const HoursGroup: FC<{ kioskId: string }> = ({ kioskId }) => (
       required
     />
     <button type="submit" class={submitCls}>
-      Senden
+      {t(lang, "checkin.send")}
     </button>
   </form>
 );
 
-const PaymentGroup: FC<{ kioskId: string; missing: readonly string[] }> = ({
+const PaymentGroup: FC<{ lang: Lang; kioskId: string; missing: readonly string[] }> = ({
+  lang,
   kioskId,
   missing,
 }) => (
   <form {...formAttrs} class={groupCls}>
     <input type="hidden" name="kiosk_id" value={kioskId} />
     <input type="hidden" name="kind" value="update_payment" />
-    <span class={labelCls}>Zahlung möglich?</span>
+    <span class={labelCls}>{t(lang, "checkin.paymentQ")}</span>
     <div class="space-y-2">
       {missing.map((key) => {
-        const info = PAYMENT_LABELS[key];
-        if (!info) return null;
+        const icon = PAYMENT_ICONS[key];
+        if (!icon) return null;
         return (
           <fieldset class="flex flex-wrap items-center gap-2">
             <legend class="mr-2 inline-flex items-center gap-1.5 text-sm text-fg">
-              <span aria-hidden="true">{info.icon}</span>
-              {info.de}
+              <span aria-hidden="true">{icon}</span>
+              {PAYMENT_LABELS[lang][key] ?? key}
             </legend>
-            <TriRadio name={`pay_${key}`} value="yes" label="Ja" />
-            <TriRadio name={`pay_${key}`} value="no" label="Nein" />
-            <TriRadio name={`pay_${key}`} value="" label="Weiß nicht" checked tone="neutral" />
+            <TriRadio name={`pay_${key}`} value="yes" label={t(lang, "radio.yes")} />
+            <TriRadio name={`pay_${key}`} value="no" label={t(lang, "radio.no")} />
+            <TriRadio
+              name={`pay_${key}`}
+              value=""
+              label={t(lang, "radio.unknown")}
+              checked
+              tone="neutral"
+            />
           </fieldset>
         );
       })}
     </div>
     <button type="submit" class={submitCls}>
-      Senden
+      {t(lang, "checkin.send")}
     </button>
   </form>
 );
@@ -282,7 +291,7 @@ const AmenitiesGroup: FC<{ lang: Lang; kioskId: string; present: Set<string> }> 
   <form {...formAttrs} class={groupCls}>
     <input type="hidden" name="kiosk_id" value={kioskId} />
     <input type="hidden" name="kind" value="update_tags" />
-    <span class={labelCls}>Was gibt's hier?</span>
+    <span class={labelCls}>{t(lang, "checkin.amenitiesQ")}</span>
     {REPORTABLE_TAG_GROUPS.map((group) => (
       <div class="space-y-2">
         <p class="font-display text-[0.7rem] tracking-wider uppercase text-fg-dim">
@@ -294,12 +303,17 @@ const AmenitiesGroup: FC<{ lang: Lang; kioskId: string; present: Set<string> }> 
               <span aria-hidden="true">{TAG_ICONS[slug] ?? "•"}</span>
               {tagLabel(lang, slug)}
             </legend>
-            <TriRadio name={`tag_${slug}`} value="yes" label="Ja" checked={present.has(slug)} />
-            <TriRadio name={`tag_${slug}`} value="no" label="Nein" />
+            <TriRadio
+              name={`tag_${slug}`}
+              value="yes"
+              label={t(lang, "radio.yes")}
+              checked={present.has(slug)}
+            />
+            <TriRadio name={`tag_${slug}`} value="no" label={t(lang, "radio.no")} />
             <TriRadio
               name={`tag_${slug}`}
               value=""
-              label="Weiß nicht"
+              label={t(lang, "radio.unknown")}
               checked={!present.has(slug)}
               tone="neutral"
             />
@@ -308,20 +322,24 @@ const AmenitiesGroup: FC<{ lang: Lang; kioskId: string; present: Set<string> }> 
       </div>
     ))}
     <button type="submit" class={submitCls}>
-      Senden
+      {t(lang, "checkin.send")}
     </button>
   </form>
 );
 
-const NameGroup: FC<{ kioskId: string; currentName: string }> = ({ kioskId, currentName }) => (
+const NameGroup: FC<{ lang: Lang; kioskId: string; currentName: string }> = ({
+  lang,
+  kioskId,
+  currentName,
+}) => (
   <details class="border-2 border-border bg-bg">
     <summary class="cursor-pointer px-4 py-3 text-sm text-fg-dim hover:text-fg">
-      Heißt eigentlich anders?
+      {t(lang, "checkin.nameToggle")}
     </summary>
     <form {...formAttrs} class="space-y-3 p-4 pt-0">
       <input type="hidden" name="kiosk_id" value={kioskId} />
       <input type="hidden" name="kind" value="wrong_name" />
-      <span class={labelCls}>Richtiger Name</span>
+      <span class={labelCls}>{t(lang, "checkin.nameLabel")}</span>
       <input
         type="text"
         name="new_name"
@@ -331,7 +349,7 @@ const NameGroup: FC<{ kioskId: string; currentName: string }> = ({ kioskId, curr
         required
       />
       <button type="submit" class={submitCls}>
-        Senden
+        {t(lang, "checkin.send")}
       </button>
     </form>
   </details>

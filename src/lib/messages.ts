@@ -74,6 +74,22 @@ const DE = {
   "checkin.confirm": "Passt — bestätigen",
   "checkin.dispute": "Stimmt nicht",
   "checkin.loginToContribute": "um deinen Besuch festzuhalten und Daten zu ergänzen.",
+  "checkin.send": "Senden",
+  "checkin.thanks": "Danke!",
+  "checkin.hoursQ": "Öffnungszeiten?",
+  "checkin.paymentQ": "Zahlung möglich?",
+  "checkin.amenitiesQ": "Was gibt's hier?",
+  "checkin.nameToggle": "Heißt eigentlich anders?",
+  "checkin.nameLabel": "Richtiger Name",
+
+  // tri-state radio options
+  "radio.yes": "Ja",
+  "radio.no": "Nein",
+  "radio.unknown": "Weiß nicht",
+
+  // settled-payment inline display (lowercase)
+  "payment.yesLower": "ja",
+  "payment.noLower": "nein",
 
   // auth
   "auth.login": "Anmelden",
