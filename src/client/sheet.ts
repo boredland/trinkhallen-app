@@ -9,7 +9,18 @@
  * sidebar).
  */
 
+import { DEFAULT_LANG, langFromPath, pathForLang } from "../lib/messages";
 import { installDragToDismiss } from "./drag-dismiss";
+
+/** Locale-neutral path (the /en prefix stripped) for path-shape checks. */
+function barePathname(): string {
+  return pathForLang(location.pathname, DEFAULT_LANG);
+}
+
+/** A kiosk deep link in the active locale (mirrors the URL the user is on). */
+function kioskHref(id: string): string {
+  return pathForLang(`/k/${id}`, langFromPath(location.pathname));
+}
 
 const SHEET_ID = "kiosk-sheet";
 const BACKDROP_ID = "kiosk-sheet-backdrop";
@@ -50,10 +61,10 @@ function el(id: string): HTMLElement | null {
 
 function isMapPage(): boolean {
   // Both `/` and `/k/:id` render the same map UI (the latter with the sheet
-  // pre-opened). The sheet behaviour should activate on both.
-  return (
-    location.pathname === "/" || location.pathname === "" || location.pathname.startsWith("/k/")
-  );
+  // pre-opened). The sheet behaviour should activate on both — in any locale,
+  // so compare against the prefix-stripped path.
+  const bare = barePathname();
+  return bare === "/" || bare === "" || bare.startsWith("/k/");
 }
 
 async function fetchPartial(href: string): Promise<string | null> {
@@ -79,7 +90,7 @@ function setOpen(open: boolean): void {
 function idFromHref(href: string): string | null {
   try {
     const pathname = new URL(href, location.origin).pathname;
-    const m = pathname.match(/^\/k\/([^/]+)$/);
+    const m = pathForLang(pathname, DEFAULT_LANG).match(/^\/k\/([^/]+)$/);
     return m ? (m[1] ?? null) : null;
   } catch {
     return null;
@@ -154,8 +165,8 @@ function closeSheet(viaPop = false): void {
   if (pushedHistory) {
     history.back();
     pushedHistory = false;
-  } else if (location.pathname.startsWith("/k/")) {
-    history.replaceState(null, "", "/");
+  } else if (barePathname().startsWith("/k/")) {
+    history.replaceState(null, "", pathForLang("/", langFromPath(location.pathname)));
   }
 }
 
@@ -198,13 +209,15 @@ export function installKioskSheet(): void {
   // them; map-marker clicks bypass this path via tk:open-kiosk directly).
   document.addEventListener("click", (ev) => {
     const target = (ev.target as HTMLElement | null)?.closest(
-      "a[href^='/k/']",
+      "a[href]",
     ) as HTMLAnchorElement | null;
     if (!target) return;
     if (target.target === "_blank") return;
     if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button !== 0) return;
     const href = target.getAttribute("href");
-    if (!href) return;
+    // Only intercept kiosk deep links — in any locale (idFromHref strips the
+    // /en prefix before matching). Everything else navigates normally.
+    if (!href || idFromHref(href) === null) return;
     ev.preventDefault();
     const lng = parseFloat(target.dataset["lng"] ?? "");
     const lat = parseFloat(target.dataset["lat"] ?? "");
@@ -218,7 +231,7 @@ export function installKioskSheet(): void {
   window.addEventListener("tk:open-kiosk", (ev) => {
     const id = (ev as CustomEvent<{ id: string }>).detail?.id;
     if (!id) return;
-    void openSheet(`/k/${id}`, true);
+    void openSheet(kioskHref(id), true);
   });
 
   // Backdrop click + close button.
@@ -241,7 +254,7 @@ export function installKioskSheet(): void {
     // If we're back at the map path, ensure the sheet is closed.
     if (isMapPage() && openUrl !== null) closeSheet(true);
     // If user forward-navigates to a /k/:id we previously pushed, re-open it.
-    else if (location.pathname.startsWith("/k/") && openUrl === null) {
+    else if (barePathname().startsWith("/k/") && openUrl === null) {
       void openSheet(location.pathname + location.search, false);
     }
   });

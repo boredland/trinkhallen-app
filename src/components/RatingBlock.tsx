@@ -1,5 +1,5 @@
 import type { FC } from "hono/jsx";
-import { INTL_LOCALE, type Lang, t, tpl } from "../lib/messages";
+import { INTL_LOCALE, type Lang, pathForLang, t, tpl } from "../lib/messages";
 import type { Aggregate, RatingComment, RatingRow } from "../lib/ratings";
 
 export interface RatingBlockProps {
@@ -187,7 +187,7 @@ const Stars: FC<{ lang: Lang; current: number }> = ({ lang, current }) => (
 
 const LoggedOutCta: FC<{ lang: Lang }> = ({ lang }) => (
   <div class="border-t-2 border-border pt-4 text-sm text-fg-muted">
-    <a href="/me" class="text-neon-cyan underline-offset-2 hover:underline">
+    <a href={pathForLang("/me", lang)} class="text-neon-cyan underline-offset-2 hover:underline">
       {t(lang, "auth.login")}
     </a>
     {t(lang, "rating.loginToRateTail")}

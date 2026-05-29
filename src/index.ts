@@ -56,7 +56,20 @@ app.route("/", apiReports);
 app.route("/", apiSubmissions);
 app.route("/", moderate);
 app.route("/", wellKnown);
-registerPageRoutes(app);
+
+// Page routes are locale-addressed: the default language lives at the root and
+// every other supported language gets a path prefix (e.g. /en/...). Mounting the
+// same sub-app at both keeps a single route definition; handlers read the active
+// language from the request path via langFromPath. API/auth/moderation routes
+// above stay root-only — the client passes the locale to them explicitly.
+const pages = new Hono<{ Bindings: Env }>();
+registerPageRoutes(pages);
+app.route("/", pages);
+app.route("/en", pages);
+// The moderation page is fully localized, so expose it per-locale too (keeps the
+// header language switcher from dead-ending on /en). Its form POSTs stay at the
+// root /api/moderate endpoints.
+app.route("/en", moderate);
 
 app.notFound((c) => c.text("404 — Hier gibt's nix.", 404));
 app.onError((err, c) => {

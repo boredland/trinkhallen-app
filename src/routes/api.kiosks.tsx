@@ -15,7 +15,7 @@ import {
   parseFilterFromQuery,
 } from "../lib/filters";
 import { haversineMeters, parseBbox, parseLatLng, quantizeBbox } from "../lib/geo";
-import { resolveLang } from "../lib/messages";
+import { pathForLang, resolveLang } from "../lib/messages";
 import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 
@@ -69,7 +69,9 @@ apiKiosks.get("/api/kiosks", async (c) => {
  */
 apiKiosks.get("/api/kiosks/panel", async (c) => {
   const url = new URL(c.req.url);
-  const lang = resolveLang(c.req.header("accept-language"));
+  // The host page bakes ?lang into data-panel-url so partials match its locale;
+  // Accept-Language is only the fallback for a bare fetch.
+  const lang = resolveLang(url.searchParams.get("lang") ?? c.req.header("accept-language"));
   const bbox = parseBbox(url.searchParams.get("bbox"));
   const origin = parseLatLng(url.searchParams.get("origin"));
   if (!bbox)
@@ -101,7 +103,7 @@ apiKiosks.get("/api/kiosks/panel", async (c) => {
       filteredCount={filtered.length}
       openNowCount={openNowCount}
       filterActive={isFilterActive(filter)}
-      resetHref="/"
+      resetHref={pathForLang("/", lang)}
       origin={origin ?? undefined}
       userAgent={c.req.header("user-agent") ?? null}
     />,

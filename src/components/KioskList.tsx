@@ -1,7 +1,7 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
 import { formatDistance, haversineMeters, type LatLng } from "../lib/geo";
-import { type Lang, paymentLabel, t, tpl } from "../lib/messages";
+import { type Lang, pathForLang, paymentLabel, t, tpl } from "../lib/messages";
 import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, formatStatus, kioskLocation } from "../lib/opening-hours";
 import { tagLabel } from "../lib/tags";
@@ -130,7 +130,12 @@ const KioskRow: FC<{
   return (
     <li>
       <div class="flex items-center justify-between gap-2 px-4 py-3 transition-colors hover:bg-surface-2">
-        <a href={`/k/${kiosk.id}`} data-lng={kiosk.lng} data-lat={kiosk.lat} class="flex-1 min-w-0">
+        <a
+          href={pathForLang(`/k/${kiosk.id}`, lang)}
+          data-lng={kiosk.lng}
+          data-lat={kiosk.lat}
+          class="flex-1 min-w-0"
+        >
           <p class="truncate font-display text-base tracking-wide text-fg">{kiosk.name}</p>
           {addr && <p class="truncate text-sm text-fg-muted">{addr}</p>}
           <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs">

@@ -16,7 +16,15 @@ import {
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox, parseLatLng } from "../lib/geo";
-import { INTL_LOCALE, type Lang, resolveLang, STATUS_PILL_LABELS, t, tpl } from "../lib/messages";
+import {
+  INTL_LOCALE,
+  type Lang,
+  langFromPath,
+  pathForLang,
+  STATUS_PILL_LABELS,
+  t,
+  tpl,
+} from "../lib/messages";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating, listComments } from "../lib/ratings";
@@ -190,7 +198,7 @@ async function renderMapPage(
   focused?: { kiosk: KioskRecord; inner: unknown; href: string; aggregate?: Aggregate | null },
 ): Promise<Response> {
   const url = new URL(c.req.url);
-  const lang = resolveLang(c.req.header("accept-language"));
+  const lang = langFromPath(c.req.path);
   const filter = parseFilterFromQuery(url.searchParams);
 
   // For a focused kiosk we centre the map on it; otherwise the URL ?c=lat,lng
@@ -244,7 +252,7 @@ async function renderMapPage(
         filteredCount={filtered.length}
         openNowCount={openNowCount}
         filterActive={isFilterActive(filter)}
-        resetHref="/"
+        resetHref={pathForLang("/", lang)}
         userAgent={c.req.header("user-agent") ?? null}
       />
     );
@@ -263,6 +271,7 @@ async function renderMapPage(
   return c.html(
     <Layout
       lang={lang}
+      path={c.req.path}
       title={title}
       description={description}
       canonicalUrl={canonicalUrl}
@@ -288,13 +297,13 @@ async function renderMapPage(
         <nav class="pointer-events-none absolute bottom-2 left-2 z-10 flex gap-3 text-xs text-fg-dim/80">
           <a
             class="pointer-events-auto bg-bg/70 px-1.5 py-0.5 backdrop-blur-sm hover:text-neon-cyan"
-            href="/impressum"
+            href={pathForLang("/impressum", lang)}
           >
             Impressum
           </a>
           <a
             class="pointer-events-auto bg-bg/70 px-1.5 py-0.5 backdrop-blur-sm hover:text-neon-cyan"
-            href="/datenschutz"
+            href={pathForLang("/datenschutz", lang)}
           >
             Datenschutz
           </a>
@@ -345,7 +354,7 @@ async function renderMapPage(
         >
           <DragHandle label="Filter ausblenden — nach unten ziehen" />
           <div class="sticky top-0 z-10 border-b-2 border-border bg-surface p-3 sm:pr-10">
-            <FilterChips lang={lang} filter={filter} formAction="/" />
+            <FilterChips lang={lang} filter={filter} formAction={pathForLang("/", lang)} />
             {/* Desktop-only collapse (← slides the sidebar off the left edge).
                 On mobile the drag handle above handles dismissal. */}
             <button
@@ -358,14 +367,14 @@ async function renderMapPage(
             </button>
           </div>
           <a
-            href="/add"
+            href={pathForLang("/add", lang)}
             class="flex items-center justify-center gap-2 border-b-2 border-border bg-surface-2 px-3 py-2 font-display text-sm tracking-wider uppercase text-fg-muted transition-colors hover:text-neon-pink"
           >
             <span class="text-neon-pink">+</span> Späti vorschlagen
           </a>
           <div
             id="kiosk-panel"
-            data-panel-url={`/api/kiosks/panel${initialBbox ? `?bbox=${initialBbox.west},${initialBbox.south},${initialBbox.east},${initialBbox.north}` : ""}`}
+            data-panel-url={`/api/kiosks/panel?lang=${lang}${initialBbox ? `&bbox=${initialBbox.west},${initialBbox.south},${initialBbox.east},${initialBbox.north}` : ""}`}
           >
             {initialPanel}
           </div>
@@ -386,7 +395,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   // page below holds the user-gesture flow that pre-permission iOS Safari
   // needs and degrades gracefully to the map on denial or no-results.
   app.get("/jetzt", (c) => {
-    const lang = resolveLang(c.req.header("accept-language"));
+    const lang = langFromPath(c.req.path);
     const jsMsg = {
       noGeo: t(lang, "jetzt.noGeo"),
       locating: t(lang, "jetzt.locating"),
@@ -399,6 +408,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     return c.html(
       <Layout
         lang={lang}
+        path={c.req.path}
         title={t(lang, "page.jetzt.title")}
         description={t(lang, "page.jetzt.description")}
         noindex
@@ -413,7 +423,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
             {t(lang, "jetzt.intro")}
           </p>
           <div id="jetzt-actions" class="mt-6 hidden flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <a href="/" class="btn-neon">
+            <a href={pathForLang("/", lang)} class="btn-neon">
               {t(lang, "jetzt.toMap")}
             </a>
             <button type="button" id="jetzt-retry" class="btn-neon">
@@ -480,7 +490,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   // "trinkhallen frankfurt" / "späti berlin" rank curated lists, not maps —
   // /stadt/:slug serves a real list page so we can compete for those.
   app.get("/stadt/:slug", async (c) => {
-    const lang = resolveLang(c.req.header("accept-language"));
+    const lang = langFromPath(c.req.path);
     const slug = c.req.param("slug");
     const [manifest, kiosks] = await Promise.all([
       loadManifest(c.env),
@@ -491,6 +501,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       return c.html(
         <Layout
           lang={lang}
+          path={c.req.path}
           title={t(lang, "page.cityNotFound.title")}
           noindex
           nav="map"
@@ -499,7 +510,10 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Stadt nicht gefunden</h1>
           <p class="mt-3 text-fg-muted">
             <code class="font-mono">{slug}</code> ist nicht in unserem Datensatz.{" "}
-            <a class="text-neon-cyan underline-offset-2 hover:underline" href="/">
+            <a
+              class="text-neon-cyan underline-offset-2 hover:underline"
+              href={pathForLang("/", lang)}
+            >
               Zurück zur Karte
             </a>
           </p>
@@ -521,7 +535,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const [w, s, e, n] = region.bbox;
     const centerLat = (s + n) / 2;
     const centerLng = (w + e) / 2;
-    const mapHref = `/?c=${centerLat.toFixed(4)},${centerLng.toFixed(4)}&z=12`;
+    const mapHref = `${pathForLang("/", lang)}?c=${centerLat.toFixed(4)},${centerLng.toFixed(4)}&z=12`;
 
     const itemListJsonLd: object = {
       "@context": "https://schema.org",
@@ -552,6 +566,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     return c.html(
       <Layout
         lang={lang}
+        path={c.req.path}
         title={tpl(lang, "page.city.title", { city })}
         description={tpl(lang, "page.city.description", {
           total,
@@ -566,7 +581,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         <article class="space-y-6">
           <header>
             <p class="font-display text-sm uppercase tracking-wider text-fg-muted">
-              <a class="hover:text-neon-pink" href="/">
+              <a class="hover:text-neon-pink" href={pathForLang("/", lang)}>
                 {t(lang, "city.breadcrumb")}
               </a>{" "}
               · {city}
@@ -621,7 +636,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 
   app.get("/about", async (c) => {
-    const lang = resolveLang(c.req.header("accept-language"));
+    const lang = langFromPath(c.req.path);
     const [total, ratings, users] = await Promise.all([
       countKiosks(c.env),
       countRatings(c.env),
@@ -630,6 +645,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     return c.html(
       <Layout
         lang={lang}
+        path={c.req.path}
         title={t(lang, "page.about.title")}
         description={t(lang, "page.about.description")}
         canonicalUrl="https://trinkhallen.app/about"
@@ -739,7 +755,10 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               </li>
               <li>
                 <span class="font-display text-fg">Vorschlagen:</span>{" "}
-                <a class="text-neon-cyan underline-offset-2 hover:underline" href="/add">
+                <a
+                  class="text-neon-cyan underline-offset-2 hover:underline"
+                  href={pathForLang("/add", lang)}
+                >
                   /add
                 </a>{" "}
                 → Späti auf der Karte anklicken, Adresse + Öffnungszeiten + Zahlung eintragen.
@@ -821,12 +840,14 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     );
   });
 
-  app.get("/impressum", (c) =>
-    c.html(
+  app.get("/impressum", (c) => {
+    const lang = langFromPath(c.req.path);
+    return c.html(
       <Layout
-        lang={resolveLang(c.req.header("accept-language"))}
-        title={t(resolveLang(c.req.header("accept-language")), "page.impressum.title")}
-        description={t(resolveLang(c.req.header("accept-language")), "page.impressum.description")}
+        lang={lang}
+        path={c.req.path}
+        title={t(lang, "page.impressum.title")}
+        description={t(lang, "page.impressum.description")}
         canonicalUrl="https://trinkhallen.app/impressum"
         nav="about"
         user={c.get("user")}
@@ -930,18 +951,17 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </section>
         </article>
       </Layout>,
-    ),
-  );
+    );
+  });
 
-  app.get("/datenschutz", (c) =>
-    c.html(
+  app.get("/datenschutz", (c) => {
+    const lang = langFromPath(c.req.path);
+    return c.html(
       <Layout
-        lang={resolveLang(c.req.header("accept-language"))}
-        title={t(resolveLang(c.req.header("accept-language")), "page.datenschutz.title")}
-        description={t(
-          resolveLang(c.req.header("accept-language")),
-          "page.datenschutz.description",
-        )}
+        lang={lang}
+        path={c.req.path}
+        title={t(lang, "page.datenschutz.title")}
+        description={t(lang, "page.datenschutz.description")}
         canonicalUrl="https://trinkhallen.app/datenschutz"
         nav="about"
         user={c.get("user")}
@@ -1196,11 +1216,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </section>
         </article>
       </Layout>,
-    ),
-  );
+    );
+  });
 
   app.get("/k/:id", async (c) => {
-    const lang = resolveLang(c.req.header("accept-language"));
+    const lang = langFromPath(c.req.path);
     const id = c.req.param("id");
     const user = c.get("user");
     const partial = c.req.query("partial") === "1";
@@ -1208,12 +1228,22 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     if (!kiosk) {
       if (partial) return c.text("not found", 404);
       return c.html(
-        <Layout lang={lang} title={t(lang, "page.notFound.title")} noindex nav="map" user={user}>
+        <Layout
+          lang={lang}
+          path={c.req.path}
+          title={t(lang, "page.notFound.title")}
+          noindex
+          nav="map"
+          user={user}
+        >
           <h1 class="font-display text-4xl tracking-wide text-fg">{t(lang, "notFound.heading")}</h1>
           <p class="mt-3 text-fg-muted">
             {t(lang, "notFound.idMissingPre")} <code class="font-mono">{id}</code>{" "}
             {t(lang, "notFound.idMissingPost")}{" "}
-            <a class="text-neon-cyan underline-offset-2 hover:underline" href="/">
+            <a
+              class="text-neon-cyan underline-offset-2 hover:underline"
+              href={pathForLang("/", lang)}
+            >
               {t(lang, "notFound.backToMap")}
             </a>
           </p>
@@ -1262,6 +1292,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     return c.html(
       <Layout
         lang={lang}
+        path={c.req.path}
         title={kioskHeadline(lang, kiosk)}
         description={kioskDescription(lang, kiosk)}
         canonicalUrl={`${ORIGIN}/k/${kiosk.id}`}
@@ -1270,13 +1301,16 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         user={user}
       >
         <p class="mb-4 font-display text-sm uppercase tracking-wider text-fg-muted">
-          <a class="hover:text-neon-pink" href="/">
+          <a class="hover:text-neon-pink" href={pathForLang("/", lang)}>
             Trinkhallen
           </a>
           {city && (
             <>
               {" · "}
-              <a class="hover:text-neon-pink" href={`/stadt/${kiosk.region.split("/").pop()}`}>
+              <a
+                class="hover:text-neon-pink"
+                href={pathForLang(`/stadt/${kiosk.region.split("/").pop()}`, lang)}
+              >
                 {cityDisplayName(kiosk.region.split("/").pop() ?? "")}
               </a>
             </>
@@ -1286,7 +1320,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         <p class="mt-4">
           <a
             class="text-neon-cyan underline-offset-2 hover:underline"
-            href={`/?c=${kiosk.lat.toFixed(4)},${kiosk.lng.toFixed(4)}&z=16`}
+            href={`${pathForLang("/", lang)}?c=${kiosk.lat.toFixed(4)},${kiosk.lng.toFixed(4)}&z=16`}
           >
             ▶ Auf der Karte ansehen
           </a>
@@ -1296,9 +1330,9 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 
   app.get("/add", async (c) => {
-    const lang = resolveLang(c.req.header("accept-language"));
+    const lang = langFromPath(c.req.path);
     const user = c.get("user");
-    if (!user) return c.redirect("/me?after=add");
+    if (!user) return c.redirect(`${pathForLang("/me", lang)}?after=add`);
     const url = new URL(c.req.url);
     const initialLat = url.searchParams.get("lat") ?? "";
     const initialLng = url.searchParams.get("lng") ?? "";
@@ -1306,6 +1340,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     return c.html(
       <Layout
         lang={lang}
+        path={c.req.path}
         title={t(lang, "page.add.title")}
         noindex
         nav="map"
@@ -1324,7 +1359,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </div>
         )}
 
-        <form action="/add" method="post" class="space-y-6 border-2 border-border bg-surface p-6">
+        <form
+          action={pathForLang("/add", lang)}
+          method="post"
+          class="space-y-6 border-2 border-border bg-surface p-6"
+        >
           <fieldset class="space-y-3">
             <legend class="font-display text-sm tracking-wider uppercase text-fg-muted">
               {t(lang, "add.legendLocation")}
@@ -1500,12 +1539,19 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 
   app.get("/me", (c) => {
-    const lang = resolveLang(c.req.header("accept-language"));
+    const lang = langFromPath(c.req.path);
     const user = c.get("user");
     if (!user) {
       const magic = c.req.query("magic");
       return c.html(
-        <Layout lang={lang} title={t(lang, "auth.login")} noindex nav="me" user={undefined}>
+        <Layout
+          lang={lang}
+          path={c.req.path}
+          title={t(lang, "auth.login")}
+          noindex
+          nav="me"
+          user={undefined}
+        >
           <section class="border-2 border-border bg-surface p-8">
             <h1 class="font-display text-3xl tracking-wide text-fg sm:text-4xl">Anmelden</h1>
             <p class="mt-3 text-fg-muted">
@@ -1586,28 +1632,31 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   // one-change guard at the SQL layer; the form on /me only renders while the
   // user still has their rename available.
   app.post("/me/username", async (c) => {
+    const me = pathForLang("/me", langFromPath(c.req.path));
     const user = c.get("user");
-    if (!user) return c.redirect("/me");
+    if (!user) return c.redirect(me);
     const raw = ((await c.req.formData()).get("username") ?? "").toString();
     const result = await renameUsername(c.env.DB, user.id, raw);
-    return c.redirect(`/me?username=${result}`);
+    return c.redirect(`${me}?username=${result}`);
   });
 
   // Account deletion. Hard-cascades personal data; anonymizes contributions
   // that already shipped to trinkhallen-data so the merged PRs stay intact
   // but the link back to the real person is severed.
   app.post("/me/delete", async (c) => {
+    const lang = langFromPath(c.req.path);
+    const me = pathForLang("/me", lang);
     const user = c.get("user");
-    if (!user) return c.redirect("/me");
+    if (!user) return c.redirect(me);
     const form = await c.req.formData();
     if ((form.get("confirm") ?? "").toString() !== "yes") {
-      return c.redirect("/me?delete=unconfirmed");
+      return c.redirect(`${me}?delete=unconfirmed`);
     }
     await deleteAccount(c.env.DB, user.id, user.email);
     await destroySession(c);
     // Purge the SW runtime cache before the client navigates, same trick as
     // logout — otherwise the cached logged-in shell flashes back.
-    return c.redirect("/?deleted=ok");
+    return c.redirect(`${pathForLang("/", lang)}?deleted=ok`);
   });
 }
 
@@ -1676,7 +1725,7 @@ async function renderProfile(
   c: import("hono").Context<{ Bindings: Env }>,
   user: ProfileUser,
 ): Promise<Response> {
-  const lang = resolveLang(c.req.header("accept-language"));
+  const lang = langFromPath(c.req.path);
   const reportedFlag = c.req.query("reported");
   const submittedFlag = c.req.query("submitted");
   const usernameFlag = c.req.query("username");
@@ -1732,7 +1781,14 @@ async function renderProfile(
   const fmtDate = (s: number) => new Date(s * 1000).toLocaleDateString("de-DE");
 
   return c.html(
-    <Layout lang={lang} title={t(lang, "page.profile.title")} noindex nav="me" user={user}>
+    <Layout
+      lang={lang}
+      path={c.req.path}
+      title={t(lang, "page.profile.title")}
+      noindex
+      nav="me"
+      user={user}
+    >
       <section class="border-2 border-border bg-surface p-6">
         <div class="flex items-center gap-4">
           <span class="grid h-16 w-16 place-items-center border-2 border-border-hi bg-neon-pink/20 font-display text-2xl text-neon-pink">
@@ -1859,7 +1915,7 @@ async function renderProfile(
               {t(lang, "profile.handle.renamePost")}
             </p>
             <form
-              action="/me/username"
+              action={pathForLang("/me/username", lang)}
               method="post"
               class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-stretch"
             >
@@ -1896,7 +1952,7 @@ async function renderProfile(
             {t(lang, "profile.stat.suggestions")}
           </h2>
           <a
-            href="/add"
+            href={pathForLang("/add", lang)}
             class="border-2 border-border-hi px-2 py-1 font-display text-xs tracking-wider uppercase text-fg-muted hover:border-neon-pink hover:text-neon-pink"
           >
             {t(lang, "profile.suggestKiosk")}
@@ -1905,7 +1961,10 @@ async function renderProfile(
         {submissions.length === 0 ? (
           <p class="p-4 text-fg-muted">
             {t(lang, "profile.noSubmissionsPre")}{" "}
-            <a class="text-neon-cyan underline-offset-2 hover:underline" href="/add">
+            <a
+              class="text-neon-cyan underline-offset-2 hover:underline"
+              href={pathForLang("/add", lang)}
+            >
               {t(lang, "profile.noSubmissionsLink")}
             </a>{" "}
             {t(lang, "profile.noSubmissionsPost")}
@@ -1951,7 +2010,7 @@ async function renderProfile(
               <li class="px-4 py-3 text-sm">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <a
-                    href={`/k/${r.kiosk_id}`}
+                    href={pathForLang(`/k/${r.kiosk_id}`, lang)}
                     class="font-display text-base tracking-wide text-fg hover:text-neon-pink"
                   >
                     {r.kiosk_name}
@@ -1991,7 +2050,12 @@ async function renderProfile(
           <summary class="cursor-pointer text-sm uppercase tracking-wider text-fg-muted hover:text-danger">
             {t(lang, "profile.deleteToggle")}
           </summary>
-          <form action="/me/delete" method="post" class="mt-4 space-y-3" data-logout-form>
+          <form
+            action={pathForLang("/me/delete", lang)}
+            method="post"
+            class="mt-4 space-y-3"
+            data-logout-form
+          >
             <label class="flex items-start gap-2 text-sm text-fg-muted">
               <input
                 type="checkbox"

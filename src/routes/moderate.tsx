@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { Layout } from "../components/Layout";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
-import { type Lang, resolveLang, t, tpl } from "../lib/messages";
+import { type Lang, langFromPath, t, tpl } from "../lib/messages";
 import {
   approveReport,
   approveSubmission,
@@ -79,7 +79,7 @@ interface PendingAnomalyRow {
 
 moderate.get("/moderate", async (c) => {
   const user = c.get("user")!;
-  const lang = resolveLang(c.req.header("accept-language"));
+  const lang = langFromPath(c.req.path);
   const tab = (c.req.query("tab") ?? "submissions") as
     | "submissions"
     | "reports"
@@ -135,7 +135,7 @@ moderate.get("/moderate", async (c) => {
   }));
 
   return c.html(
-    <Layout lang={lang} title="Moderation" noindex nav="me" user={user}>
+    <Layout lang={lang} path={c.req.path} title="Moderation" noindex nav="me" user={user}>
       <header class="mb-6 flex items-end justify-between">
         <h1 class="font-display text-4xl tracking-wide text-fg">{t(lang, "mod.title")}</h1>
         <p class="text-xs uppercase tracking-wider text-fg-dim">{user.role}</p>

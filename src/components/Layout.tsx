@@ -1,7 +1,14 @@
 import { raw } from "hono/html";
 import type { FC, PropsWithChildren } from "hono/jsx";
 import { asset, type ClientEntry } from "../lib/assets";
-import { type Lang, OG_LOCALE, t } from "../lib/messages";
+import {
+  DEFAULT_LANG,
+  type Lang,
+  OG_LOCALE,
+  pathForLang,
+  SUPPORTED_LANGS,
+  t,
+} from "../lib/messages";
 
 export interface LayoutUser {
   id: string;
@@ -31,6 +38,9 @@ export interface LayoutProps {
   user?: LayoutUser | undefined;
   /** Request language — drives chrome copy + `<html lang>` / og:locale. */
   lang: Lang;
+  /** Current request path (`c.req.path`) — drives hreflang alternates, the
+   *  locale-correct canonical, and the language switcher target. */
+  path: string;
 }
 
 const SITE = "TRINKHALLEN.APP";
@@ -48,10 +58,20 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
   fullBleed = false,
   user,
   lang,
+  path,
 }) => {
   const desc = description ?? t(lang, "meta.descriptionDefault");
   const fullTitle = title ? `${title} · ${SITE}` : SITE;
-  const canonical = canonicalUrl ?? ORIGIN + (nav === "about" ? "/about" : "/");
+  // The locale-neutral path drives both the canonical (re-prefixed for the
+  // active locale) and the per-locale hreflang alternates. canonicalUrl, when a
+  // page passes one, points at the clean target (e.g. /k/:id from the map page);
+  // strip its origin so it feeds the same machinery.
+  const barePath = pathForLang(
+    canonicalUrl ? canonicalUrl.replace(ORIGIN, "") : path,
+    DEFAULT_LANG,
+  );
+  const urlForLang = (l: Lang) => ORIGIN + pathForLang(barePath, l);
+  const canonical = urlForLang(lang);
   // 1200×630 PNG — Slack/Discord/Twitter/LinkedIn all want this aspect
   // ratio for a proper preview card. Generated from the brand wordmark
   // via scripts/og-render.ts → public/og-1200x630.png.
@@ -90,7 +110,10 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         <meta name="twitter:title" content={fullTitle} />
         <meta name="twitter:description" content={desc} />
         <meta name="twitter:image" content={ogImage} />
-        <link rel="alternate" hreflang={lang} href={canonical} />
+        {SUPPORTED_LANGS.map((l) => (
+          <link rel="alternate" hreflang={l} href={urlForLang(l)} />
+        ))}
+        <link rel="alternate" hreflang="x-default" href={urlForLang(DEFAULT_LANG)} />
         <title>{fullTitle}</title>
 
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -166,7 +189,7 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
         </script>
       </head>
       <body class={fullBleed ? "h-dvh overflow-hidden" : "min-h-dvh"}>
-        <Header lang={lang} nav={nav} user={user} />
+        <Header lang={lang} path={barePath} nav={nav} user={user} />
         <main
           class={
             fullBleed
@@ -184,22 +207,33 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
 
 const Header: FC<{
   lang: Lang;
+  /** Locale-neutral request path, for building the switcher target. */
+  path: string;
   nav: NonNullable<LayoutProps["nav"]>;
   user?: LayoutUser | undefined;
-}> = ({ lang, nav, user }) => (
+}> = ({ lang, path, nav, user }) => (
   <header class="sticky top-0 z-40 h-[var(--header-h)] border-b-2 border-border bg-bg/95 backdrop-blur">
     <div class="mx-auto flex h-full w-full max-w-7xl items-center gap-6 px-4">
-      <a href="/" class="font-display text-xl tracking-wide text-fg">
+      <a href={pathForLang("/", lang)} class="font-display text-xl tracking-wide text-fg">
         TRINKHALLEN<span class="text-neon-pink">.</span>APP
       </a>
       <nav class="hidden flex-1 items-center gap-4 sm:flex">
-        <NavLink href="/" active={nav === "map"} label={t(lang, "nav.map")} />
-        <NavLink href="/about" active={nav === "about"} label={t(lang, "nav.about")} />
+        <NavLink href={pathForLang("/", lang)} active={nav === "map"} label={t(lang, "nav.map")} />
+        <NavLink
+          href={pathForLang("/about", lang)}
+          active={nav === "about"}
+          label={t(lang, "nav.about")}
+        />
         {user && (user.role === "moderator" || user.role === "admin") && (
-          <NavLink href="/moderate" active={nav === "moderate"} label={t(lang, "nav.mod")} />
+          <NavLink
+            href={pathForLang("/moderate", lang)}
+            active={nav === "moderate"}
+            label={t(lang, "nav.mod")}
+          />
         )}
       </nav>
       <div class="flex flex-1 items-center justify-end gap-3 sm:flex-none">
+        <LanguageSwitcher lang={lang} path={path} />
         <button
           type="button"
           aria-label={t(lang, "nav.themeToggle")}
@@ -212,10 +246,10 @@ const Header: FC<{
           <span data-theme-icon>☾</span>
         </button>
         {user ? (
-          <UserButton user={user} />
+          <UserButton user={user} lang={lang} />
         ) : (
           <a
-            href="/me"
+            href={pathForLang("/me", lang)}
             class="border-2 border-border-hi px-3 py-1.5 font-display text-sm tracking-wide text-fg transition-colors hover:border-neon-pink hover:text-neon-pink"
           >
             Login
@@ -224,6 +258,31 @@ const Header: FC<{
       </div>
     </div>
   </header>
+);
+
+/**
+ * Compact DE/EN toggle. Each language links to the same page in that locale
+ * (the default locale has no path prefix); the active one is rendered inert.
+ */
+const LanguageSwitcher: FC<{ lang: Lang; path: string }> = ({ lang, path }) => (
+  <div class="flex items-center gap-1 font-display text-xs tracking-wider uppercase">
+    {SUPPORTED_LANGS.map((l, i) => (
+      <>
+        {i > 0 && <span class="text-border-hi">/</span>}
+        {l === lang ? (
+          <span class="text-neon-pink">{l}</span>
+        ) : (
+          <a
+            href={pathForLang(path, l)}
+            hreflang={l}
+            class="text-fg-muted transition-colors hover:text-neon-pink"
+          >
+            {l}
+          </a>
+        )}
+      </>
+    ))}
+  </div>
 );
 
 type HeaderIdentity = { kind: "handle"; username: string } | { kind: "anonymous" };
@@ -240,13 +299,13 @@ function identifyForHeader(user: LayoutUser): HeaderIdentity {
   return { kind: "anonymous" };
 }
 
-const UserButton: FC<{ user: LayoutUser }> = ({ user }) => {
+const UserButton: FC<{ user: LayoutUser; lang: Lang }> = ({ user, lang }) => {
   const id = identifyForHeader(user);
 
   if (id.kind === "handle") {
     return (
       <a
-        href="/me"
+        href={pathForLang("/me", lang)}
         class="group inline-flex items-center gap-2 border-2 border-border-hi px-2 py-1 transition-colors hover:border-neon-pink"
         aria-label={`Profil von @${id.username}`}
       >
@@ -265,7 +324,7 @@ const UserButton: FC<{ user: LayoutUser }> = ({ user }) => {
   // as the only contrast — a quiet "incomplete" cue, not a notification dot.
   return (
     <a
-      href="/me"
+      href={pathForLang("/me", lang)}
       class="group relative inline-flex items-center gap-2 border-2 border-border-hi px-2 py-1 transition-colors hover:border-neon-pink"
       title="Username noch nicht gewählt"
       aria-label="Profil — Username noch nicht gewählt"
@@ -297,15 +356,24 @@ const Footer: FC<{ lang: Lang }> = ({ lang }) => (
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-fg-dim sm:flex-row sm:items-center sm:justify-between">
       <p>
         {t(lang, "footer.dataLicense")} ·{" "}
-        <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="/about">
+        <a
+          class="underline-offset-2 hover:text-neon-cyan hover:underline"
+          href={pathForLang("/about", lang)}
+        >
           {t(lang, "footer.aboutContribute")}
         </a>
       </p>
       <nav class="flex flex-wrap gap-x-4 gap-y-1">
-        <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="/impressum">
+        <a
+          class="underline-offset-2 hover:text-neon-cyan hover:underline"
+          href={pathForLang("/impressum", lang)}
+        >
           {t(lang, "footer.imprint")}
         </a>
-        <a class="underline-offset-2 hover:text-neon-cyan hover:underline" href="/datenschutz">
+        <a
+          class="underline-offset-2 hover:text-neon-cyan hover:underline"
+          href={pathForLang("/datenschutz", lang)}
+        >
           {t(lang, "footer.privacy")}
         </a>
         <a

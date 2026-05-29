@@ -1,5 +1,5 @@
 import type { FC } from "hono/jsx";
-import { type Lang, type MessageKey, t } from "../lib/messages";
+import { type Lang, type MessageKey, pathForLang, t } from "../lib/messages";
 import { kindLabel, statusLabel, type UserKioskReport } from "../lib/reports";
 
 export interface ReportFormProps {
@@ -37,7 +37,10 @@ export const ReportForm: FC<ReportFormProps> = ({
   if (!isLoggedIn) {
     return (
       <p class="text-sm text-fg-muted">
-        <a href="/me" class="text-neon-cyan underline-offset-2 hover:underline">
+        <a
+          href={pathForLang("/me", lang)}
+          class="text-neon-cyan underline-offset-2 hover:underline"
+        >
           {t(lang, "auth.login")}
         </a>{" "}
         {t(lang, "reportForm.loginHint")}

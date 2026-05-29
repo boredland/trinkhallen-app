@@ -1,6 +1,14 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
-import { INTL_LOCALE, type Lang, OH_LABELS, PAYMENT_LABELS, t, tpl } from "../lib/messages";
+import {
+  INTL_LOCALE,
+  type Lang,
+  OH_LABELS,
+  PAYMENT_LABELS,
+  pathForLang,
+  t,
+  tpl,
+} from "../lib/messages";
 import { buildNavigateTargets } from "../lib/navigate";
 import {
   computeStatus,
@@ -109,7 +117,7 @@ export const KioskDetail: FC<{
   return (
     <article class="border-2 border-border bg-surface">
       <a
-        href="/"
+        href={pathForLang("/", lang)}
         data-back
         class="block border-b-2 border-border px-6 py-3 font-display text-xs tracking-wider uppercase text-fg-muted transition-colors hover:text-neon-pink"
       >
@@ -292,7 +300,7 @@ export const KioskDetail: FC<{
             {nearby.map((n) => (
               <li class="flex items-baseline justify-between gap-3">
                 <a
-                  href={`/k/${n.id}`}
+                  href={pathForLang(`/k/${n.id}`, lang)}
                   data-lng={String(n.lng)}
                   data-lat={String(n.lat)}
                   class="text-fg underline-offset-2 hover:text-neon-pink hover:underline"
