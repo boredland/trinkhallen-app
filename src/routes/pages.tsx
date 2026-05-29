@@ -16,7 +16,7 @@ import {
 import type { KioskRecord } from "../lib/db";
 import { applyFilters, isFilterActive, parseFilterFromQuery } from "../lib/filters";
 import { parseBbox, parseLatLng } from "../lib/geo";
-import { resolveLang } from "../lib/messages";
+import { type Lang, resolveLang, t, tpl } from "../lib/messages";
 import { computeStatus, kioskLocation } from "../lib/opening-hours";
 import type { Aggregate } from "../lib/ratings";
 import { countRatings, getAggregate, getOwnRating, listComments } from "../lib/ratings";
@@ -51,17 +51,17 @@ function cityDisplayName(slug: string): string {
   return CITY_DISPLAY[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
 }
 
-function kioskHeadline(kiosk: KioskRecord): string {
+function kioskHeadline(lang: Lang, kiosk: KioskRecord): string {
   const city = kiosk.address["city"];
-  return city ? `${kiosk.name} — Späti in ${city}` : kiosk.name;
+  return city ? tpl(lang, "page.kiosk.headline", { name: kiosk.name, city }) : kiosk.name;
 }
 
-function kioskDescription(kiosk: KioskRecord): string {
+function kioskDescription(lang: Lang, kiosk: KioskRecord): string {
   const city = kiosk.address["city"];
   const district = kiosk.address["district"];
-  const where = district && city ? `${district}, ${city}` : (city ?? "Deutschland");
-  const hours = kiosk.hours?.raw ? "Öffnungszeiten" : "Öffnungszeiten (Hinweise willkommen)";
-  return `${kiosk.name} in ${where} — ${hours}, Zahlungsmethoden und ein Klick zur Navigation auf trinkhallen.app.`;
+  const where = district && city ? `${district}, ${city}` : (city ?? t(lang, "page.kiosk.germany"));
+  const hours = kiosk.hours?.raw ? t(lang, "page.kiosk.hours") : t(lang, "page.kiosk.hoursHint");
+  return tpl(lang, "page.kiosk.description", { name: kiosk.name, where, hours });
 }
 
 const PAYMENT_TO_SCHEMA: Record<string, string> = {
@@ -250,12 +250,10 @@ async function renderMapPage(
   }
 
   const sheetOpen = !!focused;
-  const title = focused
-    ? kioskHeadline(focused.kiosk)
-    : "Trinkhallen, Spätis & Wasserhäuschen finden";
+  const title = focused ? kioskHeadline(lang, focused.kiosk) : t(lang, "page.home.title");
   const description = focused
-    ? kioskDescription(focused.kiosk)
-    : "Karte mit Trinkhallen, Wasserhäuschen und Spätis in ganz Deutschland — gefiltert nach Öffnungszeiten, Zahlung und Tags. Ein Klick zur Navigation.";
+    ? kioskDescription(lang, focused.kiosk)
+    : t(lang, "page.home.description");
   const canonicalUrl = focused ? `${ORIGIN}/k/${focused.kiosk.id}` : `${ORIGIN}/`;
   const jsonLd = focused
     ? [kioskJsonLd(focused.kiosk, focused.aggregate), kioskBreadcrumbJsonLd(focused.kiosk)]
@@ -390,8 +388,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     c.html(
       <Layout
         lang={resolveLang(c.req.header("accept-language"))}
-        title="Jetzt navigieren"
-        description="Direkt zum nächsten geöffneten Späti per Karten-App."
+        title={t(resolveLang(c.req.header("accept-language")), "page.jetzt.title")}
+        description={t(resolveLang(c.req.header("accept-language")), "page.jetzt.description")}
         noindex
         nav="map"
         user={c.get("user")}
@@ -478,7 +476,13 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const region = manifest.regions.find((r) => r.slug === slug);
     if (!region || kiosks.length === 0) {
       return c.html(
-        <Layout lang={lang} title="Stadt nicht gefunden" noindex nav="map" user={c.get("user")}>
+        <Layout
+          lang={lang}
+          title={t(lang, "page.cityNotFound.title")}
+          noindex
+          nav="map"
+          user={c.get("user")}
+        >
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Stadt nicht gefunden</h1>
           <p class="mt-3 text-fg-muted">
             <code class="font-mono">{slug}</code> ist nicht in unserem Datensatz.{" "}
@@ -535,8 +539,12 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     return c.html(
       <Layout
         lang={lang}
-        title={`Trinkhallen, Spätis & Wasserhäuschen in ${city}`}
-        description={`${total} Trinkhallen, Spätis und Wasserhäuschen in ${city} — mit Öffnungszeiten, Kartenzahlung und Direktnavigation. ${openNowCount} jetzt offen.`}
+        title={tpl(lang, "page.city.title", { city })}
+        description={tpl(lang, "page.city.description", {
+          total,
+          city,
+          openNow: openNowCount,
+        })}
         canonicalUrl={`${ORIGIN}/stadt/${slug}`}
         jsonLd={[itemListJsonLd, breadcrumbJsonLd]}
         nav="map"
@@ -592,6 +600,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 
   app.get("/about", async (c) => {
+    const lang = resolveLang(c.req.header("accept-language"));
     const [total, ratings, users] = await Promise.all([
       countKiosks(c.env),
       countRatings(c.env),
@@ -599,9 +608,9 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     ]);
     return c.html(
       <Layout
-        lang={resolveLang(c.req.header("accept-language"))}
-        title="Über trinkhallen.app"
-        description="trinkhallen.app ist der offene Nachfolger von HopfenStop — Trinkhallen, Spätis und Wasserhäuschen in ganz Deutschland mit Öffnungszeiten, Kartenzahlung-Filter und Direktnavigation. Daten aus OpenStreetMap und der Community, offen auf GitHub."
+        lang={lang}
+        title={t(lang, "page.about.title")}
+        description={t(lang, "page.about.description")}
         canonicalUrl="https://trinkhallen.app/about"
         nav="about"
         user={c.get("user")}
@@ -795,8 +804,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     c.html(
       <Layout
         lang={resolveLang(c.req.header("accept-language"))}
-        title="Impressum"
-        description="Impressum von trinkhallen.app — Angaben gemäß §5 TMG."
+        title={t(resolveLang(c.req.header("accept-language")), "page.impressum.title")}
+        description={t(resolveLang(c.req.header("accept-language")), "page.impressum.description")}
         canonicalUrl="https://trinkhallen.app/impressum"
         nav="about"
         user={c.get("user")}
@@ -907,8 +916,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     c.html(
       <Layout
         lang={resolveLang(c.req.header("accept-language"))}
-        title="Datenschutz"
-        description="Datenschutzerklärung von trinkhallen.app — welche Daten wir verarbeiten, warum, und wie du deine Rechte ausübst."
+        title={t(resolveLang(c.req.header("accept-language")), "page.datenschutz.title")}
+        description={t(
+          resolveLang(c.req.header("accept-language")),
+          "page.datenschutz.description",
+        )}
         canonicalUrl="https://trinkhallen.app/datenschutz"
         nav="about"
         user={c.get("user")}
@@ -1175,7 +1187,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     if (!kiosk) {
       if (partial) return c.text("not found", 404);
       return c.html(
-        <Layout lang={lang} title="Nicht gefunden" noindex nav="map" user={user}>
+        <Layout lang={lang} title={t(lang, "page.notFound.title")} noindex nav="map" user={user}>
           <h1 class="font-display text-4xl tracking-wide text-fg">404 — Kiosk nicht gefunden</h1>
           <p class="mt-3 text-fg-muted">
             Die ID <code class="font-mono">{id}</code> existiert nicht.{" "}
@@ -1228,8 +1240,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     return c.html(
       <Layout
         lang={lang}
-        title={kioskHeadline(kiosk)}
-        description={kioskDescription(kiosk)}
+        title={kioskHeadline(lang, kiosk)}
+        description={kioskDescription(lang, kiosk)}
         canonicalUrl={`${ORIGIN}/k/${kiosk.id}`}
         jsonLd={[kioskJsonLd(kiosk, aggregate), kioskBreadcrumbJsonLd(kiosk)]}
         nav="map"
@@ -1262,6 +1274,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 
   app.get("/add", async (c) => {
+    const lang = resolveLang(c.req.header("accept-language"));
     const user = c.get("user");
     if (!user) return c.redirect("/me?after=add");
     const url = new URL(c.req.url);
@@ -1270,8 +1283,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
     const error = url.searchParams.get("error");
     return c.html(
       <Layout
-        lang={resolveLang(c.req.header("accept-language"))}
-        title="Späti hinzufügen"
+        lang={lang}
+        title={t(lang, "page.add.title")}
         noindex
         nav="map"
         user={user}
@@ -1466,17 +1479,12 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 
   app.get("/me", (c) => {
+    const lang = resolveLang(c.req.header("accept-language"));
     const user = c.get("user");
     if (!user) {
       const magic = c.req.query("magic");
       return c.html(
-        <Layout
-          lang={resolveLang(c.req.header("accept-language"))}
-          title="Anmelden"
-          noindex
-          nav="me"
-          user={undefined}
-        >
+        <Layout lang={lang} title={t(lang, "auth.login")} noindex nav="me" user={undefined}>
           <section class="border-2 border-border bg-surface p-8">
             <h1 class="font-display text-3xl tracking-wide text-fg sm:text-4xl">Anmelden</h1>
             <p class="mt-3 text-fg-muted">
@@ -1703,7 +1711,7 @@ async function renderProfile(
   const fmtDate = (s: number) => new Date(s * 1000).toLocaleDateString("de-DE");
 
   return c.html(
-    <Layout lang={lang} title="Profil" noindex nav="me" user={user}>
+    <Layout lang={lang} title={t(lang, "page.profile.title")} noindex nav="me" user={user}>
       <section class="border-2 border-border bg-surface p-6">
         <div class="flex items-center gap-4">
           <span class="grid h-16 w-16 place-items-center border-2 border-border-hi bg-neon-pink/20 font-display text-2xl text-neon-pink">

@@ -141,6 +141,28 @@ const DE = {
   "kioskList.distanceAria": "Entfernung",
   "kioskList.nav": "▶ Nav",
 
+  // page titles + meta descriptions
+  "page.home.title": "Trinkhallen, Spätis & Wasserhäuschen finden",
+  "page.home.description":
+    "Karte mit Trinkhallen, Wasserhäuschen und Spätis in ganz Deutschland — gefiltert nach Öffnungszeiten, Zahlung und Tags. Ein Klick zur Navigation.",
+  "page.jetzt.title": "Jetzt navigieren",
+  "page.jetzt.description": "Direkt zum nächsten geöffneten Späti per Karten-App.",
+  "page.cityNotFound.title": "Stadt nicht gefunden",
+  "page.about.title": "Über trinkhallen.app",
+  "page.about.description":
+    "trinkhallen.app ist der offene Nachfolger von HopfenStop — Trinkhallen, Spätis und Wasserhäuschen in ganz Deutschland mit Öffnungszeiten, Kartenzahlung-Filter und Direktnavigation. Daten aus OpenStreetMap und der Community, offen auf GitHub.",
+  "page.impressum.title": "Impressum",
+  "page.impressum.description": "Impressum von trinkhallen.app — Angaben gemäß §5 TMG.",
+  "page.datenschutz.title": "Datenschutz",
+  "page.datenschutz.description":
+    "Datenschutzerklärung von trinkhallen.app — welche Daten wir verarbeiten, warum, und wie du deine Rechte ausübst.",
+  "page.notFound.title": "Nicht gefunden",
+  "page.add.title": "Späti hinzufügen",
+  "page.profile.title": "Profil",
+  "page.kiosk.hours": "Öffnungszeiten",
+  "page.kiosk.hoursHint": "Öffnungszeiten (Hinweise willkommen)",
+  "page.kiosk.germany": "Deutschland",
+
   // moderation (admin)
   "mod.title": "Moderation",
   "mod.emptyHeading": "Saubere Inbox",
@@ -226,6 +248,12 @@ const DE_TPL = {
   "mod.tabReports": "Korrekturen ({n})",
   "mod.tabUsers": "Konten ({n})",
   "mod.tabAnomalies": "Anomalien ({n})",
+  "page.kiosk.headline": "{name} — Späti in {city}",
+  "page.kiosk.description":
+    "{name} in {where} — {hours}, Zahlungsmethoden und ein Klick zur Navigation auf trinkhallen.app.",
+  "page.city.title": "Trinkhallen, Spätis & Wasserhäuschen in {city}",
+  "page.city.description":
+    "{total} Trinkhallen, Spätis und Wasserhäuschen in {city} — mit Öffnungszeiten, Kartenzahlung und Direktnavigation. {openNow} jetzt offen.",
 } as const;
 
 export const TEMPLATES: Record<Lang, Record<string, string>> = {
