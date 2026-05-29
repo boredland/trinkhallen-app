@@ -49,6 +49,20 @@ const DE = {
   "kiosk.backToMap": "← Zurück zur Karte",
   "kiosk.navigate": "▶ Hin navigieren",
   "kiosk.openOtherMaps": "Anderes Maps-Programm öffnen",
+  "kiosk.paymentHeading": "Zahlung",
+  "kiosk.openingHoursHeading": "Öffnungszeiten",
+  "kiosk.phBanner":
+    "Heute ist Feiertag — diese Öffnungszeiten erwähnen keine Feiertagsregel. Die tatsächlichen Zeiten können abweichen. Ein verifizierter Check-in heute meldet uns automatisch, dass dieser Laden geöffnet hat.",
+  "kiosk.descriptionHeading": "Beschreibung",
+  "kiosk.tagsHeading": "Tags",
+  "kiosk.wereYouHere": "Warst du hier?",
+  "kiosk.ratingsHeading": "Bewertungen",
+  "kiosk.dataWrong": "Daten falsch?",
+  "kiosk.nearbyHeading": "In der Nähe",
+  "kiosk.idLabel": "ID:",
+  "kiosk.sourceLabel": "Quelle:",
+  "kiosk.updatedLabel": "Aktualisiert:",
+  "kiosk.editOnGithub": "Auf GitHub bearbeiten →",
 
   // check-in + gap-fill
   "checkin.iWasHere": "Ich war hier",
@@ -85,6 +99,8 @@ export function t(lang: Lang, key: MessageKey): string {
 const DE_TPL = {
   "oh.openUntil": "Offen bis {time}",
   "oh.closedOpensAt": "Geschlossen — öffnet {time}",
+  "kiosk.introCityDistrict": "{name} ist ein Späti im Stadtteil {district} in {city}.",
+  "kiosk.introCity": "{name} ist ein Späti in {city}.",
 } as const;
 
 export const TEMPLATES: Record<Lang, Record<string, string>> = {
@@ -146,6 +162,16 @@ export const TAG_LABELS: Record<Lang, Record<string, string>> = {
     sitzgelegenheiten: "Sitzgelegenheiten",
     wlan: "WLAN",
     geldautomat: "Geldautomat",
+  },
+};
+
+/** Payment-method display labels (KioskDetail / CheckinForm); icons stay in-component. */
+export const PAYMENT_LABELS: Record<Lang, Record<string, string>> = {
+  de: {
+    cash: "Bar",
+    cards: "Karte",
+    contactless: "Kontaktlos",
+    girocard: "Girocard",
   },
 };
 

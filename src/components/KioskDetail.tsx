@@ -1,6 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
-import type { Lang } from "../lib/messages";
+import { INTL_LOCALE, type Lang, OH_LABELS, PAYMENT_LABELS, t, tpl } from "../lib/messages";
 import { buildNavigateTargets } from "../lib/navigate";
 import {
   computeStatus,
@@ -19,11 +19,11 @@ import { ReportForm } from "./ReportForm";
 
 type TriState = "yes" | "no" | "unknown";
 
-const PAYMENT_LABELS: Record<string, { de: string; icon: string }> = {
-  cash: { de: "Bar", icon: "💶" },
-  cards: { de: "Karte", icon: "💳" },
-  contactless: { de: "Kontaktlos", icon: "📲" },
-  girocard: { de: "Girocard", icon: "🟦" },
+const PAYMENT_ICONS: Record<string, string> = {
+  cash: "💶",
+  cards: "💳",
+  contactless: "📲",
+  girocard: "🟦",
 };
 const PAYMENT_ORDER = ["cash", "cards", "contactless", "girocard"] as const;
 
@@ -93,12 +93,13 @@ export const KioskDetail: FC<{
   // description always wins, so we don't show both.
   const intro = (() => {
     if (kiosk.description) return null;
-    if (city && district) return `${kiosk.name} ist ein Späti im Stadtteil ${district} in ${city}.`;
-    if (city) return `${kiosk.name} ist ein Späti in ${city}.`;
+    if (city && district)
+      return tpl(lang, "kiosk.introCityDistrict", { name: kiosk.name, district, city });
+    if (city) return tpl(lang, "kiosk.introCity", { name: kiosk.name, city });
     return null;
   })();
   const updatedDate = kiosk.updatedAt
-    ? new Date(kiosk.updatedAt * 1000).toLocaleDateString("de-DE", {
+    ? new Date(kiosk.updatedAt * 1000).toLocaleDateString(INTL_LOCALE[lang], {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -112,7 +113,7 @@ export const KioskDetail: FC<{
         data-back
         class="block border-b-2 border-border px-6 py-3 font-display text-xs tracking-wider uppercase text-fg-muted transition-colors hover:text-neon-pink"
       >
-        ← Zurück zur Karte
+        {t(lang, "kiosk.backToMap")}
       </a>
       <header class="border-b-2 border-border p-6">
         <p
@@ -137,10 +138,10 @@ export const KioskDetail: FC<{
 
       <section class="border-b-2 border-border p-6">
         <a href={nav.primary.href} class="btn-neon w-full sm:w-auto" data-navigate-primary>
-          ▶ Hin navigieren
+          {t(lang, "kiosk.navigate")}
         </a>
         <details class="mt-3 text-sm text-fg-muted">
-          <summary class="cursor-pointer hover:text-fg">Anderes Maps-Programm öffnen</summary>
+          <summary class="cursor-pointer hover:text-fg">{t(lang, "kiosk.openOtherMaps")}</summary>
           <ul class="mt-2 space-y-1 pl-4">
             <li>
               <a class="text-neon-cyan underline-offset-2 hover:underline" href={nav.apple.href}>
@@ -174,16 +175,22 @@ export const KioskDetail: FC<{
 
       {kiosk.payment && (
         <section class="border-b-2 border-border p-6">
-          <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">Zahlung</h2>
+          <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
+            {t(lang, "kiosk.paymentHeading")}
+          </h2>
           <ul class="flex flex-wrap gap-2">
             {PAYMENT_ORDER.map((key) => {
               const value = kiosk.payment?.[key] as TriState | undefined;
               if (!value) return null;
-              const meta = PAYMENT_LABELS[key];
-              if (!meta) return null;
+              const icon = PAYMENT_ICONS[key];
+              if (!icon) return null;
               return (
                 <li>
-                  <PaymentBadge label={meta.de} icon={meta.icon} state={value} />
+                  <PaymentBadge
+                    label={PAYMENT_LABELS[lang][key] ?? key}
+                    icon={icon}
+                    state={value}
+                  />
                 </li>
               );
             })}
@@ -194,13 +201,11 @@ export const KioskDetail: FC<{
       {kiosk.hours?.raw && (
         <section class="border-b-2 border-border p-6">
           <h2 class="mb-2 font-display text-sm tracking-wider uppercase text-fg-muted">
-            Öffnungszeiten
+            {t(lang, "kiosk.openingHoursHeading")}
           </h2>
           {showPHBanner && (
             <p class="mb-3 border border-neon-amber/60 bg-neon-amber/10 px-3 py-2 text-sm text-fg">
-              Heute ist Feiertag — diese Öffnungszeiten erwähnen keine Feiertagsregel. Die
-              tatsächlichen Zeiten können abweichen. Ein verifizierter Check-in heute meldet uns
-              automatisch, dass dieser Laden geöffnet hat.
+              {t(lang, "kiosk.phBanner")}
             </p>
           )}
           {hoursTable ? (
@@ -208,7 +213,9 @@ export const KioskDetail: FC<{
               {hoursTable.map(({ days, hours }) => (
                 <>
                   <dt class="text-fg-dim">{days}</dt>
-                  <dd class={hours === "geschlossen" ? "text-fg-muted" : "text-fg"}>{hours}</dd>
+                  <dd class={hours === OH_LABELS[lang].closedLower ? "text-fg-muted" : "text-fg"}>
+                    {hours}
+                  </dd>
                 </>
               ))}
             </dl>
@@ -221,7 +228,7 @@ export const KioskDetail: FC<{
       {kiosk.description && (
         <section class="border-b-2 border-border p-6">
           <h2 class="mb-2 font-display text-sm tracking-wider uppercase text-fg-muted">
-            Beschreibung
+            {t(lang, "kiosk.descriptionHeading")}
           </h2>
           <p class="text-fg whitespace-pre-line">{kiosk.description}</p>
         </section>
@@ -229,7 +236,9 @@ export const KioskDetail: FC<{
 
       {managedTags.length > 0 && (
         <section class="border-b-2 border-border p-6">
-          <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">Tags</h2>
+          <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
+            {t(lang, "kiosk.tagsHeading")}
+          </h2>
           <ul class="flex flex-wrap gap-2">
             {managedTags.map((slug) => (
               <li class="border-2 border-border-hi px-2 py-1 text-sm text-fg-muted">
@@ -242,14 +251,14 @@ export const KioskDetail: FC<{
 
       <section class="border-b-2 border-border p-6">
         <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
-          Warst du hier?
+          {t(lang, "kiosk.wereYouHere")}
         </h2>
         <CheckinForm lang={lang} kiosk={kiosk} isLoggedIn={isLoggedIn} userReports={userReports} />
       </section>
 
       <section class="border-b-2 border-border p-6">
         <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
-          Bewertungen
+          {t(lang, "kiosk.ratingsHeading")}
         </h2>
         <RatingBlock
           kioskId={kiosk.id}
@@ -262,7 +271,7 @@ export const KioskDetail: FC<{
 
       <section class="border-b-2 border-border p-6">
         <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
-          Daten falsch?
+          {t(lang, "kiosk.dataWrong")}
         </h2>
         <ReportForm
           lang={lang}
@@ -276,7 +285,7 @@ export const KioskDetail: FC<{
       {nearby && nearby.length > 0 && (
         <section class="border-b-2 border-border p-6">
           <h2 class="mb-3 font-display text-sm tracking-wider uppercase text-fg-muted">
-            In der Nähe
+            {t(lang, "kiosk.nearbyHeading")}
           </h2>
           <ul class="space-y-2 text-sm">
             {nearby.map((n) => (
@@ -303,17 +312,18 @@ export const KioskDetail: FC<{
 
       <footer class="flex flex-col gap-2 p-6 text-sm text-fg-dim sm:flex-row sm:items-center sm:justify-between">
         <p>
-          <span class="text-fg-muted">ID:</span> <code class="font-mono">{kiosk.id}</code>
+          <span class="text-fg-muted">{t(lang, "kiosk.idLabel")}</span>{" "}
+          <code class="font-mono">{kiosk.id}</code>
           {hopfenstopSource && (
             <>
               {" · "}
-              <span class="text-fg-muted">Quelle:</span> HopfenStop
+              <span class="text-fg-muted">{t(lang, "kiosk.sourceLabel")}</span> HopfenStop
             </>
           )}
           {osmSource && (
             <>
               {" · "}
-              <span class="text-fg-muted">Quelle:</span>{" "}
+              <span class="text-fg-muted">{t(lang, "kiosk.sourceLabel")}</span>{" "}
               <a
                 class="underline-offset-2 hover:text-neon-cyan hover:underline"
                 href={`https://www.openstreetmap.org/${osmSource.id}`}
@@ -325,7 +335,7 @@ export const KioskDetail: FC<{
               {updatedDate && (
                 <>
                   {" · "}
-                  <span class="text-fg-muted">Aktualisiert:</span> {updatedDate}
+                  <span class="text-fg-muted">{t(lang, "kiosk.updatedLabel")}</span> {updatedDate}
                 </>
               )}
             </>
@@ -337,7 +347,7 @@ export const KioskDetail: FC<{
           rel="noopener noreferrer"
           class="text-neon-cyan underline-offset-2 hover:underline"
         >
-          Auf GitHub bearbeiten →
+          {t(lang, "kiosk.editOnGithub")}
         </a>
       </footer>
     </article>
