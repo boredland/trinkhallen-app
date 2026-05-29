@@ -273,7 +273,7 @@ const LanguageSwitcher: FC<{ lang: Lang; path: string }> = ({ lang, path }) => (
           <span class="text-neon-pink">{l}</span>
         ) : (
           <a
-            href={pathForLang(path, l)}
+            href={`${pathForLang(path, l)}?setlang=${l}`}
             hreflang={l}
             class="text-fg-muted transition-colors hover:text-neon-pink"
           >

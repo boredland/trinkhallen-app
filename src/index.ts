@@ -1,7 +1,9 @@
 import { Hono } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
+import { DEFAULT_LANG, langFromPath, pathForLang, resolveLang } from "./lib/messages";
 import { apiCheckins } from "./routes/api.checkins.tsx";
 import { apiKiosks } from "./routes/api.kiosks.tsx";
 import { apiRatings } from "./routes/api.ratings.tsx";
@@ -63,6 +65,50 @@ app.route("/", wellKnown);
 // language from the request path via langFromPath. API/auth/moderation routes
 // above stay root-only — the client passes the locale to them explicitly.
 const pages = new Hono<{ Bindings: Env }>();
+
+// First-visit language handling. Runs only on page GETs (registered before the
+// route handlers). Two jobs:
+//   1. `?setlang=xx` — the header switcher's explicit choice: persist a sticky
+//      cookie and bounce to the clean URL in that locale.
+//   2. Auto-detect — when the visitor's preference (cookie, else Accept-Language)
+//      is a non-default language but they're on a default-locale URL, redirect
+//      to the prefixed equivalent.
+// It only ever *upgrades* a default-locale path to a prefixed one — explicit
+// /en URLs and crawlers with no language signal are never bounced, so per-locale
+// indexing and shared links stay intact. Normal renders set no cookie, so the
+// HTML stays cacheable.
+const LANG_COOKIE = "tk_lang";
+const LANG_COOKIE_OPTS = {
+  path: "/",
+  maxAge: 60 * 60 * 24 * 365,
+  sameSite: "Lax",
+  secure: true,
+} as const;
+
+pages.use("*", async (c, next) => {
+  if (c.req.method !== "GET") return next();
+  const url = new URL(c.req.url);
+
+  const setlang = url.searchParams.get("setlang");
+  if (setlang !== null) {
+    const chosen = resolveLang(setlang);
+    setCookie(c, LANG_COOKIE, chosen, LANG_COOKIE_OPTS);
+    url.searchParams.delete("setlang");
+    return c.redirect(pathForLang(url.pathname, chosen) + url.search, 302);
+  }
+
+  // HTMX/sheet partials already target the right locale; don't bounce them.
+  if (url.searchParams.has("partial")) return next();
+
+  const cookie = getCookie(c, LANG_COOKIE);
+  const preferred = resolveLang(cookie ?? c.req.header("accept-language"));
+  if (langFromPath(url.pathname) === DEFAULT_LANG && preferred !== DEFAULT_LANG) {
+    if (!cookie) setCookie(c, LANG_COOKIE, preferred, LANG_COOKIE_OPTS);
+    return c.redirect(pathForLang(url.pathname, preferred) + url.search, 302);
+  }
+  return next();
+});
+
 registerPageRoutes(pages);
 app.route("/", pages);
 app.route("/en", pages);
