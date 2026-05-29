@@ -41,6 +41,10 @@ export interface LayoutProps {
   /** Current request path (`c.req.path`) — drives hreflang alternates, the
    *  locale-correct canonical, and the language switcher target. */
   path: string;
+  /** Per-request CSP nonce (`c.get("secureHeadersNonce")`). Stamped onto the
+   *  inline JSON-LD + speculation-rules scripts so script-src can stay off
+   *  'unsafe-inline'. */
+  nonce?: string;
 }
 
 const SITE = "TRINKHALLEN.APP";
@@ -59,6 +63,7 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
   user,
   lang,
   path,
+  nonce,
 }) => {
   const desc = description ?? t(lang, "meta.descriptionDefault");
   const fullTitle = title ? `${title} · ${SITE}` : SITE;
@@ -167,7 +172,7 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
           })()}
 
           {jsonLdBlocks.map((block) => (
-            <script type="application/ld+json">
+            <script type="application/ld+json" nonce={nonce}>
               {raw(JSON.stringify(block).replace(/</g, "\\u003c"))}
             </script>
           ))}
@@ -178,7 +183,7 @@ export const Layout: FC<PropsWithChildren<LayoutProps>> = ({
             (~10 concurrent prerenders). Falls back silently elsewhere.
             ?partial=1 links never appear as <a href> so don't need an
             exclusion — they only fire from HTMX fetches. */}
-          <script type="speculationrules">
+          <script type="speculationrules" nonce={nonce}>
             {raw(
               JSON.stringify({
                 prerender: [

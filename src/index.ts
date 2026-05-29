@@ -3,7 +3,7 @@ import { getCookie, setCookie } from "hono/cookie";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
-import { secureHeaders } from "hono/secure-headers";
+import { NONCE, secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
 import { DEFAULT_LANG, langFromPath, pathForLang, resolveLang } from "./lib/messages";
 import { apiCheckins } from "./routes/api.checkins.tsx";
@@ -39,7 +39,11 @@ app.use(
         "https://lh3.googleusercontent.com",
         "https://tiles.openfreemap.org",
       ],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      // 'self' covers the bundled module scripts; NONCE generates a per-request
+      // nonce (read via c.get("secureHeadersNonce")) for the few inline scripts
+      // — JSON-LD, speculation rules, the /jetzt bootstrap — so we can keep
+      // 'unsafe-inline' off and retain real XSS containment.
+      scriptSrc: ["'self'", NONCE],
       workerSrc: ["'self'", "blob:"],
       // OpenFreeMap: style JSON + vector tiles + sprite metadata.
       // Photon: reverse-geocoding on /add to autofill the address from the

@@ -261,6 +261,7 @@ async function renderMapPage(
     <Layout
       lang={lang}
       path={c.req.path}
+      nonce={c.get("secureHeadersNonce")}
       title={title}
       description={description}
       canonicalUrl={canonicalUrl}
@@ -398,6 +399,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       <Layout
         lang={lang}
         path={c.req.path}
+        nonce={c.get("secureHeadersNonce")}
         title={t(lang, "page.jetzt.title")}
         description={t(lang, "page.jetzt.description")}
         noindex
@@ -421,6 +423,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
           </div>
         </article>
         <script
+          nonce={c.get("secureHeadersNonce")}
           dangerouslySetInnerHTML={{
             __html: `
               (() => {
@@ -491,6 +494,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         <Layout
           lang={lang}
           path={c.req.path}
+          nonce={c.get("secureHeadersNonce")}
           title={t(lang, "page.cityNotFound.title")}
           noindex
           nav="map"
@@ -549,6 +553,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       <Layout
         lang={lang}
         path={c.req.path}
+        nonce={c.get("secureHeadersNonce")}
         title={tpl(lang, "page.city.title", { city })}
         description={tpl(lang, "page.city.description", {
           total,
@@ -628,6 +633,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       <Layout
         lang={lang}
         path={c.req.path}
+        nonce={c.get("secureHeadersNonce")}
         title={t(lang, "page.about.title")}
         description={t(lang, "page.about.description")}
         canonicalUrl="https://trinkhallen.app/about"
@@ -832,6 +838,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       <Layout
         lang={lang}
         path={c.req.path}
+        nonce={c.get("secureHeadersNonce")}
         title={t(lang, "page.impressum.title")}
         description={t(lang, "page.impressum.description")}
         canonicalUrl="https://trinkhallen.app/impressum"
@@ -950,6 +957,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       <Layout
         lang={lang}
         path={c.req.path}
+        nonce={c.get("secureHeadersNonce")}
         title={t(lang, "page.datenschutz.title")}
         description={t(lang, "page.datenschutz.description")}
         canonicalUrl="https://trinkhallen.app/datenschutz"
@@ -1228,6 +1236,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         <Layout
           lang={lang}
           path={c.req.path}
+          nonce={c.get("secureHeadersNonce")}
           title={t(lang, "page.notFound.title")}
           noindex
           nav="map"
@@ -1288,6 +1297,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       <Layout
         lang={lang}
         path={c.req.path}
+        nonce={c.get("secureHeadersNonce")}
         title={kioskHeadline(lang, kiosk)}
         description={kioskDescription(lang, kiosk)}
         canonicalUrl={`${ORIGIN}/k/${kiosk.id}`}
@@ -1333,6 +1343,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
       <Layout
         lang={lang}
         path={c.req.path}
+        nonce={c.get("secureHeadersNonce")}
         title={t(lang, "page.add.title")}
         noindex
         nav="map"
@@ -1539,6 +1550,7 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
         <Layout
           lang={lang}
           path={c.req.path}
+          nonce={c.get("secureHeadersNonce")}
           title={t(lang, "auth.login")}
           noindex
           nav="me"
@@ -1774,6 +1786,7 @@ async function renderProfile(
     <Layout
       lang={lang}
       path={c.req.path}
+      nonce={c.get("secureHeadersNonce")}
       title={t(lang, "page.profile.title")}
       noindex
       nav="me"

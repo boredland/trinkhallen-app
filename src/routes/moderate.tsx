@@ -138,7 +138,15 @@ moderate.get("/moderate", async (c) => {
   }));
 
   return c.html(
-    <Layout lang={lang} path={c.req.path} title="Moderation" noindex nav="me" user={user}>
+    <Layout
+      lang={lang}
+      path={c.req.path}
+      nonce={c.get("secureHeadersNonce")}
+      title="Moderation"
+      noindex
+      nav="me"
+      user={user}
+    >
       <header class="mb-6 flex items-end justify-between">
         <h1 class="font-display text-4xl tracking-wide text-fg">{t(lang, "mod.title")}</h1>
         <p class="text-xs uppercase tracking-wider text-fg-dim">{user.role}</p>
