@@ -1,0 +1,125 @@
+# Android (TWA) release workflow.
+#
+# Builds the Trusted Web Activity with Bubblewrap, signs it with the upload
+# keystore, and ships the .aab to Google Play. Manual trigger only.
+#
+# The web app itself deploys via Cloudflare Workers Builds on every push to
+# main; this workflow is *only* for cutting a new Android app build (e.g. after
+# editing android/twa-manifest.json). It mirrors ios-release.yml.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_UPLOAD_KEYSTORE_BASE64 — base64 of the upload keystore. Generate with:
+#         base64 -w0 ~/.android-keys/trinkhallen/upload.keystore
+#         (on macOS: base64 ~/.android-keys/trinkhallen/upload.keystore | tr -d '\n')
+#   ANDROID_KEYSTORE_PASSWORD      — the keystore password. It's a PKCS12 store, so
+#         the keystore and key passwords are identical (see passwords.txt).
+#   PLAY_SERVICE_ACCOUNT_JSON      — full JSON of a Google Play service account key
+#         with release permission. Set up once:
+#           1. Google Cloud Console → the project linked to Play → IAM →
+#              Service Accounts → create one → add a JSON key → paste its
+#              entire contents here.
+#           2. Play Console → Users and permissions → Invite user → that
+#              service account's email → grant "Release to testing tracks"
+#              (and Production if you'll release straight to prod).
+#
+# The signing key alias is `upload` (android/twa-manifest.json). versionCode is
+# derived from the run number (+1000) so it always exceeds the codes already on
+# Play and never collides — no manual bookkeeping.
+
+name: Android release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "User-visible version name (e.g. 2 or 1.0.2)."
+        required: true
+        default: "2"
+      track:
+        description: "Play track to release to."
+        required: true
+        default: "internal"
+        type: choice
+        options: [internal, alpha, beta, production]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Point Bubblewrap at the preinstalled JDK + SDK
+        # Without this, Bubblewrap downloads its own JDK/SDK on first run and
+        # prompts to accept SDK licenses — which hangs a non-interactive job.
+        run: |
+          mkdir -p "$HOME/.bubblewrap"
+          cat > "$HOME/.bubblewrap/config.json" <<JSON
+          { "jdkPath": "$JAVA_HOME", "androidSdkPath": "$ANDROID_SDK_ROOT" }
+          JSON
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+
+      - name: Decode upload keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+
+      - name: Set versionCode + versionName
+        working-directory: android
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+        run: |
+          VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER))
+          sed -i "s/versionCode .*/versionCode ${VERSION_CODE}/" app/build.gradle
+          sed -i "s/versionName .*/versionName \"${VERSION_NAME}\"/" app/build.gradle
+          echo "versionCode=${VERSION_CODE} versionName=${VERSION_NAME}"
+
+      - name: Build + sign App Bundle
+        working-directory: android
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        # --signingKeyPath overrides the absolute local path baked into
+        # twa-manifest.json (which only exists on the maintainer's machine).
+        run: |
+          bubblewrap build \
+            --skipPwaValidation \
+            --signingKeyPath="$RUNNER_TEMP/upload.keystore" \
+            --signingKeyAlias=upload
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.trinkhallen.twa
+          releaseFiles: android/app-release-bundle.aab
+          track: ${{ inputs.track }}
+          status: completed
+
+      - name: Upload AAB artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trinkhallen-android-aab
+          path: android/app-release-bundle.aab
+          if-no-files-found: warn
