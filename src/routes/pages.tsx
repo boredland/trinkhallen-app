@@ -355,23 +355,17 @@ async function renderMapPage(
           >
             <span class="block h-1 w-10 rounded-full bg-border-hi" />
           </button>
-          <div class="sticky top-0 z-10 border-b-2 border-border bg-surface p-3 pr-10">
+          <div class="sticky top-0 z-10 border-b-2 border-border bg-surface p-3 sm:pr-10">
             <FilterChips filter={filter} formAction="/" />
-            {/* Direction-aware glyph: ← on desktop (sidebar slides off left),
-                ↓ on mobile (sidebar slides off bottom). Ghost styling keeps
-                it out of the way of the filter chips it sits next to. */}
+            {/* Desktop-only collapse (← slides the sidebar off the left edge).
+                On mobile the drag handle above handles dismissal. */}
             <button
               type="button"
               data-sidebar-collapse
               aria-label="Filter ausblenden"
-              class="absolute right-1 top-1 flex h-8 w-8 cursor-pointer items-center justify-center text-lg leading-none text-fg-dim transition-colors hover:text-neon-pink focus-visible:text-neon-pink focus-visible:outline-2 focus-visible:outline-neon-pink"
+              class="absolute right-1 top-1 hidden h-8 w-8 cursor-pointer items-center justify-center text-lg leading-none text-fg-dim transition-colors hover:text-neon-pink focus-visible:text-neon-pink focus-visible:outline-2 focus-visible:outline-neon-pink sm:flex"
             >
-              <span class="sm:hidden" aria-hidden="true">
-                ↓
-              </span>
-              <span class="hidden sm:inline" aria-hidden="true">
-                ←
-              </span>
+              <span aria-hidden="true">←</span>
             </button>
           </div>
           <a
