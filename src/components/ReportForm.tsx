@@ -1,5 +1,5 @@
 import type { FC } from "hono/jsx";
-import type { Lang } from "../lib/messages";
+import { type Lang, type MessageKey, t } from "../lib/messages";
 import { kindLabel, statusLabel, type UserKioskReport } from "../lib/reports";
 
 export interface ReportFormProps {
@@ -14,12 +14,12 @@ export interface ReportFormProps {
   userReports?: UserKioskReport[];
 }
 
-const KINDS: Array<{ value: string; label: string }> = [
-  { value: "wrong_hours", label: "Falsche Öffnungszeiten" },
-  { value: "wrong_address", label: "Falsche Adresse" },
-  { value: "closed", label: "Dauerhaft geschlossen" },
-  { value: "duplicate", label: "Doppelter Eintrag" },
-  { value: "other", label: "Sonstiges" },
+const KINDS: Array<{ value: string; labelKey: MessageKey }> = [
+  { value: "wrong_hours", labelKey: "reportForm.kindWrongHours" },
+  { value: "wrong_address", labelKey: "reportForm.kindWrongAddress" },
+  { value: "closed", labelKey: "reportForm.kindClosed" },
+  { value: "duplicate", labelKey: "reportForm.kindDuplicate" },
+  { value: "other", labelKey: "reportForm.kindOther" },
 ];
 
 /**
@@ -38,9 +38,9 @@ export const ReportForm: FC<ReportFormProps> = ({
     return (
       <p class="text-sm text-fg-muted">
         <a href="/me" class="text-neon-cyan underline-offset-2 hover:underline">
-          Anmelden
+          {t(lang, "auth.login")}
         </a>{" "}
-        und uns auf einen Fehler in den Daten hinweisen.
+        {t(lang, "reportForm.loginHint")}
       </p>
     );
   }
@@ -53,20 +53,18 @@ export const ReportForm: FC<ReportFormProps> = ({
     <div class="space-y-3" data-report-form>
       {userReports.length > 0 && <SubmittedPanel lang={lang} reports={userReports} />}
       {exhausted ? (
-        <p class="text-sm text-fg-muted">
-          Du hast bereits zu allen Kategorien etwas gemeldet — danke!
-        </p>
+        <p class="text-sm text-fg-muted">{t(lang, "reportForm.allReported")}</p>
       ) : (
         <details class="text-sm">
           <summary class="cursor-pointer font-display tracking-wider uppercase text-fg-muted hover:text-neon-pink">
-            Falsche oder fehlende Info melden
+            {t(lang, "reportForm.toggle")}
           </summary>
           <form action="/api/reports" method="post" class="mt-4 space-y-3">
             <input type="hidden" name="kiosk_id" value={kioskId} />
 
             <label class="block">
               <span class="block text-xs uppercase tracking-wider text-fg-dim">
-                Was stimmt nicht?
+                {t(lang, "reportForm.whatsWrong")}
               </span>
               <select
                 name="kind"
@@ -74,14 +72,14 @@ export const ReportForm: FC<ReportFormProps> = ({
                 class="mt-1 w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
               >
                 {availableKinds.map((k) => (
-                  <option value={k.value}>{k.label}</option>
+                  <option value={k.value}>{t(lang, k.labelKey)}</option>
                 ))}
               </select>
             </label>
 
             <fieldset class="hidden space-y-2" data-kind="wrong_hours">
               <legend class="block text-xs uppercase tracking-wider text-fg-dim">
-                Richtige Zeiten
+                {t(lang, "reportForm.correctTimes")}
               </legend>
               <input
                 type="text"
@@ -90,31 +88,33 @@ export const ReportForm: FC<ReportFormProps> = ({
                 class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 font-mono text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
               />
               <p class="text-xs text-fg-dim">
-                OSM <code>opening_hours</code>-Format.
+                {t(lang, "reportForm.osmFormatPre")}
+                <code>opening_hours</code>
+                {t(lang, "reportForm.osmFormatPost")}
               </p>
             </fieldset>
 
             <fieldset class="hidden space-y-2" data-kind="wrong_address">
               <legend class="block text-xs uppercase tracking-wider text-fg-dim">
-                Korrekte Adresse
+                {t(lang, "reportForm.correctAddress")}
               </legend>
               <input
                 type="text"
                 name="new_street"
-                placeholder="Straße"
+                placeholder={t(lang, "reportForm.street")}
                 class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
               />
               <div class="grid grid-cols-2 gap-2">
                 <input
                   type="text"
                   name="new_number"
-                  placeholder="Nr"
+                  placeholder={t(lang, "reportForm.number")}
                   class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
                 />
                 <input
                   type="text"
                   name="new_postalcode"
-                  placeholder="PLZ"
+                  placeholder={t(lang, "reportForm.postalcode")}
                   maxLength={5}
                   class="border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
                 />
@@ -122,28 +122,28 @@ export const ReportForm: FC<ReportFormProps> = ({
               <input
                 type="text"
                 name="new_city"
-                placeholder="Stadt"
+                placeholder={t(lang, "reportForm.city")}
                 class="w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg focus:border-neon-pink focus:outline-none"
               />
             </fieldset>
 
             <label class="block">
               <span class="block text-xs uppercase tracking-wider text-fg-dim">
-                Notiz (optional)
+                {t(lang, "reportForm.noteOptional")}
               </span>
               <textarea
                 name="note"
                 rows={2}
                 maxLength={500}
-                placeholder="Was sollte sich ändern?"
+                placeholder={t(lang, "reportForm.notePlaceholder")}
                 class="mt-1 w-full border-2 border-border-hi bg-surface-2 px-2 py-1.5 text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
               />
             </label>
 
             <button type="submit" class="btn-neon">
-              ▶ Melden
+              {t(lang, "reportForm.submit")}
             </button>
-            <p class="text-xs text-fg-dim">Wird von Moderator:innen geprüft.</p>
+            <p class="text-xs text-fg-dim">{t(lang, "reportForm.moderated")}</p>
           </form>
         </details>
       )}
@@ -153,7 +153,9 @@ export const ReportForm: FC<ReportFormProps> = ({
 
 const SubmittedPanel: FC<{ lang: Lang; reports: UserKioskReport[] }> = ({ lang, reports }) => (
   <div class="border-2 border-border bg-surface-2 p-3 text-sm">
-    <p class="mb-2 text-xs uppercase tracking-wider text-fg-dim">Du hast hier bereits gemeldet:</p>
+    <p class="mb-2 text-xs uppercase tracking-wider text-fg-dim">
+      {t(lang, "reportForm.alreadyReported")}
+    </p>
     <ul class="space-y-1">
       {reports.map((r) => (
         <li class="flex items-center justify-between gap-2">

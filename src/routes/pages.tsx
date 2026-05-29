@@ -345,7 +345,7 @@ async function renderMapPage(
         >
           <DragHandle label="Filter ausblenden — nach unten ziehen" />
           <div class="sticky top-0 z-10 border-b-2 border-border bg-surface p-3 sm:pr-10">
-            <FilterChips filter={filter} formAction="/" />
+            <FilterChips lang={lang} filter={filter} formAction="/" />
             {/* Desktop-only collapse (← slides the sidebar off the left edge).
                 On mobile the drag handle above handles dismissal. */}
             <button

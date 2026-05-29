@@ -91,6 +91,47 @@ const DE = {
   "payment.yesLower": "ja",
   "payment.noLower": "nein",
 
+  // report form
+  "reportForm.loginHint": "und uns auf einen Fehler in den Daten hinweisen.",
+  "reportForm.allReported": "Du hast bereits zu allen Kategorien etwas gemeldet — danke!",
+  "reportForm.toggle": "Falsche oder fehlende Info melden",
+  "reportForm.whatsWrong": "Was stimmt nicht?",
+  "reportForm.correctTimes": "Richtige Zeiten",
+  "reportForm.osmFormatPre": "OSM ",
+  "reportForm.osmFormatPost": "-Format.",
+  "reportForm.correctAddress": "Korrekte Adresse",
+  "reportForm.street": "Straße",
+  "reportForm.number": "Nr",
+  "reportForm.postalcode": "PLZ",
+  "reportForm.city": "Stadt",
+  "reportForm.noteOptional": "Notiz (optional)",
+  "reportForm.notePlaceholder": "Was sollte sich ändern?",
+  "reportForm.submit": "▶ Melden",
+  "reportForm.moderated": "Wird von Moderator:innen geprüft.",
+  "reportForm.alreadyReported": "Du hast hier bereits gemeldet:",
+  "reportForm.kindWrongHours": "Falsche Öffnungszeiten",
+  "reportForm.kindWrongAddress": "Falsche Adresse",
+  "reportForm.kindClosed": "Dauerhaft geschlossen",
+  "reportForm.kindDuplicate": "Doppelter Eintrag",
+  "reportForm.kindOther": "Sonstiges",
+
+  // filter chips
+  "filter.openNow": "Offen jetzt",
+  "filter.needsHours": "Zeiten fehlen",
+  "filter.sitzen": "Sitzen",
+  "filter.searchPlaceholder": "Suchen…",
+  "filter.apply": "Filter anwenden",
+
+  // kiosk list
+  "kioskList.nothingFound": "… nichts gefunden",
+  "kioskList.nothingHint":
+    "Keine Trinkhallen in diesem Bereich – zoom raus oder lockere die Filter.",
+  "kioskList.resetLong": "× Filter zurücksetzen",
+  "kioskList.resetShort": "× Reset",
+  "kioskList.resetAria": "Filter zurücksetzen",
+  "kioskList.distanceAria": "Entfernung",
+  "kioskList.nav": "▶ Nav",
+
   // auth
   "auth.login": "Anmelden",
 
@@ -117,6 +158,10 @@ const DE_TPL = {
   "oh.closedOpensAt": "Geschlossen — öffnet {time}",
   "kiosk.introCityDistrict": "{name} ist ein Späti im Stadtteil {district} in {city}.",
   "kiosk.introCity": "{name} ist ein Späti in {city}.",
+  "kioskList.countAll": "{n} Trinkhalle{suffix}",
+  "kioskList.countFiltered": "{filtered} / {total} (gefiltert)",
+  "kioskList.openNow": "{n} offen",
+  "kioskList.navTo": "Hin navigieren zu {name}",
 } as const;
 
 export const TEMPLATES: Record<Lang, Record<string, string>> = {
@@ -190,6 +235,11 @@ export const PAYMENT_LABELS: Record<Lang, Record<string, string>> = {
     girocard: "Girocard",
   },
 };
+
+/** Localized payment-method label; unknown keys fall back to the slug. */
+export function paymentLabel(lang: Lang, key: string): string {
+  return PAYMENT_LABELS[lang][key] ?? key;
+}
 
 /** Reportable-tag group headings (lib/tags.ts). */
 export const TAG_GROUP_LABELS: Record<Lang, Record<string, string>> = {

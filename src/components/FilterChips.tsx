@@ -1,7 +1,10 @@
 import type { FC } from "hono/jsx";
 import type { KioskFilter } from "../lib/filters";
+import { type Lang, paymentLabel, t } from "../lib/messages";
+import { tagLabel } from "../lib/tags";
 
 export interface FilterChipsProps {
+  lang: Lang;
   filter: KioskFilter;
   /** Where filter changes submit to. The form mutates the URL ?params. */
   formAction: string;
@@ -14,7 +17,7 @@ export interface FilterChipsProps {
  * client/app.entry.ts intercepts changes to submit without a full reload and
  * dispatches a `tk:filters-changed` event that the map listens for.
  */
-export const FilterChips: FC<FilterChipsProps> = ({ filter, formAction, preserve = {} }) => {
+export const FilterChips: FC<FilterChipsProps> = ({ lang, filter, formAction, preserve = {} }) => {
   const payCsv = [
     filter.payment.cards ? "cards" : null,
     filter.payment.contactless ? "contactless" : null,
@@ -34,22 +37,33 @@ export const FilterChips: FC<FilterChipsProps> = ({ filter, formAction, preserve
         v !== undefined ? <input type="hidden" name={k} value={v} /> : null,
       )}
 
-      <Chip name="open_now" value="1" checked={filter.openNow} icon="▶▶▶" label="Offen jetzt" />
+      <Chip
+        name="open_now"
+        value="1"
+        checked={filter.openNow}
+        icon="▶▶▶"
+        label={t(lang, "filter.openNow")}
+      />
       <Chip
         name="needs_hours"
         value="1"
         checked={filter.needsHours}
         icon="❓"
-        label="Zeiten fehlen"
+        label={t(lang, "filter.needsHours")}
       />
       {/* One "Karte" chip covers cards + contactless — same intent ("can I
           pay without cash?"), the apply layer merges them. Cash is not
           worth a chip (default assumption everywhere) and the indoor
           tag isn't a query users actually run. */}
-      <PaymentChip current={payCsv} value="cards" label="Karte" icon="💳" />
+      <PaymentChip current={payCsv} value="cards" label={paymentLabel(lang, "cards")} icon="💳" />
 
-      <TagChip tags={filter.tags} value="wc" label="WC" icon="🚻" />
-      <TagChip tags={filter.tags} value="sitzgelegenheiten" label="Sitzen" icon="🪑" />
+      <TagChip tags={filter.tags} value="wc" label={tagLabel(lang, "wc")} icon="🚻" />
+      <TagChip
+        tags={filter.tags}
+        value="sitzgelegenheiten"
+        label={t(lang, "filter.sitzen")}
+        icon="🪑"
+      />
 
       {/* Search box collapses to icon on mobile via CSS-only :checked toggle */}
       <label class="ml-auto flex items-center gap-1 border-2 border-border bg-surface px-2 py-1 text-sm">
@@ -57,7 +71,7 @@ export const FilterChips: FC<FilterChipsProps> = ({ filter, formAction, preserve
         <input
           type="search"
           name="q"
-          placeholder="Suchen…"
+          placeholder={t(lang, "filter.searchPlaceholder")}
           value={filter.q ?? ""}
           class="w-32 bg-transparent text-fg placeholder:text-fg-dim focus:outline-none"
         />
@@ -65,7 +79,7 @@ export const FilterChips: FC<FilterChipsProps> = ({ filter, formAction, preserve
 
       <noscript>
         <button type="submit" class="btn-neon">
-          Filter anwenden
+          {t(lang, "filter.apply")}
         </button>
       </noscript>
     </form>

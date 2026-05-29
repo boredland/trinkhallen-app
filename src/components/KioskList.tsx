@@ -1,9 +1,10 @@
 import type { FC } from "hono/jsx";
 import type { KioskRecord } from "../lib/db";
 import { formatDistance, haversineMeters, type LatLng } from "../lib/geo";
-import type { Lang } from "../lib/messages";
+import { type Lang, paymentLabel, t, tpl } from "../lib/messages";
 import { buildNavigateTargets } from "../lib/navigate";
 import { computeStatus, formatStatus, kioskLocation } from "../lib/opening-hours";
+import { tagLabel } from "../lib/tags";
 
 // Row indicators surface things a user scans for at a glance: can I pay
 // with a card (girocard counts; see lib/filters.ts), is there a toilet.
@@ -43,22 +44,25 @@ export const KioskList: FC<KioskListProps> = ({
   const isFiltered = filteredCount !== totalInBbox || filterActive;
   const countLabel =
     filteredCount === totalInBbox
-      ? `${filteredCount} Trinkhalle${filteredCount === 1 ? "" : "n"}`
-      : `${filteredCount} / ${totalInBbox} (gefiltert)`;
+      ? tpl(lang, "kioskList.countAll", {
+          n: filteredCount,
+          suffix: filteredCount === 1 ? "" : "n",
+        })
+      : tpl(lang, "kioskList.countFiltered", { filtered: filteredCount, total: totalInBbox });
 
   if (kiosks.length === 0) {
     return (
       <div class="p-6 text-fg-muted">
-        <p class="font-display text-xl tracking-wide text-fg">… nichts gefunden</p>
-        <p class="mt-2 text-sm">
-          Keine Trinkhallen in diesem Bereich – zoom raus oder lockere die Filter.
+        <p class="font-display text-xl tracking-wide text-fg">
+          {t(lang, "kioskList.nothingFound")}
         </p>
+        <p class="mt-2 text-sm">{t(lang, "kioskList.nothingHint")}</p>
         {isFiltered && resetHref && (
           <a
             href={resetHref}
             class="mt-3 inline-block text-sm text-neon-cyan underline-offset-2 hover:underline"
           >
-            × Filter zurücksetzen
+            {t(lang, "kioskList.resetLong")}
           </a>
         )}
       </div>
@@ -76,16 +80,18 @@ export const KioskList: FC<KioskListProps> = ({
         <span class={isFiltered ? "text-neon-pink" : "text-fg-dim"}>
           {countLabel}
           {typeof openNowCount === "number" && openNowCount > 0 && (
-            <span class="ml-2 text-status-open">▶▶▶ {openNowCount} offen</span>
+            <span class="ml-2 text-status-open">
+              ▶▶▶ {tpl(lang, "kioskList.openNow", { n: openNowCount })}
+            </span>
           )}
         </span>
         {isFiltered && resetHref && (
           <a
             href={resetHref}
             class="text-fg-muted hover:text-neon-pink"
-            aria-label="Filter zurücksetzen"
+            aria-label={t(lang, "kioskList.resetAria")}
           >
-            × Reset
+            {t(lang, "kioskList.resetShort")}
           </a>
         )}
       </div>
@@ -141,7 +147,10 @@ const KioskRow: FC<{
               {formatStatus(lang, status)}
             </span>
             {distLabel && (
-              <span class="font-mono tabular-nums text-neon-cyan" aria-label="Entfernung">
+              <span
+                class="font-mono tabular-nums text-neon-cyan"
+                aria-label={t(lang, "kioskList.distanceAria")}
+              >
                 · {distLabel}
               </span>
             )}
@@ -153,17 +162,23 @@ const KioskRow: FC<{
               return (
                 <span class="flex items-center gap-1 text-fg-dim">
                   {acceptsCard && (
-                    <span aria-label="Karte" title="Karte">
+                    <span
+                      aria-label={paymentLabel(lang, "cards")}
+                      title={paymentLabel(lang, "cards")}
+                    >
                       💳
                     </span>
                   )}
                   {hasSeating && (
-                    <span aria-label="Sitzgelegenheiten" title="Sitzgelegenheiten">
+                    <span
+                      aria-label={tagLabel(lang, "sitzgelegenheiten")}
+                      title={tagLabel(lang, "sitzgelegenheiten")}
+                    >
                       🪑
                     </span>
                   )}
                   {hasWc && (
-                    <span aria-label="WC" title="WC">
+                    <span aria-label={tagLabel(lang, "wc")} title={tagLabel(lang, "wc")}>
                       🚻
                     </span>
                   )}
@@ -175,9 +190,9 @@ const KioskRow: FC<{
         <a
           href={nav.primary.href}
           class="shrink-0 border-2 border-border-hi px-2 py-1 font-display text-xs tracking-wider uppercase text-fg-muted transition-colors hover:border-neon-pink hover:text-neon-pink"
-          aria-label={`Hin navigieren zu ${kiosk.name}`}
+          aria-label={tpl(lang, "kioskList.navTo", { name: kiosk.name })}
         >
-          ▶ Nav
+          {t(lang, "kioskList.nav")}
         </a>
       </div>
     </li>
