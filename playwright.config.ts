@@ -1,14 +1,28 @@
+import { existsSync, writeFileSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+import { TK_TEST_SECRET } from "./tests/e2e/global-setup";
 
 /**
- * E2E config — runs a single Chromium smoke suite against a freshly spawned
- * `bun run dev` (Vite + @hono/vite-dev-server). The tests live in tests/e2e/
- * with a `.e2e.ts` suffix so `bun test` (which globs `*.test.ts` / `*.spec.ts`)
- * doesn't try to run them.
+ * E2E config — runs a Chromium smoke + authed-flow suite against a freshly
+ * spawned `bun run dev` (Vite + @hono/vite-dev-server). The tests live in
+ * tests/e2e/ with a `.e2e.ts` suffix so `bun test` (which globs `*.test.ts` /
+ * `*.spec.ts`) doesn't try to run them.
  *
  * Local dev: `bun run test:e2e`. The runner reuses an existing server if one
  * is already listening, so iterating with `bun run dev` open is friction-free.
  */
+
+// The cloudflare dev adapter snapshots its env (.dev.vars) when the worker
+// boots, and Playwright launches `webServer` BEFORE running globalSetup — so
+// writing the test SESSION_SECRET in globalSetup is too late: the worker would
+// boot with an empty secret and cookie signing throws "Zero-length key". Write
+// it here, at config load, which runs before the server starts. We never clobber
+// an existing .dev.vars (a dev's real secrets stay theirs; if they want their
+// own SECRET they set it to TK_TEST_SECRET so the cookie HMAC matches).
+if (!existsSync(".dev.vars")) {
+  writeFileSync(".dev.vars", `SESSION_SECRET=${TK_TEST_SECRET}\n`);
+}
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.e2e.ts",
