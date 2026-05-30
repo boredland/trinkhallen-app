@@ -120,6 +120,11 @@ jobs:
           releaseFiles: android/app-release-bundle.aab
           tracks: ${{ inputs.track }}
           status: completed
+          # Upload without auto-submitting for review. Play rejects the commit
+          # with "Precondition check failed" otherwise when a release still
+          # needs review (typical for the first API-driven production push); the
+          # release then waits in the Console for you to send it for review.
+          changesNotSentForReview: true
 
       - name: Upload AAB artifact
         if: always()
