@@ -59,13 +59,14 @@ export function seedTestUser(): SeededUser {
   const email = `test-${tag}@trinkhallen.app`;
   const username = `tester_${tag}`;
 
+  // One d1Exec, not two: each call spawns a fresh `wrangler` (~seconds of
+  // startup), so the round-trip — not the query — is the cost. Both rows in a
+  // single semicolon-separated command halves the per-seed wall-clock.
   d1Exec(
     `INSERT INTO users (id, google_sub, email, role, created_at, username)
-       VALUES ('${userId}', 'email:${email}', '${email}', 'user', ${now}, '${username}')`,
-  );
-  d1Exec(
-    `INSERT INTO sessions (id, user_id, expires_at, created_at)
-       VALUES ('${sid}', '${userId}', ${now + 3600}, ${now})`,
+       VALUES ('${userId}', 'email:${email}', '${email}', 'user', ${now}, '${username}');
+     INSERT INTO sessions (id, user_id, expires_at, created_at)
+       VALUES ('${sid}', '${userId}', ${now + 3600}, ${now});`,
   );
 
   return { userId, email, username, cookieValue: signSid(sid, secret) };
@@ -93,6 +94,8 @@ export async function setSessionCookie(
 }
 
 export function deleteTestUser(userId: string): void {
-  d1Exec(`DELETE FROM sessions WHERE user_id = '${userId}'`);
-  d1Exec(`DELETE FROM users WHERE id = '${userId}'`);
+  d1Exec(
+    `DELETE FROM sessions WHERE user_id = '${userId}';
+     DELETE FROM users WHERE id = '${userId}';`,
+  );
 }

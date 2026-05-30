@@ -34,6 +34,12 @@ export default defineConfig({
   },
   use: {
     baseURL: "https://127.0.0.1:5173",
+    // Pin the locale so the first-visit language middleware (src/index.ts)
+    // sees a German Accept-Language and serves default-locale pages at their
+    // unprefixed paths. Without this, Playwright's default `en-US` bounces
+    // /me → /en/me and every form action picks up an /en prefix, so the
+    // authed-flow selectors below would miss their targets.
+    locale: "de-DE",
     headless: true,
     trace: "retain-on-failure",
     ignoreHTTPSErrors: true,

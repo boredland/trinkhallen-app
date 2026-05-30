@@ -1,7 +1,9 @@
 name: ci
 
-# Lints, typechecks, and runs the test suite. Same checks lefthook runs on
-# commit — this is the safety net for direct pushes / external PRs.
+# Lints, typechecks, and runs both test suites. The `test` job mirrors the
+# checks lefthook runs on commit; `e2e` runs the Playwright suite (real
+# Chromium against a spawned dev server) which is too slow for a pre-commit
+# hook. Together they're the safety net for direct pushes / external PRs.
 #
 # Cloudflare Workers Builds handles the actual deploy on every push to main;
 # this workflow exists to surface red checks before that runs.
@@ -27,3 +29,29 @@ jobs:
       - run: bun run lint
       - run: bun run typecheck
       - run: bun test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      # Cache the browser binaries; the cache key tracks the @playwright/test
+      # version pinned in bun.lock so a bump re-downloads the matching build.
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      - run: bunx playwright install --with-deps chromium
+      # global-setup writes a test .dev.vars (SESSION_SECRET) and applies the
+      # local D1 migrations; the webServer config spawns `bun run dev` itself.
+      - run: bun run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
