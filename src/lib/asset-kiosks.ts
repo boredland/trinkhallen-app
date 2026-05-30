@@ -53,9 +53,13 @@ const regionCache = new Map<string, FeatureCollection>();
 const regionRecordsCache = new Map<string, KioskRecord[]>();
 
 async function fetchJson<T>(env: Env, path: string): Promise<T> {
-  // The host doesn't matter for asset binding fetches — Workers Assets matches
-  // on path only — but `new Request` requires a valid URL.
-  const resp = await env.ASSETS.fetch(new Request(`https://assets.local${path}`));
+  // Pass a string URL, not a `new Request`: under vite-dev-server the worker's
+  // `Request` class belongs to a different realm than miniflare's ASSETS
+  // fetcher, so a Request object crosses the binding boundary as the useless
+  // `[object Request]` and throws ERR_INVALID_URL. A string is re-parsed by
+  // the fetcher itself and works in both dev and production. The host is
+  // irrelevant (Workers Assets matches on path only) but must be absolute.
+  const resp = await env.ASSETS.fetch(`https://assets.local${path}`);
   if (!resp.ok) throw new Error(`asset ${path} → HTTP ${resp.status}`);
   return (await resp.json()) as T;
 }
