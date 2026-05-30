@@ -1,0 +1,5 @@
+{
+  "regions": [
+    { "slug": "frankfurt", "prefix": "fr", "bbox": [8.6, 50.08, 8.72, 50.14], "count": 3 }
+  ]
+}

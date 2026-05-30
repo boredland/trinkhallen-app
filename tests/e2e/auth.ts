@@ -50,7 +50,7 @@ export interface SeededUser {
   cookieValue: string;
 }
 
-export function seedTestUser(): SeededUser {
+export function seedTestUser(role: "user" | "moderator" | "admin" = "user"): SeededUser {
   const secret = readSessionSecret();
   const now = Math.floor(Date.now() / 1000);
   const userId = `u-test-${randomBytes(8).toString("hex")}`;
@@ -64,7 +64,7 @@ export function seedTestUser(): SeededUser {
   // single semicolon-separated command halves the per-seed wall-clock.
   d1Exec(
     `INSERT INTO users (id, google_sub, email, role, created_at, username)
-       VALUES ('${userId}', 'email:${email}', '${email}', 'user', ${now}, '${username}');
+       VALUES ('${userId}', 'email:${email}', '${email}', '${role}', ${now}, '${username}');
      INSERT INTO sessions (id, user_id, expires_at, created_at)
        VALUES ('${sid}', '${userId}', ${now + 3600}, ${now});`,
   );
@@ -94,8 +94,17 @@ export async function setSessionCookie(
 }
 
 export function deleteTestUser(userId: string): void {
+  // Clear every table that references users before the users row itself — the
+  // interaction tests create reports / submissions / ratings / check-ins /
+  // signals, and the FKs would otherwise reject the delete. Order matters;
+  // children first, parent last.
   d1Exec(
-    `DELETE FROM sessions WHERE user_id = '${userId}';
+    `DELETE FROM field_signals WHERE user_id = '${userId}';
+     DELETE FROM reports WHERE user_id = '${userId}';
+     DELETE FROM submissions WHERE user_id = '${userId}';
+     DELETE FROM ratings WHERE user_id = '${userId}';
+     DELETE FROM checkins WHERE user_id = '${userId}';
+     DELETE FROM sessions WHERE user_id = '${userId}';
      DELETE FROM users WHERE id = '${userId}';`,
   );
 }

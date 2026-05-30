@@ -1,0 +1,66 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [8.6841, 50.1109] },
+      "properties": {
+        "id": "tk_fr_e2e0001",
+        "name": "Wasserhäuschen Testweg",
+        "description": "Ein Wasserhäuschen für die E2E-Tests. Außentheke, ein paar Stehtische.",
+        "address": {
+          "street": "Testweg",
+          "number": "1",
+          "postalcode": "60311",
+          "city": "Frankfurt",
+          "district": "Innenstadt"
+        },
+        "hours": { "raw": "Mo-Sa 08:00-22:00; Su 10:00-20:00" },
+        "tags": ["wc", "sitzgelegenheiten"],
+        "payment": { "cash": "yes", "cards": "yes", "girocard": "yes" },
+        "sources": [{ "type": "osm", "id": "node/1000001" }],
+        "updated": "2026-05-01"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [8.6905, 50.1155] },
+      "properties": {
+        "id": "tk_fr_e2e0002",
+        "name": "Späti am Probeplatz",
+        "address": {
+          "street": "Probeplatz",
+          "number": "7",
+          "postalcode": "60313",
+          "city": "Frankfurt",
+          "district": "Nordend"
+        },
+        "hours": { "raw": "Mo-Su 09:00-23:00" },
+        "tags": ["wc"],
+        "payment": { "cash": "yes", "cards": "no" },
+        "sources": [{ "type": "osm", "id": "node/1000002" }],
+        "updated": "2026-04-15"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [8.6722, 50.1201] },
+      "properties": {
+        "id": "tk_fr_e2e0003",
+        "name": "Trinkhalle Musterstraße",
+        "address": {
+          "street": "Musterstraße",
+          "number": "42",
+          "postalcode": "60316",
+          "city": "Frankfurt",
+          "district": "Bornheim"
+        },
+        "hours": { "raw": "Mo-Fr 06:00-20:00" },
+        "tags": ["sitzgelegenheiten"],
+        "payment": { "cash": "yes" },
+        "sources": [{ "type": "osm", "id": "node/1000003" }],
+        "updated": "2026-03-20"
+      }
+    }
+  ]
+}

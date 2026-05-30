@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, writeFileSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 import { TK_TEST_SECRET } from "./tests/e2e/global-setup";
 
@@ -23,10 +23,25 @@ if (!existsSync(".dev.vars")) {
   writeFileSync(".dev.vars", `SESSION_SECRET=${TK_TEST_SECRET}\n`);
 }
 
+// The data-backed pages (/, /k/:id, /stadt/:slug, /jetzt) read kiosk GeoJSON
+// through the ASSETS binding, served from dist/static/data — normally produced
+// by `bun run build:data` (a network clone of trinkhallen-data). CI doesn't run
+// that, so seed a tiny deterministic fixture when no real dataset is present.
+// Like .dev.vars, this must land before the worker boots, and we never clobber
+// a real local build (so local runs exercise the full dataset).
+if (!existsSync("dist/static/data/_manifest.json")) {
+  cpSync("tests/e2e/fixtures/data", "dist/static/data", { recursive: true });
+}
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.e2e.ts",
   fullyParallel: false,
+  // One worker: tests seed/clean rows via `wrangler d1 execute --local`, and
+  // concurrent wrangler processes collide on the local SQLite lock (the dev
+  // server's miniflare holds it open too). Serial keeps the DB contention-free;
+  // the suite is seed-bound, not CPU-bound, so we lose little.
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
   globalSetup: "./tests/e2e/global-setup.ts",
