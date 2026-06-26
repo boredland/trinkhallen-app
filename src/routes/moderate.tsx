@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { Layout } from "../components/Layout";
 import type { Env } from "../env";
-import { getKioskById } from "../lib/asset-kiosks";
+import { getKioskById, loadManifest } from "../lib/asset-kiosks";
 import { type Lang, langFromPath, t, tpl } from "../lib/messages";
 import {
   approveReport,
@@ -486,7 +486,19 @@ moderate.post("/api/moderate/reports/:id/approve", async (c) => {
     }>();
   if (!row) return c.text("report not actionable", 404);
   const kiosk = await getKioskById(c.env, row.kiosk_id);
-  if (!kiosk) return c.text("report kiosk not found in dataset", 404);
+  // If the kiosk was removed from the dataset since the report was filed
+  // (OSM scrape, data repo restructure), construct a synthetic row so the
+  // moderator can still approve → issue instead of hitting a dead-end 404.
+  let kioskRow: { id: string; region: string; name: string };
+  if (kiosk) {
+    kioskRow = { id: kiosk.id, region: kiosk.region, name: kiosk.name };
+  } else {
+    console.warn(`approveReport: kiosk ${row.kiosk_id} missing from dataset — using synthetic row`);
+    const prefix = row.kiosk_id.match(/^tk_([a-z0-9]+)_/i)?.[1];
+    const manifest = await loadManifest(c.env);
+    const region = prefix ? (manifest.regions.find((r) => r.prefix === prefix)?.slug ?? "") : "";
+    kioskRow = { id: row.kiosk_id, region, name: row.kiosk_id };
+  }
   try {
     await approveReport(
       c.env,
@@ -500,7 +512,7 @@ moderate.post("/api/moderate/reports/:id/approve", async (c) => {
         pr_url: row.pr_url,
         created_at: row.created_at,
       },
-      { id: kiosk.id, region: kiosk.region, name: kiosk.name },
+      kioskRow,
       moderator,
     );
   } catch (err) {
