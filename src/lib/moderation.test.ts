@@ -324,6 +324,38 @@ describe("approveReport", () => {
     );
     expect(out.status).toBe("skipped_no_change");
   });
+
+  it("falls back to issue when proposeChange throws 'not found in file'", async () => {
+    proposeChangeMock.mockImplementation(() =>
+      Promise.reject(new Error("feature tk_fr_0042 not found in file")),
+    );
+    const env = makeStub();
+    const out = await approveReport(
+      env as unknown as Parameters<typeof approveReport>[0],
+      report({ kind: "wrong_hours", payload: JSON.stringify({ new_hours: "24/7" }) }),
+      kiosk(),
+      moderator,
+    );
+    expect(out.status).toBe("pr_opened");
+    expect(out.prUrl).toContain("/issues/");
+    expect(openIssueViaPrMock).toHaveBeenCalledTimes(1);
+    // The auto-note should mention the failure reason.
+    const issueArgs = openIssueViaPrMock.mock.calls[0]![1] as Record<string, string>;
+    expect(issueArgs["body"]).toContain("Structured patch failed");
+  });
+
+  it("re-throws non-'not found' errors from proposeChange", async () => {
+    proposeChangeMock.mockImplementation(() => Promise.reject(new Error("GitHub API rate limit")));
+    const env = makeStub();
+    await expect(
+      approveReport(
+        env as unknown as Parameters<typeof approveReport>[0],
+        report({ kind: "wrong_hours", payload: JSON.stringify({ new_hours: "24/7" }) }),
+        kiosk(),
+        moderator,
+      ),
+    ).rejects.toThrow("GitHub API rate limit");
+  });
 });
 
 // ── moderator handle: PR/issue "Approved by" rendering ─────────────────────

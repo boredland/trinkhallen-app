@@ -273,16 +273,29 @@ export async function approveReport(
       note: "approved in D1; PR not opened (GitHub App not configured)",
     };
   }
-
   const branch = `fix/${report.id.replace(/-/g, "").slice(0, 8)}`;
-  const pr = await proposeChange(env, {
-    path: region.path,
-    branch,
-    commitMessage: commitMessageForReport(report.kind, kiosk.name),
-    prTitle: prTitleForReport(report.kind, kiosk.name),
-    prBody: renderReportPrBody({ report, kiosk, moderator, payload }),
-    mutate: (currentText) => applyReportPatch(currentText, kiosk.id, report.kind, payload),
-  });
+  let pr: { html_url: string; number: number } | null;
+  try {
+    pr = await proposeChange(env, {
+      path: region.path,
+      branch,
+      commitMessage: commitMessageForReport(report.kind, kiosk.name),
+      prTitle: prTitleForReport(report.kind, kiosk.name),
+      prBody: renderReportPrBody({ report, kiosk, moderator, payload }),
+      mutate: (currentText) => applyReportPatch(currentText, kiosk.id, report.kind, payload),
+    });
+  } catch (err) {
+    // The feature may have been removed, renumbered, or restructured in the
+    // data repo since the app was last deployed (OSM scrape, enrichment run,
+    // or a merged PR). Fall back to an issue so the moderator can triage
+    // manually instead of hitting a hard error.
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("not found in file")) throw err;
+    return openReportAsIssue(env, report, kiosk, moderator, {
+      ...payload,
+      _auto_note: `Structured patch failed: ${msg}`,
+    });
+  }
 
   if (!pr) {
     await markReport(env, report.id, {
