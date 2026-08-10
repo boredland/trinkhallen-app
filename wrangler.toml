@@ -28,10 +28,14 @@ name = "EMAIL"
 
 [vars]
 PUBLIC_ORIGIN = "https://trinkhallen.app"
+# Public Turnstile sitekey — the paired secret is a Worker secret
+# (TURNSTILE_SECRET_KEY). Empty/unset disables the bot gate on /auth/magic.
+TURNSTILE_SITE_KEY = "0x4AAAAAAEL4lqbYMWC0QtjK"
 
 # Secrets (set via `wrangler secret put`):
 #   SESSION_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-#   GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_INSTALLATION_ID
+#   GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_INSTALLATION_ID,
+#   TURNSTILE_SECRET_KEY
 
 [[routes]]
 pattern = "trinkhallen.app"

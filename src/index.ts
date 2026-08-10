@@ -43,7 +43,11 @@ app.use(
       // nonce (read via c.get("secureHeadersNonce")) for the few inline scripts
       // — JSON-LD, speculation rules, the /jetzt bootstrap — so we can keep
       // 'unsafe-inline' off and retain real XSS containment.
-      scriptSrc: ["'self'", NONCE],
+      // challenges.cloudflare.com serves the Turnstile widget script and the
+      // iframe it renders the challenge in; both are required for the bot gate
+      // on the magic-link form.
+      scriptSrc: ["'self'", NONCE, "https://challenges.cloudflare.com"],
+      frameSrc: ["'self'", "https://challenges.cloudflare.com"],
       workerSrc: ["'self'", "blob:"],
       // OpenFreeMap: style JSON + vector tiles + sprite metadata.
       // Photon: reverse-geocoding on /add to autofill the address from the

@@ -31,6 +31,7 @@ import {
 import { sendEmail } from "../lib/email";
 import { isValidEmail, mintMagicLink, redeemMagicLink } from "../lib/magic";
 import { createSession, destroySession, loadSession } from "../lib/session";
+import { TURNSTILE_FIELD, verifyTurnstile } from "../lib/turnstile";
 import { generateUniqueUsername } from "../lib/usernames";
 
 export const auth = new Hono<{ Bindings: Env }>();
@@ -221,6 +222,17 @@ auth.post("/auth/logout", async (c) => {
 auth.post("/auth/magic", async (c) => {
   const form = await c.req.formData();
   const email = (form.get("email") ?? "").toString().trim().toLowerCase();
+  const ip = c.req.header("cf-connecting-ip") ?? null;
+
+  // Bot gate before any mail goes out — see src/lib/turnstile.ts.
+  const human = await verifyTurnstile(
+    c.env,
+    (form.get(TURNSTILE_FIELD) ?? "").toString() || null,
+    ip,
+  );
+  if (!human) {
+    return c.redirect("/me?magic=robot");
+  }
 
   // Always render the same "check your email" success so existence isn't
   // leaked. The bad-email case is the only signal we surface.
@@ -230,7 +242,7 @@ auth.post("/auth/magic", async (c) => {
 
   const link = await mintMagicLink(c.env, email, {
     userAgent: c.req.header("user-agent") ?? null,
-    ip: c.req.header("cf-connecting-ip") ?? null,
+    ip,
   });
 
   if (link) {

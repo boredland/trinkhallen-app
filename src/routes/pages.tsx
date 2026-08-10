@@ -1578,6 +1578,11 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
                 Der Login-Link ist abgelaufen oder schon verwendet. Forder einen neuen an.
               </div>
             )}
+            {magic === "robot" && (
+              <div class="mt-6 border-2 border-danger/60 bg-danger/10 p-4 text-danger">
+                Die Bot-Prüfung ist fehlgeschlagen. Lade die Seite neu und versuch es nochmal.
+              </div>
+            )}
 
             <a
               href="/auth/apple"
@@ -1601,25 +1606,42 @@ export function registerPageRoutes(app: Hono<{ Bindings: Env }>): void {
               <span class="h-px flex-1 bg-border" aria-hidden="true" />
             </div>
 
-            <form
-              action="/auth/magic"
-              method="post"
-              class="flex flex-col gap-3 sm:flex-row sm:items-stretch"
-            >
-              <label class="flex-1">
-                <span class="sr-only">E-Mail-Adresse</span>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  placeholder="du@beispiel.de"
-                  class="w-full border-2 border-border-hi bg-surface-2 px-3 py-2.5 text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
+            <form action="/auth/magic" method="post" class="flex flex-col gap-3">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+                <label class="flex-1">
+                  <span class="sr-only">E-Mail-Adresse</span>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="du@beispiel.de"
+                    class="w-full border-2 border-border-hi bg-surface-2 px-3 py-2.5 text-fg placeholder:text-fg-dim focus:border-neon-pink focus:outline-none"
+                  />
+                </label>
+                <button type="submit" class="btn-neon shrink-0">
+                  ▶ Login-Link per Mail
+                </button>
+              </div>
+              {/* Must stay inside the form — the widget injects its
+                  cf-turnstile-response input into the enclosing form. */}
+              {c.env.TURNSTILE_SITE_KEY && (
+                <div
+                  class="cf-turnstile"
+                  data-sitekey={c.env.TURNSTILE_SITE_KEY}
+                  data-action="turnstile-spin-v1"
+                  data-theme="dark"
                 />
-              </label>
-              <button type="submit" class="btn-neon shrink-0">
-                ▶ Login-Link per Mail
-              </button>
+              )}
             </form>
+
+            {c.env.TURNSTILE_SITE_KEY && (
+              <script
+                src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+                nonce={c.get("secureHeadersNonce")}
+                async
+                defer
+              />
+            )}
 
             <p class="mt-6 text-xs text-fg-dim">
               Wir speichern nur deine E-Mail-Adresse und einen automatisch erzeugten Handle. Keinen

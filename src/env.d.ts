@@ -9,6 +9,7 @@ export interface Env {
 
   // Vars
   PUBLIC_ORIGIN: string;
+  TURNSTILE_SITE_KEY: string;
 
   // Secrets — some may be empty in dev / before operator setup
   SESSION_SECRET: string;
@@ -21,6 +22,7 @@ export interface Env {
   APPLE_SIGN_IN_TEAM_ID: string;
   APPLE_SIGN_IN_KEY_ID: string;
   APPLE_SIGN_IN_PRIVATE_KEY: string;
+  TURNSTILE_SECRET_KEY: string;
 }
 
 declare module "hono" {
