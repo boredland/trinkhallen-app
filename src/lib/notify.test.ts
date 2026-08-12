@@ -27,6 +27,18 @@ const ENV = {
   REPORT_NOTIFY_TO: "ops@example.com",
 } satisfies Pick<Env, "PUBLIC_ORIGIN" | "REPORT_NOTIFY_TO">;
 
+interface SentMessage {
+  to: string;
+  from: { email: string; name: string };
+  subject: string;
+  text: string;
+  html?: string;
+}
+
+function makeEnv(send: (msg: SentMessage) => Promise<void>, notifyTo = "ops@example.com"): Env {
+  return { ...ENV, REPORT_NOTIFY_TO: notifyTo, EMAIL: { send } } as unknown as Env;
+}
+
 describe("buildReportEmail", () => {
   it("puts the translated kind and kiosk name in the subject", () => {
     const mail = buildReportEmail(ENV, REPORT);
@@ -64,22 +76,50 @@ describe("buildReportEmail", () => {
 });
 
 describe("notifyNewReport", () => {
-  it("addresses the mail to REPORT_NOTIFY_TO", () => {
-    expect(buildReportEmail(ENV, REPORT).to).toBe("ops@example.com");
+  it("hands Email Service a structured message from the verified sender", async () => {
+    const sent: SentMessage[] = [];
+    const { ctx, pending } = makeCtx();
+    notifyNewReport(
+      makeEnv(async (m) => {
+        sent.push(m);
+      }),
+      ctx,
+      REPORT,
+    );
+    await Promise.all(pending);
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.to).toBe("ops@example.com");
+    expect(sent[0]!.from).toEqual({ email: "feedback@trinkhallen.app", name: "trinkhallen.app" });
+    // Both parts always — some clients only render text, and html-only
+    // costs deliverability.
+    expect(sent[0]!.text).toContain("Wasserhäuschen Bockenheim");
+    expect(sent[0]!.html).toBeTruthy();
   });
 
-  it("queues nothing when REPORT_NOTIFY_TO is unset", () => {
+  it("queues nothing when REPORT_NOTIFY_TO is unset", async () => {
+    let called = false;
     const { ctx, pending } = makeCtx();
-    notifyNewReport({ ...ENV, REPORT_NOTIFY_TO: "" } as unknown as Env, ctx, REPORT);
+    notifyNewReport(
+      makeEnv(async () => {
+        called = true;
+      }, ""),
+      ctx,
+      REPORT,
+    );
     expect(pending).toHaveLength(0);
+    await Promise.all(pending);
+    expect(called).toBe(false);
   });
 
-  it("defers the send and swallows failures — a broken mail hop must not fail the report write", async () => {
+  it("swallows send failures — a broken mail hop must not fail the report write", async () => {
     const { ctx, pending } = makeCtx();
-    notifyNewReport(ENV as unknown as Env, ctx, REPORT);
+    notifyNewReport(
+      makeEnv(() => Promise.reject(new Error("E_RECIPIENT_NOT_ALLOWED"))),
+      ctx,
+      REPORT,
+    );
     expect(pending).toHaveLength(1);
-    // sendEmail rejects here (cloudflare:email is workerd-only), which is
-    // exactly the failure mode the catch exists for.
     await expect(Promise.all(pending)).resolves.toBeDefined();
   });
 });

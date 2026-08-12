@@ -15,14 +15,15 @@ database_name = "trinkhallen-prod"
 database_id = "27575e60-47dc-4552-ba98-15db77d6d4c2"
 migrations_dir = "migrations"
 
-# Cloudflare Email Routing outbound binding.
+# Cloudflare Email Service (Email Sending) outbound binding.
 # Operator setup:
-#   1. Enable Email Routing for trinkhallen.app in the Cloudflare dashboard.
-#   2. Verify feedback@trinkhallen.app as a destination address (Email
-#      Routing → Destination addresses → Add → click verification email).
-#   3. DKIM is auto-managed by Cloudflare; SPF/DMARC records are added when
-#      Email Routing is enabled.
-# Without those steps, env.EMAIL.send() will return 5xx.
+#   1. Onboard the sending domain: `wrangler email sending enable
+#      trinkhallen.app` (done). Otherwise env.EMAIL.send() throws
+#      E_SENDER_NOT_VERIFIED.
+#   2. Verify each notification recipient as an Email Routing destination
+#      address (Email Routing → Destination addresses → Add → click the
+#      verification mail).
+#   3. DKIM is auto-managed by Cloudflare; SPF/DMARC land with onboarding.
 #
 # No destination restriction here on purpose: magic-link mail goes to
 # arbitrary user addresses. REPORT_NOTIFY_TO below is the operator ping and

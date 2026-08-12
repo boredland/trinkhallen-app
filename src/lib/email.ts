@@ -1,9 +1,13 @@
 /**
- * Outbound email via the Cloudflare `send_email` Worker binding.
+ * Outbound email via Cloudflare Email Service (the `send_email` binding).
  *
- * We compose RFC 2822 messages by hand — the binding takes a raw text blob.
- * Multipart/alternative gives us both HTML and plain-text bodies in one shot
- * so mail clients can pick what they render.
+ * `env.EMAIL.send()` takes a structured message — Email Service builds the
+ * MIME itself, so there is no hand-rolled RFC 2822 composition here and no
+ * `cloudflare:email` import. Always send `text` alongside `html`: some clients
+ * only render plain text, and a missing text part hurts spam scoring.
+ *
+ * The `from` domain (trinkhallen.app) is onboarded for Email Sending. Sending
+ * from a domain that is not onboarded throws `E_SENDER_NOT_VERIFIED`.
  */
 
 import type { Env } from "../env";
@@ -19,60 +23,11 @@ export interface EmailPayload {
 }
 
 export async function sendEmail(env: Env, msg: EmailPayload): Promise<void> {
-  // Lazy import: `cloudflare:email` is a workerd runtime virtual that Vite's
-  // dev module-runner can't resolve. Pulling it in at the callsite means it's
-  // never touched during `bun run dev` / e2e boot (no email flows fire there)
-  // but still works in prod where workerd resolves it.
-  const { EmailMessage } = await import("cloudflare:email");
-  const raw = compose(msg);
-  const message = new EmailMessage(FROM_ADDRESS, msg.to, raw);
-  await env.EMAIL.send(message);
-}
-
-function compose(msg: EmailPayload): string {
-  const boundary = `tk-${crypto.randomUUID()}`;
-  const fromHeader = `${encodeDisplayName(FROM_NAME)} <${FROM_ADDRESS}>`;
-
-  const headers = [
-    `From: ${fromHeader}`,
-    `To: ${msg.to}`,
-    `Subject: ${encodeHeader(msg.subject)}`,
-    `Message-ID: <${crypto.randomUUID()}@trinkhallen.app>`,
-    `Date: ${new Date().toUTCString()}`,
-    "MIME-Version: 1.0",
-  ];
-
-  if (!msg.html) {
-    headers.push(`Content-Type: text/plain; charset="utf-8"`, `Content-Transfer-Encoding: 8bit`);
-    return `${headers.join("\r\n")}\r\n\r\n${msg.text}`;
-  }
-
-  headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
-  const body = [
-    `--${boundary}`,
-    `Content-Type: text/plain; charset="utf-8"`,
-    `Content-Transfer-Encoding: 8bit`,
-    "",
-    msg.text,
-    `--${boundary}`,
-    `Content-Type: text/html; charset="utf-8"`,
-    `Content-Transfer-Encoding: 8bit`,
-    "",
-    msg.html,
-    `--${boundary}--`,
-    "",
-  ].join("\r\n");
-
-  return `${headers.join("\r\n")}\r\n\r\n${body}`;
-}
-
-function encodeHeader(value: string): string {
-  // Quoted-printable wrapping for any non-ASCII chars in subject/display name.
-  if (/^[\x20-\x7e]*$/.test(value)) return value;
-  const b64 = btoa(unescape(encodeURIComponent(value)));
-  return `=?UTF-8?B?${b64}?=`;
-}
-
-function encodeDisplayName(name: string): string {
-  return /^[\w .\-()]+$/.test(name) ? name : `"${encodeHeader(name)}"`;
+  await env.EMAIL.send({
+    to: msg.to,
+    from: { email: FROM_ADDRESS, name: FROM_NAME },
+    subject: msg.subject,
+    text: msg.text,
+    ...(msg.html ? { html: msg.html } : {}),
+  });
 }

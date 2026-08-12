@@ -48,6 +48,10 @@ SSR both read kiosks via `env.ASSETS.fetch` (helpers in
 - **Basemap is OpenFreeMap** (`src/client/build-style.ts`,
   `tiles.openfreemap.org`, no API key). No fallback today — if they
   go down, the map breaks.
+- **Mail goes through Cloudflare Email Service** (`src/lib/email.ts`):
+  `env.EMAIL.send()` with a structured message, no hand-rolled MIME and
+  no `cloudflare:email` import. Always send `text` alongside `html`.
+  The `from` domain must stay onboarded (`wrangler email sending list`).
 - **Report emails are fire-and-forget** (`src/lib/notify.ts`). Every new
   `reports` row pings `REPORT_NOTIFY_TO` via `ctx.waitUntil`, never
   awaited — a broken mail hop must not fail a user's report. The
