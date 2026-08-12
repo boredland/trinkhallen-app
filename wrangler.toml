@@ -23,6 +23,11 @@ migrations_dir = "migrations"
 #   3. DKIM is auto-managed by Cloudflare; SPF/DMARC records are added when
 #      Email Routing is enabled.
 # Without those steps, env.EMAIL.send() will return 5xx.
+#
+# No destination restriction here on purpose: magic-link mail goes to
+# arbitrary user addresses. REPORT_NOTIFY_TO below is the operator ping and
+# *must* be a verified destination address — the binding rejects anything
+# else with E_RECIPIENT_NOT_ALLOWED.
 [[send_email]]
 name = "EMAIL"
 
@@ -31,6 +36,9 @@ PUBLIC_ORIGIN = "https://trinkhallen.app"
 # Public Turnstile sitekey — the paired secret is a Worker secret
 # (TURNSTILE_SECRET_KEY). Empty/unset disables the bot gate on /auth/magic.
 TURNSTILE_SITE_KEY = "0x4AAAAAAEL4lqbYMWC0QtjK"
+# Where new-report notifications go. Must be a *verified* Email Routing
+# destination address on the account. Unset/empty disables the mails.
+REPORT_NOTIFY_TO = "info@jonas-strassel.de"
 
 # Secrets (set via `wrangler secret put`):
 #   SESSION_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,

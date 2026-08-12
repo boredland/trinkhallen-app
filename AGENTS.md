@@ -48,6 +48,13 @@ SSR both read kiosks via `env.ASSETS.fetch` (helpers in
 - **Basemap is OpenFreeMap** (`src/client/build-style.ts`,
   `tiles.openfreemap.org`, no API key). No fallback today — if they
   go down, the map breaks.
+- **Report emails are fire-and-forget** (`src/lib/notify.ts`). Every new
+  `reports` row pings `REPORT_NOTIFY_TO` via `ctx.waitUntil`, never
+  awaited — a broken mail hop must not fail a user's report. The
+  recipient MUST be a *verified* Email Routing destination address or
+  the binding throws `E_RECIPIENT_NOT_ALLOWED`. Unset disables the
+  mails. Both insert sites (`api.reports.tsx`, the PH auto-file in
+  `api.checkins.tsx`) call it; a third insert site must too.
 - **`/.well-known/*` is served by Hono** (`src/routes/well-known.tsx`),
   not Workers Assets. Workers Assets has fragile handling for
   dot-prefixed dirs; Hono lets us set content-type + cache headers

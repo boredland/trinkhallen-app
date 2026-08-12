@@ -10,6 +10,8 @@ export interface Env {
   // Vars
   PUBLIC_ORIGIN: string;
   TURNSTILE_SITE_KEY: string;
+  /** Verified Email Routing destination; unset disables report emails. */
+  REPORT_NOTIFY_TO: string;
 
   // Secrets — some may be empty in dev / before operator setup
   SESSION_SECRET: string;

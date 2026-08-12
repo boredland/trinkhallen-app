@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
 import { resolveLang, t } from "../lib/messages";
+import { notifyNewReport } from "../lib/notify";
 import { hasBlockingReport } from "../lib/reports";
 import { REPORTABLE_TAGS } from "../lib/tags";
 
@@ -115,6 +116,15 @@ apiReports.post("/api/reports", async (c) => {
   )
     .bind(id, kioskId, user.id, kind, JSON.stringify(payload), now, now)
     .run();
+
+  notifyNewReport(c.env, c.executionCtx, {
+    id,
+    kioskId,
+    kioskName: kiosk.name,
+    kind,
+    payload,
+    reporter: user.username ? `@${user.username}` : user.email,
+  });
 
   // Reports sit in D1 with status='open' until a moderator approves on
   // /moderate. Approval is what opens the PR/issue — see lib/moderation.ts.

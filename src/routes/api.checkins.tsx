@@ -3,6 +3,7 @@ import type { Env } from "../env";
 import { getKioskById } from "../lib/asset-kiosks";
 import { recordCheckin, regionSlugFromPath } from "../lib/checkins";
 import { resolveLang, t } from "../lib/messages";
+import { notifyNewReport } from "../lib/notify";
 import { hasPHToken, isPublicHolidayToday, kioskLocation } from "../lib/opening-hours";
 
 export const apiCheckins = new Hono<{ Bindings: Env }>();
@@ -15,7 +16,9 @@ export const apiCheckins = new Hono<{ Bindings: Env }>();
  */
 async function fileObservationIfNew(
   env: Env,
-  kioskId: string,
+  ctx: ExecutionContext,
+  kiosk: { id: string; name: string },
+  reporter: string,
   userId: string,
   observationDate: string,
 ): Promise<void> {
@@ -26,19 +29,29 @@ async function fileObservationIfNew(
          AND json_extract(payload, '$.observation_date') = ?
        LIMIT 1`,
   )
-    .bind(kioskId, observationDate)
+    .bind(kiosk.id, observationDate)
     .first<{ n: number }>();
   if (existing) return;
 
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
-  const payload = JSON.stringify({ observation_date: observationDate, verified: true });
+  const payload = { observation_date: observationDate, verified: true };
   await env.DB.prepare(
     `INSERT INTO reports (id, kiosk_id, user_id, kind, payload, status, created_at, updated_at)
        VALUES (?, ?, ?, 'ph_open_observed', ?, 'open', ?, ?)`,
   )
-    .bind(id, kioskId, userId, payload, now, now)
+    .bind(id, kiosk.id, userId, JSON.stringify(payload), now, now)
     .run();
+
+  // Deduped above, so this is at most one mail per kiosk per public holiday.
+  notifyNewReport(env, ctx, {
+    id,
+    kioskId: kiosk.id,
+    kioskName: kiosk.name,
+    kind: "ph_open_observed",
+    payload,
+    reporter,
+  });
 }
 
 /**
@@ -86,7 +99,14 @@ apiCheckins.post("/api/checkins", async (c) => {
     const today = new Date();
     if (isPublicHolidayToday(kioskLocation(kiosk), today)) {
       const observationDate = today.toISOString().slice(0, 10);
-      await fileObservationIfNew(c.env, kiosk.id, user.id, observationDate);
+      await fileObservationIfNew(
+        c.env,
+        c.executionCtx,
+        kiosk,
+        user.username ? `@${user.username}` : user.email,
+        user.id,
+        observationDate,
+      );
     }
   }
 
