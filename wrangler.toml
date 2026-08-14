@@ -8,6 +8,11 @@ compatibility_date = "2026-01-15"
 directory = "./dist/static"
 binding = "ASSETS"
 
+# Hourly reconciliation of pr_opened reports/submissions against GitHub — see
+# the scheduled handler in src/index.ts.
+[triggers]
+crons = ["17 * * * *"]
+
 # Production environment
 [[d1_databases]]
 binding = "DB"

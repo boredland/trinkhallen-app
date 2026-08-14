@@ -223,6 +223,45 @@ async function openPr(args: {
   return { number: data.number, html_url: data.html_url };
 }
 
+/** Terminal upstream state of something we opened on the data repo. */
+export type UpstreamOutcome = "merged" | "dismissed";
+
+/**
+ * Resolve the current state of a PR or issue we previously opened.
+ *
+ * `prUrl` is whatever `openPr`/`openIssueViaPr` handed back, so both the number
+ * and the kind are recoverable from the path — `/pull/123` vs `/issues/123`.
+ * Issues carry no merge concept: a closed one means a moderator dealt with it
+ * by hand, which for our purposes is the same terminal "applied" state as a
+ * merged PR. A PR closed without `merged_at` is a rejection.
+ *
+ * Returns null while still open, and on any lookup failure — callers treat that
+ * as "no decision yet" and leave the row untouched rather than guessing.
+ */
+export async function fetchUpstreamOutcome(
+  env: Env,
+  prUrl: string,
+): Promise<UpstreamOutcome | null> {
+  if (!hasGithubAppCreds(env)) return null;
+  const m = /\/(pull|issues)\/(\d+)(?:[/?#]|$)/.exec(prUrl);
+  if (!m) return null;
+  const isPr = m[1] === "pull";
+
+  const token = await getInstallationToken(env);
+  const resp = await authedFetch(
+    token,
+    `/repos/${DATA_REPO_OWNER}/${DATA_REPO_NAME}/${isPr ? "pulls" : "issues"}/${m[2]}`,
+  );
+  if (!resp.ok) {
+    console.error(`fetchUpstreamOutcome ${prUrl}: HTTP ${resp.status}`);
+    return null;
+  }
+  const data = (await resp.json()) as { state: string; merged_at?: string | null };
+  if (data.state !== "closed") return null;
+  if (!isPr) return "merged";
+  return data.merged_at ? "merged" : "dismissed";
+}
+
 export async function openIssueViaPr(
   env: Env,
   args: { title: string; body: string; labels?: string[] },

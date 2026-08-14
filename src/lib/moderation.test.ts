@@ -19,18 +19,25 @@ const proposeChangeMock = mock<
 const openIssueViaPrMock = mock<
   (env: unknown, args: { title: string }) => Promise<{ html_url: string; number: number } | null>
 >(() => Promise.resolve({ html_url: "https://github.com/x/y/issues/9", number: 9 }));
+const fetchUpstreamOutcomeMock = mock<
+  (env: unknown, prUrl: string) => Promise<"merged" | "dismissed" | null>
+>(() => Promise.resolve(null));
 const hasGithubAppCredsMock = mock<(env: unknown) => boolean>(() => true);
 
 mock.module("./github-pr", () => ({
   proposeChange: (...args: Parameters<typeof proposeChangeMock>) => proposeChangeMock(...args),
   openIssueViaPr: (...args: Parameters<typeof openIssueViaPrMock>) => openIssueViaPrMock(...args),
+  fetchUpstreamOutcome: (...args: Parameters<typeof fetchUpstreamOutcomeMock>) =>
+    fetchUpstreamOutcomeMock(...args),
 }));
 mock.module("./github-app", () => ({
   hasGithubAppCreds: (...args: Parameters<typeof hasGithubAppCredsMock>) =>
     hasGithubAppCredsMock(...args),
 }));
 
-const { applyReportPatch, approveReport, rejectReport } = await import("./moderation");
+const { applyReportPatch, approveReport, rejectReport, reconcileOpenReports } = await import(
+  "./moderation"
+);
 
 // Minimal D1 stub: every call resolves successfully; nothing is persisted.
 // The DB writes inside approveReport/rejectReport are fire-and-forget from
@@ -87,6 +94,8 @@ beforeEach(() => {
   proposeChangeMock.mockClear();
   openIssueViaPrMock.mockClear();
   hasGithubAppCredsMock.mockClear();
+  fetchUpstreamOutcomeMock.mockClear();
+  fetchUpstreamOutcomeMock.mockImplementation(() => Promise.resolve(null));
   proposeChangeMock.mockImplementation(() =>
     Promise.resolve({ html_url: "https://github.com/x/y/pull/1", number: 1 }),
   );
@@ -100,6 +109,7 @@ afterEach(() => {
   proposeChangeMock.mockReset();
   openIssueViaPrMock.mockReset();
   hasGithubAppCredsMock.mockReset();
+  fetchUpstreamOutcomeMock.mockReset();
 });
 
 // ── applyReportPatch: structured patches against a real-shaped GeoJSON ─────
@@ -420,5 +430,97 @@ describe("rejectReport", () => {
     // First D1 bind() call is the UPDATE; status is positional arg 0.
     const args = env.calls[0]!;
     expect(args[0]).toBe("dismissed");
+  });
+});
+
+// ── reconcileOpenReports: closing the loop after the PR leaves the app ──────
+//
+// A row sits at `pr_opened` from approval until something notices what GitHub
+// did with it. `pr_opened` is a *blocking* status (lib/reports.ts), so a row
+// that never advances locks the reporter out of that kind on that kiosk for
+// good — these tests pin the transitions that release it.
+
+/** D1 stub that serves one batch of rows to SELECT and records UPDATE binds. */
+const makeReconcileStub = (rows: Array<{ id: string; pr_url: string }>) => {
+  const updates: unknown[][] = [];
+  const sqls: string[] = [];
+  return {
+    updates,
+    sqls,
+    DB: {
+      prepare: (sql: string) => {
+        sqls.push(sql);
+        const isSelect = sql.trim().toUpperCase().startsWith("SELECT");
+        const bound = {
+          bind: (...args: unknown[]) => {
+            if (!isSelect) updates.push(args);
+            return bound;
+          },
+          run: () => Promise.resolve({ success: true }),
+          first: () => Promise.resolve(null),
+          all: () => Promise.resolve({ results: isSelect ? rows : [] }),
+        };
+        return bound;
+      },
+    },
+  };
+};
+
+type ReconcileEnv = Parameters<typeof reconcileOpenReports>[0];
+
+describe("reconcileOpenReports", () => {
+  it("promotes a merged PR to status=merged", async () => {
+    const env = makeReconcileStub([{ id: "r-1", pr_url: "https://github.com/x/y/pull/7" }]);
+    fetchUpstreamOutcomeMock.mockImplementation(() => Promise.resolve("merged"));
+
+    const out = await reconcileOpenReports(env as unknown as ReconcileEnv);
+
+    expect(out).toEqual({ merged: 1, dismissed: 0 });
+    expect(env.updates[0]?.[0]).toBe("merged");
+    expect(env.updates[0]?.[2]).toBe("r-1");
+  });
+
+  it("records a PR closed without merging as dismissed, so the user may re-report", async () => {
+    const env = makeReconcileStub([{ id: "r-2", pr_url: "https://github.com/x/y/pull/8" }]);
+    fetchUpstreamOutcomeMock.mockImplementation(() => Promise.resolve("dismissed"));
+
+    const out = await reconcileOpenReports(env as unknown as ReconcileEnv);
+
+    expect(out).toEqual({ merged: 0, dismissed: 1 });
+    expect(env.updates[0]?.[0]).toBe("dismissed");
+  });
+
+  it("leaves a still-open PR untouched rather than guessing", async () => {
+    const env = makeReconcileStub([{ id: "r-3", pr_url: "https://github.com/x/y/pull/9" }]);
+    fetchUpstreamOutcomeMock.mockImplementation(() => Promise.resolve(null));
+
+    const out = await reconcileOpenReports(env as unknown as ReconcileEnv);
+
+    expect(out).toEqual({ merged: 0, dismissed: 0 });
+    expect(env.updates).toHaveLength(0);
+  });
+
+  it("is a no-op without GitHub App creds — nothing to reconcile against", async () => {
+    const env = makeReconcileStub([{ id: "r-4", pr_url: "https://github.com/x/y/pull/10" }]);
+    hasGithubAppCredsMock.mockImplementation(() => false);
+
+    const out = await reconcileOpenReports(env as unknown as ReconcileEnv);
+
+    expect(out).toEqual({ merged: 0, dismissed: 0 });
+    expect(fetchUpstreamOutcomeMock).not.toHaveBeenCalled();
+    expect(env.updates).toHaveLength(0);
+  });
+
+  it("compares status against a bound parameter, never a bare identifier", async () => {
+    // Regression: the first version inlined `status = pr_opened` without
+    // quotes. SQLite reads that as a column reference and D1 threw
+    // "no such column: pr_opened" — invisible to a stub that ignores SQL.
+    const env = makeReconcileStub([]);
+    await reconcileOpenReports(env as unknown as ReconcileEnv);
+
+    const select = env.sqls.find((s) => s.trim().toUpperCase().startsWith("SELECT"));
+    expect(select).toBeDefined();
+    expect(select).toContain("status = ?");
+    expect(select).not.toMatch(/status\s*=\s*[a-z_]+[^?]/i);
   });
 });

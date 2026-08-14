@@ -6,6 +6,7 @@ import { logger } from "hono/logger";
 import { NONCE, secureHeaders } from "hono/secure-headers";
 import type { Env } from "./env";
 import { DEFAULT_LANG, langFromPath, pathForLang, resolveLang } from "./lib/messages";
+import { reconcileOpenReports, reconcileOpenSubmissions } from "./lib/moderation";
 import { apiCheckins } from "./routes/api.checkins.tsx";
 import { apiKiosks } from "./routes/api.kiosks.tsx";
 import { apiRatings } from "./routes/api.ratings.tsx";
@@ -148,4 +149,22 @@ app.onError((err, c) => {
   return c.text("500 — Da ist was schiefgegangen.", 500);
 });
 
-export default app;
+// A moderator approving something opens a PR/issue on trinkhallen-data and the
+// app stops tracking it there. This cron closes that loop: it asks GitHub what
+// became of each open PR/issue and moves the row to merged/dismissed. Without
+// it those rows stay `pr_opened` forever, which permanently blocks the reporter
+// from filing that kind again (lib/reports.ts BLOCKING_STATUSES).
+export default Object.assign(app, {
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(
+      (async () => {
+        const reports = await reconcileOpenReports(env);
+        const submissions = await reconcileOpenSubmissions(env);
+        console.log(
+          `reconcile: reports +${reports.merged}m/+${reports.dismissed}d ` +
+            `submissions +${submissions.merged}m/+${submissions.dismissed}d`,
+        );
+      })(),
+    );
+  },
+});

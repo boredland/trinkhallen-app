@@ -13,7 +13,7 @@
 
 import type { Env } from "../env";
 import { hasGithubAppCreds } from "./github-app";
-import { openIssueViaPr, proposeChange } from "./github-pr";
+import { fetchUpstreamOutcome, openIssueViaPr, proposeChange } from "./github-pr";
 import { resolveRegionByCoords, resolveRegionBySlug } from "./regions";
 
 const APP_ORIGIN = "https://trinkhallen.app";
@@ -361,6 +361,77 @@ async function openReportAsIssue(
     prUrl: issue.html_url,
   });
   return { status: "pr_opened", prUrl: issue.html_url, prNumber: issue.number };
+}
+
+/**
+ * Bring `pr_opened` rows in line with what actually happened upstream.
+ *
+ * Approval is where the app hands off to GitHub, and until now that was the end
+ * of the line: nothing ever observed the PR being merged or the issue being
+ * closed, so rows sat at `pr_opened` forever. That is not just a stale label —
+ * `pr_opened` is a blocking status (see lib/reports.ts), so the reporter stayed
+ * locked out of ever filing that kind again for that kiosk.
+ *
+ * Runs on a cron rather than a webhook on purpose: no new inbound surface to
+ * authenticate, and it reuses the App token we already hold. A few minutes of
+ * lag on a status pill is not worth a public endpoint.
+ *
+ * Rows whose lookup fails or is still open are left alone and retried next run.
+ */
+export async function reconcileOpenReports(
+  env: Env,
+): Promise<{ merged: number; dismissed: number }> {
+  const tally = { merged: 0, dismissed: 0 };
+  if (!hasGithubAppCreds(env)) return tally;
+
+  const rows = await env.DB.prepare(
+    `SELECT id, pr_url FROM reports
+       WHERE status = ? AND pr_url IS NOT NULL
+       ORDER BY updated_at ASC LIMIT 50`,
+  )
+    .bind("pr_opened")
+    .all<{ id: string; pr_url: string }>();
+
+  const now = Math.floor(Date.now() / 1000);
+  for (const row of rows.results) {
+    const outcome = await fetchUpstreamOutcome(env, row.pr_url);
+    if (!outcome) continue;
+    await env.DB.prepare(`UPDATE reports SET status = ?, updated_at = ? WHERE id = ?`)
+      .bind(outcome, now, row.id)
+      .run();
+    tally[outcome]++;
+  }
+  return tally;
+}
+
+/**
+ * Same reconciliation for submissions. Their status vocabulary differs only in
+ * the initial state (`pending` vs `open`); `pr_opened` means the same thing.
+ */
+export async function reconcileOpenSubmissions(
+  env: Env,
+): Promise<{ merged: number; dismissed: number }> {
+  const tally = { merged: 0, dismissed: 0 };
+  if (!hasGithubAppCreds(env)) return tally;
+
+  const rows = await env.DB.prepare(
+    `SELECT id, pr_url FROM submissions
+       WHERE status = ? AND pr_url IS NOT NULL
+       ORDER BY updated_at ASC LIMIT 50`,
+  )
+    .bind("pr_opened")
+    .all<{ id: string; pr_url: string }>();
+
+  const now = Math.floor(Date.now() / 1000);
+  for (const row of rows.results) {
+    const outcome = await fetchUpstreamOutcome(env, row.pr_url);
+    if (!outcome) continue;
+    await env.DB.prepare(`UPDATE submissions SET status = ?, updated_at = ? WHERE id = ?`)
+      .bind(outcome, now, row.id)
+      .run();
+    tally[outcome]++;
+  }
+  return tally;
 }
 
 async function markReport(
