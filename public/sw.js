@@ -26,7 +26,7 @@
  * Bump VERSION below to invalidate everything.
  */
 
-const VERSION = "v8";
+const VERSION = "v9";
 const OFFLINE_URL = "/offline.html";
 const STATIC_CACHE = `tk-static-${VERSION}`;
 const TILES_CACHE = `tk-tiles-${VERSION}`;
@@ -41,6 +41,20 @@ const STATIC_PATH_PREFIXES = ["/assets/", "/favicon.svg", "/apple-touch-icon.svg
 // stale-while-revalidate snapshot would flash the wrong state on the
 // first paint after any auth transition.
 const PRIVATE_PATH_PREFIXES = ["/me", "/moderate", "/add", "/auth"];
+// Non-default locale prefixes mounted on the app. Mirrors PREFIXED_LANGS in
+// src/lib/messages.ts — sw.js cannot import from src/, so keep in sync by hand.
+const LOCALE_PREFIXES = ["/en"];
+
+function isPrivatePath(pathname) {
+  let target = pathname;
+  for (const loc of LOCALE_PREFIXES) {
+    if (target === loc || target.startsWith(`${loc}/`)) {
+      target = target.slice(loc.length) || "/";
+      break;
+    }
+  }
+  return PRIVATE_PATH_PREFIXES.some((p) => target === p || target.startsWith(`${p}/`));
+}
 
 self.addEventListener("install", (event) => {
   // Intentionally NOT calling self.skipWaiting() here. A freshly-installed SW
@@ -143,10 +157,7 @@ self.addEventListener("fetch", (event) => {
   // so the user sees their actual current state, not a leftover snapshot
   // from a prior session.
   if (req.mode === "navigate") {
-    if (
-      url.origin === self.location.origin &&
-      PRIVATE_PATH_PREFIXES.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`))
-    ) {
+    if (url.origin === self.location.origin && isPrivatePath(url.pathname)) {
       return; // pass through to the network
     }
     event.respondWith(navigationWithOfflineFallback(req));
