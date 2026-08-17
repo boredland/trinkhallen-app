@@ -34,7 +34,7 @@ SSR both read kiosks via `env.ASSETS.fetch` (helpers in
 - **`src/lib/asset-kiosks.ts`** caches the manifest + per-region records
   at module scope, invalidated only by a deploy. Don't sprinkle parallel
   fetch sites; go through the helpers.
-- **`public/sw.js`** has a `VERSION` constant (v5 today). Any change to
+- **`public/sw.js`** has a `VERSION` constant (v9 today). Any change to
   the cache strategy or the cached URL set must bump it. Auth-sensitive
   routes (`/me`, `/moderate`, `/add`, `/auth/*`) pass through; the SW
   used to cache them and any login transition flashed stale shell.
