@@ -67,7 +67,12 @@ app.use("*", attachUser);
 // /auth/*, because Apple's sign-in callback is a legitimate cross-origin form
 // POST and is guarded instead by its own state-cookie match. csrf() is a no-op
 // on safe methods, so mounting it on these globs leaves GETs untouched.
+//
+// Because sub-apps (pages, moderate) are mounted at both / and /en, absolute-glob
+// middleware needs a per-locale twin so the origin check applies equally under
+// prefixed routes.
 app.use("/api/*", csrf());
+app.use("/en/api/*", csrf());
 app.use("/me/*", csrf());
 app.use("/en/me/*", csrf());
 
