@@ -49,7 +49,9 @@ interface FeatureCollection {
 
 let manifestCache: Manifest | null = null;
 let prefixToSlug: Map<string, string> | null = null;
-const regionCache = new Map<string, FeatureCollection>();
+// Cache only derived KioskRecord[] per region, not the raw GeoJSON collections.
+// The raw collection has no other server reader once mapped, and holding both
+// doubled isolate memory (~10 MB across the dataset) for no benefit.
 const regionRecordsCache = new Map<string, KioskRecord[]>();
 
 async function fetchJson<T>(env: Env, path: string): Promise<T> {
@@ -70,15 +72,6 @@ export async function loadManifest(env: Env): Promise<Manifest> {
     prefixToSlug = new Map(manifestCache.regions.map((r) => [r.prefix, r.slug]));
   }
   return manifestCache;
-}
-
-async function loadRegion(env: Env, slug: string): Promise<FeatureCollection> {
-  let c = regionCache.get(slug);
-  if (!c) {
-    c = await fetchJson<FeatureCollection>(env, `/data/${slug}.geojson`);
-    regionCache.set(slug, c);
-  }
-  return c;
 }
 
 function featureToRecord(slug: string, f: Feature): KioskRecord {
@@ -118,7 +111,7 @@ export async function kiosksByRegion(env: Env, slug: string): Promise<KioskRecor
 async function recordsForRegion(env: Env, slug: string): Promise<KioskRecord[]> {
   let rs = regionRecordsCache.get(slug);
   if (!rs) {
-    const collection = await loadRegion(env, slug);
+    const collection = await fetchJson<FeatureCollection>(env, `/data/${slug}.geojson`);
     rs = collection.features.map((f) => featureToRecord(slug, f));
     regionRecordsCache.set(slug, rs);
   }
