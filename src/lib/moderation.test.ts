@@ -35,9 +35,13 @@ mock.module("./github-app", () => ({
     hasGithubAppCredsMock(...args),
 }));
 
-const { applyReportPatch, approveReport, rejectReport, reconcileOpenReports } = await import(
-  "./moderation"
-);
+const {
+  applyReportPatch,
+  approveReport,
+  rejectReport,
+  reconcileOpenReports,
+  reconcileOpenSubmissions,
+} = await import("./moderation");
 
 // Minimal D1 stub: every call resolves successfully; nothing is persisted.
 // The DB writes inside approveReport/rejectReport are fire-and-forget from
@@ -490,14 +494,34 @@ describe("reconcileOpenReports", () => {
     expect(env.updates[0]?.[0]).toBe("dismissed");
   });
 
-  it("leaves a still-open PR untouched rather than guessing", async () => {
+  it("never guesses a status for a still-open PR", async () => {
     const env = makeReconcileStub([{ id: "r-3", pr_url: "https://github.com/x/y/pull/9" }]);
     fetchUpstreamOutcomeMock.mockImplementation(() => Promise.resolve(null));
 
     const out = await reconcileOpenReports(env as unknown as ReconcileEnv);
 
     expect(out).toEqual({ merged: 0, dismissed: 0 });
-    expect(env.updates).toHaveLength(0);
+    expect(env.updates).toHaveLength(1);
+    expect(typeof env.updates[0]?.[0]).toBe("number");
+    expect(env.updates[0]?.[1]).toBe("r-3");
+  });
+
+  it("advances updated_at on a still-open PR so the next run reaches other rows", async () => {
+    const env = makeReconcileStub([{ id: "r-3", pr_url: "https://github.com/x/y/pull/9" }]);
+    fetchUpstreamOutcomeMock.mockImplementation(() => Promise.resolve(null));
+
+    const out = await reconcileOpenReports(env as unknown as ReconcileEnv);
+
+    expect(out).toEqual({ merged: 0, dismissed: 0 });
+    expect(env.updates).toHaveLength(1);
+    const [touchedTimestamp, touchedId] = env.updates[0] ?? [];
+    expect(typeof touchedTimestamp).toBe("number");
+    expect(touchedId).toBe("r-3");
+
+    const update = env.sqls.find((s) => s.trim().toUpperCase().startsWith("UPDATE"));
+    expect(update).toBeDefined();
+    expect(update).toContain("updated_at = ?");
+    expect(update).not.toContain("status =");
   });
 
   it("is a no-op without GitHub App creds — nothing to reconcile against", async () => {
@@ -522,5 +546,68 @@ describe("reconcileOpenReports", () => {
     expect(select).toBeDefined();
     expect(select).toContain("status = ?");
     expect(select).not.toMatch(/status\s*=\s*[a-z_]+[^?]/i);
+  });
+  it("processes a mixed batch where open rows rotate and merged rows transition", async () => {
+    const env = makeReconcileStub([
+      { id: "r-5", pr_url: "https://github.com/x/y/pull/12" },
+      { id: "r-6", pr_url: "https://github.com/x/y/pull/13" },
+    ]);
+    fetchUpstreamOutcomeMock.mockImplementation((_env, prUrl) =>
+      Promise.resolve(prUrl.endsWith("/12") ? null : "merged"),
+    );
+
+    const out = await reconcileOpenReports(env as unknown as ReconcileEnv);
+
+    expect(out).toEqual({ merged: 1, dismissed: 0 });
+    expect(env.updates).toHaveLength(2);
+    // First row was open -> updated_at touched only
+    expect(typeof env.updates[0]?.[0]).toBe("number");
+    expect(env.updates[0]?.[1]).toBe("r-5");
+    // Second row was merged -> status transition
+    expect(env.updates[1]?.[0]).toBe("merged");
+    expect(typeof env.updates[1]?.[1]).toBe("number");
+    expect(env.updates[1]?.[2]).toBe("r-6");
+  });
+});
+
+describe("reconcileOpenSubmissions", () => {
+  it("advances updated_at on a still-open PR so the next run reaches other rows", async () => {
+    const env = makeReconcileStub([{ id: "s-1", pr_url: "https://github.com/x/y/pull/11" }]);
+    fetchUpstreamOutcomeMock.mockImplementation(() => Promise.resolve(null));
+
+    const out = await reconcileOpenSubmissions(env as unknown as ReconcileEnv);
+
+    expect(out).toEqual({ merged: 0, dismissed: 0 });
+    expect(env.updates).toHaveLength(1);
+    const [touchedTimestamp, touchedId] = env.updates[0] ?? [];
+    expect(typeof touchedTimestamp).toBe("number");
+    expect(touchedId).toBe("s-1");
+
+    const update = env.sqls.find((s) => s.trim().toUpperCase().startsWith("UPDATE"));
+    expect(update).toBeDefined();
+    expect(update).toContain("updated_at = ?");
+    expect(update).not.toContain("status =");
+  });
+
+  it("promotes a merged PR to status=merged", async () => {
+    const env = makeReconcileStub([{ id: "s-2", pr_url: "https://github.com/x/y/pull/14" }]);
+    fetchUpstreamOutcomeMock.mockImplementation(() => Promise.resolve("merged"));
+
+    const out = await reconcileOpenSubmissions(env as unknown as ReconcileEnv);
+
+    expect(out).toEqual({ merged: 1, dismissed: 0 });
+    expect(env.updates[0]?.[0]).toBe("merged");
+    expect(env.updates[0]?.[2]).toBe("s-2");
+  });
+
+  it("records a PR closed without merging as dismissed", async () => {
+    const env = makeReconcileStub([{ id: "s-3", pr_url: "https://github.com/x/y/pull/15" }]);
+    fetchUpstreamOutcomeMock.mockImplementation(() => Promise.resolve("dismissed"));
+
+    const out = await reconcileOpenSubmissions(env as unknown as ReconcileEnv);
+
+    expect(out).toEqual({ merged: 0, dismissed: 1 });
+    expect(env.updates[0]?.[0]).toBe("dismissed");
+    expect(env.updates[0]?.[2]).toBe("s-3");
   });
 });

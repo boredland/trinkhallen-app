@@ -376,7 +376,8 @@ async function openReportAsIssue(
  * authenticate, and it reuses the App token we already hold. A few minutes of
  * lag on a status pill is not worth a public endpoint.
  *
- * Rows whose lookup fails or is still open are left alone and retried next run.
+ * Rows whose lookup fails or is still open have their updated_at advanced so
+ * they move to the back of the queue, ensuring the next run reaches other rows.
  */
 export async function reconcileOpenReports(
   env: Env,
@@ -395,7 +396,16 @@ export async function reconcileOpenReports(
   const now = Math.floor(Date.now() / 1000);
   for (const row of rows.results) {
     const outcome = await fetchUpstreamOutcome(env, row.pr_url);
-    if (!outcome) continue;
+    if (!outcome) {
+      // Advance updated_at without changing status. Without this touch, unresolved
+      // rows (or rows whose lookup errors) retain their position at the head of the
+      // updated_at ASC ordering, causing the cron to starve past the first 50 items
+      // and locking reporters in blocking statuses forever.
+      await env.DB.prepare(`UPDATE reports SET updated_at = ? WHERE id = ?`)
+        .bind(now, row.id)
+        .run();
+      continue;
+    }
     await env.DB.prepare(`UPDATE reports SET status = ?, updated_at = ? WHERE id = ?`)
       .bind(outcome, now, row.id)
       .run();
@@ -425,7 +435,16 @@ export async function reconcileOpenSubmissions(
   const now = Math.floor(Date.now() / 1000);
   for (const row of rows.results) {
     const outcome = await fetchUpstreamOutcome(env, row.pr_url);
-    if (!outcome) continue;
+    if (!outcome) {
+      // Advance updated_at without changing status. Without this touch, unresolved
+      // rows (or rows whose lookup errors) retain their position at the head of the
+      // updated_at ASC ordering, causing the cron to starve past the first 50 items
+      // and locking reporters in blocking statuses forever.
+      await env.DB.prepare(`UPDATE submissions SET updated_at = ? WHERE id = ?`)
+        .bind(now, row.id)
+        .run();
+      continue;
+    }
     await env.DB.prepare(`UPDATE submissions SET status = ?, updated_at = ? WHERE id = ?`)
       .bind(outcome, now, row.id)
       .run();
