@@ -67,7 +67,7 @@ export const KioskDetail: FC<{
 }) => {
   const loc = kioskLocation(kiosk);
   const now = new Date();
-  const status = computeStatus(kiosk.hours?.raw, now, loc);
+  const status = computeStatus(kiosk.hours, now, loc);
   const statusLabel = formatStatus(lang, status);
   const hoursTable = formatHoursTable(lang, kiosk.hours?.raw, loc);
   // PH banner condition: today is a Bundesland holiday AND the kiosk has

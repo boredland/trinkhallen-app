@@ -10,13 +10,17 @@ const NON_PH_NOON = new Date("2026-09-26T12:00:00Z");
 
 describe("computeStatus with PH rules", () => {
   it("treats `PH off` as closed on a Bundesland holiday when location is supplied", () => {
-    const status = computeStatus("Mo-Sa 06:00-22:00; PH off", PH_NOON, kioskLocation(FRANKFURT));
+    const status = computeStatus(
+      { raw: "Mo-Sa 06:00-22:00; PH off" },
+      PH_NOON,
+      kioskLocation(FRANKFURT),
+    );
     expect(status.kind).toBe("closed");
   });
 
   it("treats `PH off` as open on a non-holiday Saturday with location", () => {
     const status = computeStatus(
-      "Mo-Sa 06:00-22:00; PH off",
+      { raw: "Mo-Sa 06:00-22:00; PH off" },
       NON_PH_NOON,
       kioskLocation(FRANKFURT),
     );
@@ -29,7 +33,7 @@ describe("computeStatus with PH rules", () => {
     // "matches off only on PH". This was the bug the location-aware
     // callers fix; the assertion locks the broken-without-location
     // behaviour in so we notice if the upstream lib changes.
-    const status = computeStatus("Mo-Sa 06:00-22:00; PH off", PH_NOON);
+    const status = computeStatus({ raw: "Mo-Sa 06:00-22:00; PH off" }, PH_NOON);
     expect(status.kind).toBe("closed");
   });
 });

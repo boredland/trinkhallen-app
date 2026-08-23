@@ -9,7 +9,10 @@ export interface KioskRecord {
   name: string;
   description?: string;
   address: Record<string, string | undefined>;
-  hours?: { raw: string };
+  /** `raw` is the OSM `opening_hours` string; `week` is its build-time
+   *  flattening (see lib/hours-week.ts), absent when the rule needs
+   *  `opening_hours.js` to evaluate. */
+  hours?: { raw: string; week?: number[] };
   tags: string[];
   payment?: Record<string, "yes" | "no" | "unknown">;
   lng: number;

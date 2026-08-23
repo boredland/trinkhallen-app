@@ -76,7 +76,7 @@ export const manifest: Record<string, { file: string; css?: string[] }> = {
     ]
   },
   "src/client/map.entry.ts": {
-    "file": "assets/map-lD-yW8i1.js"
+    "file": "assets/map-BbuMGVdC.js"
   },
   "src/client/pick.entry.ts": {
     "file": "assets/pick-UnWo5eMc.js"

@@ -110,7 +110,7 @@ const KioskRow: FC<{
   userAgent: string | null;
   origin?: LatLng | undefined;
 }> = ({ lang, kiosk, userAgent, origin }) => {
-  const status = computeStatus(kiosk.hours?.raw, new Date(), kioskLocation(kiosk));
+  const status = computeStatus(kiosk.hours, new Date(), kioskLocation(kiosk));
   const nav = buildNavigateTargets({
     name: kiosk.name,
     lat: kiosk.lat,

@@ -22,13 +22,49 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import OpeningHours from "opening_hours";
 import Supercluster from "supercluster";
 import YAML from "yaml";
+import { isFlattenable, WEEK_MINUTES } from "../src/lib/hours-week";
 import { DEFAULT_LANG, pathForLang, SUPPORTED_LANGS } from "../src/lib/messages";
 
 const REPO_URL = "https://github.com/boredland/trinkhallen-data.git";
 const OUT_DIR = resolve("dist/static/data");
 const TMP_DIR = resolve(".tmp/trinkhallen-data");
+
+const WEEK_START = new Date("2024-01-15T00:00:00.000Z"); // Monday
+const WEEK_END = new Date("2024-01-22T00:00:00.000Z");
+const MINUTE_MS = 60_000;
+
+/**
+ * Flatten an OSM `opening_hours` string into the alternating minute-offset
+ * encoding `src/lib/hours-week.ts` reads, or null when the rule has to stay on
+ * `opening_hours.js` at runtime (see `isFlattenable`).
+ *
+ * Bailing out on a non-ascending boundary list is the safety net: the runtime
+ * binary search assumes strict ascent, and a rule that produced overlapping or
+ * zero-length spans would otherwise answer wrongly rather than fall back.
+ */
+function flattenWeek(raw: string): number[] | null {
+  if (!isFlattenable(raw)) return null;
+  let intervals: Array<[Date, Date]>;
+  try {
+    intervals = new OpeningHours(raw, null).getOpenIntervals(
+      WEEK_START,
+      WEEK_END,
+    ) as unknown as Array<[Date, Date]>;
+  } catch {
+    return null;
+  }
+  const week: number[] = [];
+  for (const [start, end] of intervals) {
+    week.push(Math.round((start.getTime() - WEEK_START.getTime()) / MINUTE_MS));
+    week.push(Math.round((end.getTime() - WEEK_START.getTime()) / MINUTE_MS));
+  }
+  for (let i = 1; i < week.length; i++) if (week[i]! <= week[i - 1]!) return null;
+  if (week.some((m) => m < 0 || m > WEEK_MINUTES)) return null;
+  return week;
+}
 
 interface Region {
   slug: string;
@@ -96,6 +132,8 @@ function main(): void {
   const allOverviewFeatures: Feature[] = [];
   // (id, lastmod-or-null) pairs collected for the build-time sitemap.
   const sitemapEntries: Array<{ id: string; lastmod: string | null }> = [];
+  let flattenedHours = 0;
+  let libraryHours = 0;
 
   for (const region of regions) {
     const inputPath = resolve(src, region.path);
@@ -105,6 +143,22 @@ function main(): void {
     }
     const collection = JSON.parse(readFileSync(inputPath, "utf8")) as FeatureCollection;
     const features = collection.features ?? [];
+
+    // Bake the weekly schedule alongside the raw string so the Worker and the
+    // map client can answer "open now?" without instantiating opening_hours.js
+    // per kiosk. Rules that can't be flattened keep only `raw` and fall back.
+    for (const f of features) {
+      const hours = f.properties["hours"] as { raw?: string; week?: number[] } | undefined;
+      if (!hours?.raw) continue;
+      const week = flattenWeek(hours.raw);
+      if (week) {
+        hours.week = week;
+        flattenedHours++;
+      } else {
+        libraryHours++;
+      }
+    }
+
     writeFileSync(`${OUT_DIR}/${region.slug}.geojson`, JSON.stringify(collection));
     manifest.push({
       slug: region.slug,
@@ -200,6 +254,11 @@ function main(): void {
   writeFileSync(resolve("dist/static/sitemap.xml"), xml);
 
   const total = manifest.reduce((n, r) => n + r.count, 0);
+  const withHours = flattenedHours + libraryHours;
+  console.log(
+    `  opening hours: ${flattenedHours}/${withHours} flattened ` +
+      `(${((100 * flattenedHours) / withHours).toFixed(1)}%), ${libraryHours} need opening_hours.js`,
+  );
   console.log(`Done. ${manifest.length} regions, ${total} features → ${OUT_DIR}`);
 }
 

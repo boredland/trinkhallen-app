@@ -10,6 +10,7 @@
  */
 
 import Fuse from "fuse.js";
+import { stateFromWeek, weekMinute } from "../lib/hours-week";
 import { computeStatus, type OpeningHoursLocation } from "../lib/opening-hours";
 import { getBundeslandForRegion, resolveRegionByCoords } from "../lib/regions";
 import type { Feature, FeatureCollection } from "./region-store";
@@ -28,7 +29,7 @@ interface FeatureProps {
   name: string;
   description?: string;
   address?: { street?: string; city?: string; district?: string };
-  hours?: { raw?: string };
+  hours?: { raw?: string; week?: number[] };
   tags?: string[];
   payment?: Record<string, "yes" | "no" | "unknown">;
 }
@@ -163,8 +164,14 @@ export function applyFilters(
     }
     if (f.payment.cash && p.payment?.["cash"] !== "yes") return false;
     if (f.openNow) {
-      const s = computeStatus(p.hours?.raw, now, featureLocation(feat));
-      if (s.kind !== "open") return false;
+      // Baked schedules skip both the opening_hours.js parse and the
+      // coordinate→Bundesland scan featureLocation does; only unflattenable
+      // rules pay for either.
+      if (p.hours?.week) {
+        if (!stateFromWeek(p.hours.week, weekMinute(now)).open) return false;
+      } else if (computeStatus(p.hours, now, featureLocation(feat)).kind !== "open") {
+        return false;
+      }
     }
     if (f.needsHours && p.hours?.raw) return false;
     return true;

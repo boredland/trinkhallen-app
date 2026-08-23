@@ -157,7 +157,7 @@ apiKiosks.get("/api/kiosks/nearest-open", async (c) => {
   const candidates = await findNearbyKiosks(c.env, origin, "", 50);
   const now = new Date();
   const openHit = candidates.find(
-    (h) => computeStatus(h.record.hours?.raw, now, kioskLocation(h.record)).kind === "open",
+    (h) => computeStatus(h.record.hours, now, kioskLocation(h.record)).kind === "open",
   );
   if (!openHit) return c.json({ error: "no open kiosks within reach" }, 404);
 

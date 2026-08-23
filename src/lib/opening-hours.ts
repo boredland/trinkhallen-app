@@ -8,6 +8,7 @@
 
 import OpeningHours, { type nominatim_object } from "opening_hours";
 import type { KioskRecord } from "./db";
+import { stateFromWeek, weekMinute } from "./hours-week";
 import { INTL_LOCALE, type Lang, OH_LABELS, tpl } from "./messages";
 import { getBundeslandForRegion } from "./regions";
 
@@ -85,14 +86,38 @@ export function hasPHToken(raw: string | null | undefined): boolean {
   return /(^|[\s,;])PH(\b|,)/.test(raw);
 }
 
+/** The stored opening-hours pair: the OSM string plus, when the rule was
+ *  flattenable at build time, its weekly schedule. `raw` is optional because
+ *  the map client reads these straight out of GeoJSON properties. */
+export interface KioskHours {
+  raw?: string;
+  week?: number[];
+}
+
+/**
+ * Current open/closed status.
+ *
+ * Takes the fast path whenever `hours.week` is present — a binary search over
+ * the baked schedule instead of instantiating `opening_hours.js`, which at
+ * ~45 µs per kiosk used to dominate Worker CPU on collection views. Rules that
+ * could not be flattened (holidays, solar times, month ranges — see
+ * lib/hours-week.ts) still go through the library.
+ */
 export function computeStatus(
-  raw: string | null | undefined,
+  hours: KioskHours | null | undefined,
   now = new Date(),
   location?: OpeningHoursLocation,
 ): Status {
-  if (!raw) return { kind: "unknown" };
+  if (!hours?.raw) return { kind: "unknown" };
+
+  if (hours.week) {
+    const { open, until } = stateFromWeek(hours.week, weekMinute(now));
+    const at = until === null ? null : new Date(now.getTime() + until * 60_000);
+    return open ? { kind: "open", until: at } : { kind: "closed", until: at };
+  }
+
   try {
-    const oh = new OpeningHours(raw, buildNominatim(location));
+    const oh = new OpeningHours(hours.raw, buildNominatim(location));
     const open = oh.getState(now);
     const next = oh.getNextChange(now);
     return open ? { kind: "open", until: next ?? null } : { kind: "closed", until: next ?? null };
@@ -236,8 +261,19 @@ export function formatHoursTable(
  * same reduce.
  */
 export function countOpenNow(records: KioskRecord[], now: Date): number {
-  return records.reduce(
-    (n, r) => (computeStatus(r.hours?.raw, now, kioskLocation(r)).kind === "open" ? n + 1 : n),
-    0,
-  );
+  const minute = weekMinute(now);
+  let open = 0;
+  for (const r of records) {
+    const hours = r.hours;
+    if (!hours?.raw) continue;
+    // Inlined rather than delegating to computeStatus: the flattened path needs
+    // neither a Date allocation for `until` nor the region lookup that
+    // kioskLocation performs, and this loop runs once per kiosk in the bbox.
+    if (hours.week) {
+      if (stateFromWeek(hours.week, minute).open) open++;
+    } else if (computeStatus(hours, now, kioskLocation(r)).kind === "open") {
+      open++;
+    }
+  }
+  return open;
 }

@@ -118,7 +118,7 @@ export function applyFilters(
     }
     if (f.payment.cash && r.payment?.["cash"] !== "yes") return false;
     if (f.openNow) {
-      const s = computeStatus(r.hours?.raw, now, kioskLocation(r));
+      const s = computeStatus(r.hours, now, kioskLocation(r));
       if (s.kind !== "open") return false;
     }
     if (f.needsHours && r.hours?.raw) return false;
