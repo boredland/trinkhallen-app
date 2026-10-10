@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .wrangler/
+/target/
+/build/
 
 # Playwright e2e artifacts
 test-results/
