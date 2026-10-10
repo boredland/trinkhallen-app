@@ -1,0 +1,24 @@
+[package]
+name = "trinkhallen-worker"
+description = "Cloudflare Worker: routing, auth, D1, moderation, SSR via trinkhallen-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+trinkhallen-core.workspace = true
+trinkhallen-ui.workspace = true
+dioxus.workspace = true
+worker = { version = "0.8.7", features = ["d1"] }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+js-sys.workspace = true
+web-sys = { workspace = true, features = ["Crypto", "SubtleCrypto", "CryptoKey", "Cache", "CacheStorage"] }
+getrandom = { workspace = true, features = ["wasm_js"] }
+futures-util = { version = "0.3", default-features = false, features = ["std"] }

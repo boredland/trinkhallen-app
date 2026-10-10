@@ -1,0 +1,15 @@
+[package]
+name = "trinkhallen-ui"
+description = "Dioxus components shared by the Worker's SSR and the hydrated browser islands"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+trinkhallen-core.workspace = true
+dioxus.workspace = true
+dioxus-ssr.workspace = true
+dioxus-fullstack-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
