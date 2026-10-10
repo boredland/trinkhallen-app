@@ -34,6 +34,7 @@ jobs:
             target
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       # Same script Workers Builds runs: toolchain bootstrap, data import,
+      # client bundle, worker. Lint and unit tests then reuse the warm target.
       - run: bash scripts/build-dioxus.sh
       # The build installs the minimal profile (all a deploy needs); lint
       # also wants rustfmt.
