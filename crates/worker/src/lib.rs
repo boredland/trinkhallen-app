@@ -2,9 +2,7 @@
 //! per-request CSP nonce, session, CSRF, language redirect), D1 access and
 //! SSR through `trinkhallen-ui`.
 //!
-//! The TypeScript app under `src/` is the behavioural spec; see
-//! `docs/dioxus-port.md` for the architecture and `crates/worker/src/routes`
-//! for the per-route ports.
+//! See `crates/worker/src/routes` for the per-route handlers.
 
 pub mod assets;
 pub mod assets_manifest;
@@ -54,7 +52,7 @@ async fn fetch(req: Request, env: Env, ctx: Context) -> Result<Response> {
 }
 
 /// Hourly reconciliation of `pr_opened` reports/submissions against GitHub —
-/// see `src/index.ts`'s `scheduled` handler and `crate::moderation`.
+/// see `crate::moderation`.
 #[worker::event(scheduled)]
 async fn scheduled(_event: worker::ScheduledEvent, env: Env, _ctx: worker::ScheduleContext) {
     if let Err(err) = crate::moderation::reconcile_all(&env).await {
@@ -71,7 +69,7 @@ async fn handle(req: Request, env: &Env, ctx: &Context, nonce: &str) -> Result<R
     // `attachUser`: missing/invalid sessions are silently `None`.
     let (user, session_cookie) = session::load_session(env, &req, ctx).await?;
 
-    // CSRF: hono's `csrf()` semantics on the app's own form surfaces.
+    // CSRF: origin check on the app's own form surfaces.
     let content_type = http::header(&req, "content-type");
     let sec_fetch_site = http::header(&req, "sec-fetch-site");
     let origin_header = http::header(&req, "origin");
@@ -129,10 +127,10 @@ async fn handle(req: Request, env: &Env, ctx: &Context, nonce: &str) -> Result<R
     }
 }
 
-/// GET paths the earlier-mounted TS sub-apps (auth, the kiosk APIs,
+/// GET paths that earlier-mounted routers (auth, the kiosk APIs,
 /// moderation's role gate, well-known) intercept before the language
 /// middleware could see them. Everything else — including unknown paths —
-/// goes through the language decision first, exactly like the TS router.
+/// goes through the language decision first.
 fn get_intercepted(path: &str) -> bool {
     if matches!(
         path,
@@ -157,8 +155,8 @@ fn get_intercepted(path: &str) -> bool {
     routes::is_kiosk_id_path(path)
 }
 
-/// hono `secureHeaders` defaults as observed on production, plus the CSP from
-/// `src/index.ts` with this request's script nonce. `'wasm-unsafe-eval'` lets
+/// Security headers as observed on production, plus the CSP
+/// with this request's script nonce. `'wasm-unsafe-eval'` lets
 /// the client bundle compile its wasm; it does not enable `eval()`.
 fn secure_headers(resp: &mut Response, nonce: &str) -> Result<()> {
     let headers = resp.headers_mut();
@@ -193,7 +191,7 @@ fn secure_headers(resp: &mut Response, nonce: &str) -> Result<()> {
     Ok(())
 }
 
-/// Per-request script nonce: 16 random bytes, base64 (hono's `random(16)`).
+/// Per-request script nonce: 16 random bytes, base64.
 fn new_nonce() -> String {
     let mut b = [0u8; 16];
     let _ = getrandom::fill(&mut b);

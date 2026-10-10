@@ -58,7 +58,7 @@ pub async fn rows<T: DeserializeOwned>(
         .map_err(|e| worker::Error::RustError(e.to_string()))
 }
 
-/// First row, or `None`. Mirrors D1's `stmt.first()` with no column name.
+/// First row, or `None`. Like D1's `stmt.first()` with no column name.
 pub async fn one<T: DeserializeOwned>(
     db: &D1Database,
     sql: &str,

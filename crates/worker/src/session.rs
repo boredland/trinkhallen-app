@@ -1,12 +1,11 @@
 //! Signed-cookie sessions backed by the `sessions` table in D1.
 //!
-//! Port of `src/lib/session.ts` (the load half; `src/routes/auth.tsx` owns
-//! session creation for its sign-in routes). Cookie value is `<sid>.<hmac>`
-//! where `hmac = HMAC-SHA256(sid, SESSION_SECRET)` in base64url — byte-equal
-//! to the WebCrypto signature the TS app produced, so existing sessions keep
-//! verifying after the cutover.
+//! Session loading (the auth routes own session creation). Cookie value is `<sid>.<hmac>`
+//! where `hmac = HMAC-SHA256(sid, SESSION_SECRET)` in base64url — must stay
+//! byte-equal to the WebCrypto signature of existing session cookies, so live
+//! sessions keep verifying.
 //!
-//! Cookie attributes mirror hono's serializer:
+//! Cookie attributes follow the standard `Set-Cookie` attribute order:
 //! `__Host-tk_sess=<signed>; Max-Age=2592000; Path=/; HttpOnly; Secure; SameSite=Lax`
 //! with a 30-day sliding TTL refreshed at most once a day via `ctx.wait_until`.
 
@@ -26,7 +25,7 @@ pub fn sign(sid: &str, secret: &str) -> String {
     format!("{sid}.{}", base64url_encode(&mac))
 }
 
-/// Splits at the *last* dot (as the TS verifier did) and compares the MAC
+/// Splits at the *last* dot and compares the MAC
 /// in constant time. Returns the sid when the signature is intact.
 pub fn verify(signed: &str, secret: &str) -> Option<String> {
     let dot = signed.rfind('.')?;
@@ -44,7 +43,7 @@ pub fn session_cookie(signed: &str) -> String {
     cookie_value(COOKIE, signed, TTL_SEC, "/", true, true, Some("lax"))
 }
 
-/// hono `deleteCookie(c, SESSION_COOKIE, { path: "/", secure: true })`.
+/// Clearing cookie for `/` with `Secure`.
 pub fn clearing_cookie() -> String {
     delete_cookie_value(COOKIE, "/", true)
 }
@@ -139,7 +138,7 @@ pub async fn load_session(
 
     // Sliding TTL: refresh when the cookie is within a day of expiring. The
     // update runs on `wait_until`; only the re-signed cookie rides the
-    // response (same as the TS port).
+    // response.
     let mut refreshed = None;
     if row.expires_at as i64 - now < TTL_SEC as i64 - 24 * 60 * 60 {
         let new_expiry = now + TTL_SEC as i64;

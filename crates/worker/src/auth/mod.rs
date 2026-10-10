@@ -1,16 +1,13 @@
 //! Auth routes: Google OAuth, Sign in with Apple, magic link, logout.
 //!
-//! Port of `src/routes/auth.tsx` + `src/lib/{apple-auth,magic,turnstile}.ts`
-//! (and the create/destroy half of `src/lib/session.ts`). The SQL, cookie
-//! attributes, redirects and error strings are the behavioural spec — see
-//! the TS sources for the "why" behind each branch; comments here only note
-//! where the port had to make a call.
+//! The SQL, cookie attributes, redirects and error strings are the behavioural
+//! spec; comments here only note non-obvious decisions.
 //!
 //! Two security fixes from `plans/` are part of the spec, not deviations:
 //!
 //! - plans/006: the Google callback **fails closed** on a missing or
-//!   mismatched `state` (401 before any network call). The TS app got this
-//!   behaviour from a library upgrade; we own the check here.
+//!   mismatched `state` (401 before any network call). A previous provider
+//!   library let this through; the check is owned here.
 //! - plans/008: `GET /auth/magic/verify` renders a confirmation page and
 //!   touches neither the database nor the session; only the POST redeems.
 
@@ -23,13 +20,14 @@ use worker::{Env, Method, Request, Response, Result};
 
 use crate::http::{redirect, text};
 use crate::state::RequestState;
+use crate::util::env_str;
 
 // Child modules read cookies through this, so the auth routes have exactly
 // one cookie-jar entry point.
 pub use crate::http::cookie_header;
 
 /// One-shot CSRF state cookie for Google's redirect round-trip. The name is
-/// deliberately generic (`state`): the TS middleware owned it and a change
+/// deliberately generic (`state`): changing it
 /// would strand in-flight flows.
 pub const GOOGLE_STATE_COOKIE: &str = "state";
 /// Apple's callback is a cross-site form POST, so its state cookie needs
@@ -38,7 +36,7 @@ pub const APPLE_STATE_COOKIE: &str = "__tk_apple_state";
 
 /// Fail-closed OAuth `state` comparison (Google and Apple).
 ///
-/// The TS library compared `undefined === undefined` and let a callback with
+/// The previous library compared `undefined === undefined` and let a callback with
 /// no `state` through (GHSA-fm3f-ch8h-qw8q); missing input must reject.
 pub fn check_oauth_state(param: Option<&str>, cookie: Option<&str>) -> bool {
     match (param, cookie) {
@@ -52,7 +50,7 @@ pub fn state_cookie(name: &str, value: &str, path: &str, same_site: &str) -> Str
     format!("{name}={value}; HttpOnly; Secure; SameSite={same_site}; Path={path}; Max-Age=600")
 }
 
-/// Clearing counterpart, matching hono's `deleteCookie` attributes.
+/// Clearing counterpart: same attributes as the set-cookie.
 pub fn clear_cookie(name: &str, path: &str) -> String {
     format!("{name}=; Path={path}; Max-Age=0; HttpOnly; Secure")
 }
@@ -83,7 +81,7 @@ pub fn urlencode(s: &str) -> String {
 }
 
 /// Same-origin check for the one POST under `/auth/*` that must have it
-/// (`POST /auth/magic/verify`, plans/008 step 4). Mirrors hono's `csrf()`:
+/// (`POST /auth/magic/verify`, plans/008 step 4). Same rule as the global CSRF check:
 /// `Sec-Fetch-Site` when the browser sends it, else a byte-equal `Origin`.
 /// The Apple callback is deliberately NOT covered — its state cookie is the
 /// guard there.
@@ -141,7 +139,7 @@ async fn logout(req: Request, env: &Env) -> Result<Response> {
 
 /// OAuth callback URLs, honouring `PUBLIC_ORIGIN` when it is set.
 pub fn callback_url(env: &Env, request_url: &str, suffix: &str) -> String {
-    match secret(env, "PUBLIC_ORIGIN") {
+    match env_str(env, "PUBLIC_ORIGIN") {
         Some(origin) if origin.starts_with("http") => format!("{origin}{suffix}"),
         _ => match origin_from_url(request_url) {
             Some(origin) => format!("{origin}{suffix}"),
@@ -160,27 +158,12 @@ pub fn origin_from_url(url: &str) -> Option<String> {
     Some(format!("{scheme}://{host}"))
 }
 
-/// Env string binding or secret; missing/empty both count as "unset", which
-/// is how every optional credential in the TS app degrades.
-pub fn secret(env: &Env, name: &str) -> Option<String> {
-    use std::fmt::Write;
-    let value = env
-        .get_binding::<worker::Secret>(name)
-        .map(|s| {
-            let mut out = String::new();
-            let _ = write!(out, "{s}");
-            out
-        })
-        .ok()?;
-    (!value.is_empty()).then_some(value)
-}
-
-/// 401 with no body — hono's `HTTPException(401)` shape.
+/// 401 with no body.
 pub fn unauthorized() -> Result<Response> {
     Ok(worker::Response::builder().with_status(401).empty())
 }
 
-/// hono's `csrf()` rejection shape.
+/// CSRF rejection shape.
 pub fn forbidden() -> Result<Response> {
     text("Forbidden", 403)
 }

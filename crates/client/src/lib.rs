@@ -2,7 +2,7 @@
 //!
 //! Loaded once per document from the `<head>` (`import init from client.js`).
 //! It hydrates every server-rendered island and then wires up the plain-DOM
-//! behaviour the TS bundle (`src/client/app.entry.ts`) used to own: theme,
+//! behaviour no island owns: theme,
 //! sidebar, kiosk sheet, filter chip form, panel refresh, logout, service
 //! worker, install prompt, and the MapLibre bridge (`web/map.js`).
 

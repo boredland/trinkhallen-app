@@ -1,5 +1,4 @@
-//! Sign in with Apple — port of `src/lib/apple-auth.ts` plus the
-//! `/auth/apple*` routes.
+//! Sign in with Apple, including the `/auth/apple*` routes.
 //!
 //! Apple's OAuth flow differs from Google's in three ways, all reflected
 //! here: the callback is a cross-site `form_post` (→ `SameSite=None` state
@@ -11,7 +10,7 @@ use worker::{Env, Request, Response, Result};
 
 use super::{
     APPLE_STATE_COOKIE, callback_url, check_oauth_state, clear_cookie, cookie_header, encode_form,
-    post_form, secret, state_cookie, users,
+    post_form, state_cookie, users,
 };
 use crate::crypto::{
     base64url_encode, json_bool_or_str, jwt_decode_payload, jwt_signing_input, pem_to_pkcs8_der,
@@ -20,6 +19,7 @@ use crate::crypto::{
 use crate::http::{redirect, text};
 use crate::session::create_session;
 use crate::state::RequestState;
+use crate::util::env_str;
 
 const APPLE_AUDIENCE: &str = "https://appleid.apple.com";
 const TOKEN_URL: &str = "https://appleid.apple.com/auth/token";
@@ -39,10 +39,10 @@ pub struct AppleEnv {
 /// "not configured" message instead of failing deep in the JWT signer.
 pub fn apple_env(env: &Env) -> Option<AppleEnv> {
     Some(AppleEnv {
-        services_id: secret(env, "APPLE_SIGN_IN_SERVICES_ID")?,
-        team_id: secret(env, "APPLE_SIGN_IN_TEAM_ID")?,
-        key_id: secret(env, "APPLE_SIGN_IN_KEY_ID")?,
-        private_key_pem: secret(env, "APPLE_SIGN_IN_PRIVATE_KEY")?,
+        services_id: env_str(env, "APPLE_SIGN_IN_SERVICES_ID")?,
+        team_id: env_str(env, "APPLE_SIGN_IN_TEAM_ID")?,
+        key_id: env_str(env, "APPLE_SIGN_IN_KEY_ID")?,
+        private_key_pem: env_str(env, "APPLE_SIGN_IN_PRIVATE_KEY")?,
     })
 }
 

@@ -1,9 +1,8 @@
 //! Route modules: page renders, JSON/HTML APIs and the well-known document.
 //!
-//! Dispatch mirrors the TS router (`src/index.ts` + `src/routes/*.tsx`):
-//! locale-addressed page routes are matched on the locale-stripped path, API
-//! and well-known routes stay root-only, and every handler keeps the response
-//! shape of its TS counterpart.
+//! Dispatch: locale-addressed page routes are matched on the locale-stripped
+//! path, API and well-known routes stay root-only, and every handler keeps a
+//! stable response shape.
 
 pub mod api_forms;
 pub mod api_kiosks;
@@ -76,7 +75,7 @@ pub fn page_status(
 
 /// Side-panel fragment data for one bbox: filter → sort → count → cut at 100.
 /// `has_bbox` distinguishes the real panel from the empty-bbox placeholder
-/// (which carries no counters and no reset link, like the TS `KioskList`).
+/// (which carries no counters and no reset link).
 pub fn build_panel<'a>(
     lang: Lang,
     all: &[&'a KioskRecord],
@@ -107,8 +106,8 @@ pub fn bare_path(path: &str) -> String {
 }
 
 /// The kiosk id in an `/api/kiosks/<id>` path, or `None` for the named
-/// sub-routes (`panel`, `nearest`, `nearest-open`) which the TS router
-/// registers ahead of `:id`.
+/// sub-routes (`panel`, `nearest`, `nearest-open`) which are
+/// registered ahead of `:id`.
 fn kiosk_id_of(path: &str) -> Option<&str> {
     let rest = path.strip_prefix("/api/kiosks/")?;
     if rest.is_empty() || rest.contains('/') || matches!(rest, "panel" | "nearest" | "nearest-open")
@@ -141,9 +140,8 @@ pub async fn dispatch(
         };
     }
 
-    // Moderation subtree: the role gate runs for every verb (the TS
-    // `requireModerator` middleware), the decision endpoints live in the
-    // moderation slice.
+    // Moderation subtree: the role gate runs for every verb, the decision
+    // endpoints live in the moderation module.
     if path.starts_with("/api/moderate/") {
         if let Some(res) = crate::moderation::require_moderator(state) {
             return Ok(res);
@@ -159,7 +157,7 @@ pub async fn dispatch(
     }
 
     // API + well-known stay root-only (the client passes the locale along
-    // explicitly) — `/en/api/...` is a 404, as in the TS router.
+    // explicitly) — `/en/api/...` is a 404.
     if path.starts_with("/api/") {
         return api_dispatch(req, env, ctx, state, &bare).await;
     }

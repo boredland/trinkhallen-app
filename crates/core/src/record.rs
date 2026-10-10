@@ -2,7 +2,7 @@
 //!
 //! Kiosk data is static: the importer bakes trinkhallen-data's per-region
 //! FeatureCollections into `/data/<slug>.geojson`, and both the Worker and the
-//! map client read those files. `Feature` mirrors that file format exactly so
+//! map client read those files. `Feature` matches that file format exactly so
 //! a round trip through serde is lossless.
 
 use std::collections::BTreeMap;

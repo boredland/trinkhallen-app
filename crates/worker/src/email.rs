@@ -1,5 +1,4 @@
-//! Outbound email via Cloudflare Email Service (`send_email` binding) —
-//! port of `src/lib/email.ts`.
+//! Outbound email via Cloudflare Email Service (`send_email` binding).
 //!
 //! The binding takes a structured message and builds the MIME itself, so
 //! there is no hand-rolled RFC 2822 composition here. Always send `text`

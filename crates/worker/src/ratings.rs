@@ -1,5 +1,5 @@
-//! Ratings (1–5 stars, optional comment, one per user per kiosk) — port of
-//! `src/lib/ratings.ts`. Aggregates are computed on the fly in SQL: for a
+//! Ratings (1–5 stars, optional comment, one per user per kiosk).
+//! Aggregates are computed on the fly in SQL: for a
 //! kiosk with O(10²) ratings that is trivial, and there is no denormalised
 //! counter to keep in sync.
 

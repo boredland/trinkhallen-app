@@ -1,5 +1,5 @@
-//! `/about` (`pages.tsx` `/about`): the German body inline there, the English
-//! courtesy translation from `LegalProse.tsx`'s `AboutBodyEn`.
+//! `/about`: the German body inline here, the English
+//! courtesy translation from `components::legal_prose`.
 
 use dioxus::prelude::*;
 use trinkhallen_core::ORIGIN;
@@ -30,7 +30,7 @@ pub fn render(data: &AboutData) -> (String, PageMeta) {
 }
 
 fn metric(value: u64, label: &str) -> String {
-    // TS `Metric` renders `value.toLocaleString("de-DE")`.
+    // Thousands separators follow `toLocaleString("de-DE")`.
     let value = format_locale(value, Lang::De);
     to_html(rsx! {
         div { class: "border-2 border-border bg-surface px-5 py-6 sm:px-6 sm:py-8",
@@ -92,7 +92,7 @@ fn german_body(data: &AboutData) -> String {
                     }
                     li {
                         a { class: "text-neon-cyan underline underline-offset-2", href: "https://github.com/boredland/trinkhallen-app", "boredland/trinkhallen-app" }
-                        " — Code (Cloudflare Workers + Hono)."
+                        " — Code (Cloudflare Workers + Rust/Dioxus)."
                     }
                 }
                 p { class: "mt-3 text-sm text-fg-dim",
@@ -138,7 +138,7 @@ fn german_body(data: &AboutData) -> String {
             section {
                 h2 { class: "font-display text-2xl tracking-wide text-fg", "▶▶▶ Stack" }
                 ul { class: "mt-3 space-y-1.5 text-sm text-fg-muted",
-                    li { "Cloudflare Workers · Hono SSR · TypeScript · D1 (SQLite)" }
+                    li { "Cloudflare Workers · Rust · Dioxus (SSR + Islands) · D1 (SQLite)" }
                     li { "MapLibre GL JS · OpenFreeMap (Vektor-Tiles, ohne API-Key)" }
                     li { "Tailwind CSS v4 · Anton / Inter · keine Tracker, kein Analytics" }
                     li { "Auth: Magic-Link per Mail (Cloudflare Email Routing) oder Google SSO — mit automatischem Merge der beiden bei gleicher Adresse." }

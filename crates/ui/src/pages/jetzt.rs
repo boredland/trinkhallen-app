@@ -1,6 +1,6 @@
-//! `/jetzt` (`pages.tsx` `/jetzt`): the PWA shortcut flow — locate, find the
+//! `/jetzt`: the PWA shortcut flow — locate, find the
 //! nearest open kiosk, hand over to the native maps app. The behaviour lives
-//! in a nonce'd inline script, ported verbatim.
+//! in a nonce'd inline script.
 
 use dioxus::prelude::*;
 use trinkhallen_core::i18n::{Lang, path_for_lang, t};
@@ -27,7 +27,7 @@ pub fn render(lang: Lang, nonce: &str) -> (String, PageMeta) {
         }
     });
 
-    // Key order matches the TS `jsMsg` literal; values are JSON strings.
+    // Key order is part of the inline script's message literal; values are JSON strings.
     let js = |key: &str| serde_json::Value::String(t(lang, key)).to_string();
     let m = format!(
         r#"{{"noGeo":{noGeo},"locating":{locating},"searching":{searching},"noneOpen":{noneOpen},"openingSuffix":{openingSuffix},"lookupFailed":{lookupFailed},"geoFailed":{geoFailed}}}"#,

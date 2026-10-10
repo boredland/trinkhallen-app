@@ -1,4 +1,4 @@
-//! Moderation decisions — port of `src/lib/moderation.ts`.
+//! Moderation decisions.
 //!
 //! `approve_submission` / `approve_report` resolve the change, open a PR via
 //! the GitHub App, and update the D1 row with the PR URL + status. Rejection

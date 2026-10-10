@@ -1,5 +1,5 @@
-//! `report` island: `ReportForm.tsx` + the `kind` → fieldset toggling from
-//! `src/client/app.entry.ts`. The form itself is a plain POST to
+//! `report` island: the `kind` → fieldset toggling on the report form.
+//! The form itself is a plain POST to
 //! `/api/reports` (the server redirects) — only the visible fieldset is
 //! interactive.
 
@@ -89,8 +89,8 @@ pub fn ReportIsland(props: ReportProps) -> Element {
         .clone()
         .unwrap_or_else(|| "z. B. Mo-Fr 09:00-22:00; Sa 10:00-20:00".to_owned());
     // Starts empty so the pre-hydration markup keeps every fieldset hidden,
-    // exactly like the TS SSR; the mount effect reveals the selected one the
-    // way `apply()` did on load.
+    // exactly like the server render; the mount effect reveals the selected one
+    // on load.
     let mut selected = use_signal(String::new);
     {
         let mut selected = selected;

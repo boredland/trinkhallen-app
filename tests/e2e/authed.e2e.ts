@@ -10,8 +10,7 @@
  *   - the one-shot username rename write path
  *   - account deletion (session + personal-data teardown)
  *
- * Signal-flow tests (clicking confirm/dispute on a real kiosk page) are the
- * remaining gap — they just need a kiosk fixture; the auth half is solved.
+ * The signal flow (check-in → confirm/dispute) lives in interactions.e2e.ts.
  */
 
 import { expect, test } from "@playwright/test";
@@ -110,13 +109,10 @@ test("account deletion tears down the session and personal data", async ({ brows
     await page.locator('details:has(form[action="/me/delete"]) summary').click();
     await page.locator('form[action="/me/delete"] input[name="confirm"]').check();
 
-    // The form carries `data-logout-form`: client JS (logout.ts) intercepts the
-    // submit, POSTs via fetch (to purge the SW cache), then `location.replace`s
-    // home. Wait on the actual /me/delete response so the server-side teardown
-    // is committed before we re-check — otherwise we'd race the in-flight fetch.
-    // We don't assert on the home landing page: `/` leans on the ASSETS binding,
-    // whose vite-dev-server emulation is shaky (same reason the smoke tests
-    // target /datenschutz).
+    // The form carries `data-logout-form`: the client intercepts the submit,
+    // POSTs via fetch (to purge the SW cache), then `location.replace`s home.
+    // Wait on the actual /me/delete response so the server-side teardown is
+    // committed before we re-check — otherwise we'd race the in-flight fetch.
     await Promise.all([
       page.waitForResponse(
         (r) => r.url().includes("/me/delete") && r.request().method() === "POST",

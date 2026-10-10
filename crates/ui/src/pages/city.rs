@@ -1,4 +1,4 @@
-//! `/stadt/:slug` (`pages.tsx`): the per-city directory page and its 404.
+//! `/stadt/:slug`: the per-city directory page and its 404.
 
 use dioxus::prelude::*;
 use serde_json::Value;
@@ -104,8 +104,8 @@ pub fn render(data: &CityData) -> (String, PageMeta) {
     (body, meta)
 }
 
-/// `GET /stadt/:slug` for a slug outside the dataset (`pages.tsx` 404 branch).
-/// Copy is German in both locales, like the TS.
+/// `GET /stadt/:slug` for a slug outside the dataset.
+/// Copy is German in both locales.
 pub fn not_found(lang: Lang, slug: &str) -> (String, PageMeta) {
     let home = path_for_lang("/", lang);
     let body = to_html(rsx! {

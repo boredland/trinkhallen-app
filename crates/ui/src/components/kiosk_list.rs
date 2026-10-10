@@ -1,4 +1,4 @@
-//! `KioskList.tsx`: the side-panel list, also served as the
+//! Kiosk list: the side-panel list, also served as the
 //! `/api/kiosks/panel` fragment and reused by `/stadt/:slug`.
 //!
 //! The list borrows its kiosk records for the duration of the render, so the

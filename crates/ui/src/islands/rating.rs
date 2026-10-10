@@ -1,4 +1,4 @@
-//! `rating` island: `RatingBlock.tsx` + `src/client/rating.ts`.
+//! `rating` island: the star rating block.
 //!
 //! The markup is exactly `RatingBlock`, wrapped by the island root that
 //! [`crate::render::island`] emits (`#rating-block[data-island]`). The
@@ -174,9 +174,8 @@ pub fn RatingIsland(props: RatingProps) -> Element {
     }
 }
 
-/// POST `/api/ratings` (or its `/delete`) and swap `#rating-block`, exactly
-/// like `src/client/rating.ts`: validate stars first, disable the buttons,
-/// swap the returned fragment on success.
+/// POST `/api/ratings` (or its `/delete`) and swap `#rating-block`: validate
+/// stars first, disable the buttons, swap the returned fragment on success.
 async fn submit_rating(
     lang: Lang,
     kiosk_id: String,
@@ -215,7 +214,7 @@ async fn submit_rating(
     };
     match b.0.post_form(url, fields).await {
         Ok(res) if res.status < 300 => {
-            // rating.ts swaps `#rating-block` via outerHTML: the fragment
+            // The swap uses outerHTML: the fragment
             // carries its own root with that id, so the next swap still works.
             b.0.set_outer_html("rating-block", &res.body);
             return;
@@ -321,7 +320,7 @@ fn stars_group(lang: Lang, own_stars: u8, mut stars: Signal<u8>) -> Element {
                 {
                     // `read()` (not `peek`) so the group subscribes and the
                     // amber/dim classes repaint the moment a star is picked —
-                    // the TS `paintStars` repaint.
+                    // without a server round trip.
                     let active = star <= *stars.read();
                     let cls = if active {
                         "transition-colors text-neon-amber"

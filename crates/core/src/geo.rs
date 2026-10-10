@@ -76,7 +76,7 @@ pub fn parse_bbox(raw: Option<&str>) -> Option<Bbox> {
 }
 
 /// A small box around a point (≈5 km), seeding the side panel for a focused
-/// kiosk or a `?c=lat,lng` deep link; mirrors the map's initial viewport.
+/// kiosk or a `?c=lat,lng` deep link; matches the map's initial viewport.
 pub fn bbox_around(p: LatLng) -> Bbox {
     Bbox {
         west: p.lng - 0.05,

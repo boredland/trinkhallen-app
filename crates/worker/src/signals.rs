@@ -1,4 +1,4 @@
-//! Per-field signal log — port of `src/lib/signals.ts`.
+//! Per-field signal log.
 //!
 //! `record_signal` **always records** the signal; the `verified` column
 //! captures whether the user had a fresh in-range fix. Decoupling the capture

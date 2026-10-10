@@ -1,4 +1,4 @@
-//! User-filed corrections ("Daten falsch?") — port of `src/lib/reports.ts`.
+//! User-filed corrections ("Daten falsch?").
 //!
 //! A report is *live* while it waits for moderation or has been accepted;
 //! dismissed rows are excluded on purpose, because a rejection is the

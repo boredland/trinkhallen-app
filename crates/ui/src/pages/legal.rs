@@ -1,4 +1,4 @@
-//! `/impressum` and `/datenschutz` (`pages.tsx` + `LegalProse.tsx` English
+//! `/impressum` and `/datenschutz` (English
 //! bodies). German is the binding version; English is a courtesy translation.
 
 use dioxus::prelude::*;

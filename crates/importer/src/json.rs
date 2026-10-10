@@ -1,5 +1,5 @@
 //! Order-preserving JSON value with `JSON.parse` / `JSON.stringify` semantics,
-//! so region files re-serialise the way the TS importer wrote them.
+//! so region files re-serialise the way they were originally written.
 //!
 //! `serde_json::Value` is avoided on purpose: object order matters for diffable
 //! output, and enabling `preserve_order` would be unified workspace-wide.

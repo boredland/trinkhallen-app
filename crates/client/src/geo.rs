@@ -10,7 +10,7 @@ use web_sys::PositionOptions;
 
 use trinkhallen_ui::islands::Coords;
 
-/// `src/client/checkin.ts`'s `tryGeolocate`: high accuracy, 3500 ms browser
+/// Check-in geolocation: high accuracy, 3500 ms browser
 /// timeout, a 4000 ms hard cap, and a 60 s position cache. Denial, timeout and
 /// "no geolocation API" all resolve to `None` — the caller treats "no fix" as
 /// a silent best-effort miss, never an error.

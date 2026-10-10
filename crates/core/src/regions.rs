@@ -6,6 +6,8 @@
 //! [`generated`] on every build (committed so tests run without a data
 //! checkout). Never hand-edit it — change `regions.yml`.
 
+// Rewritten by the importer on every build; rustfmt would fight its layout.
+#[rustfmt::skip]
 mod generated;
 
 pub use generated::REGIONS;

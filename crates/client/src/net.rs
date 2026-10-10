@@ -36,7 +36,7 @@ pub async fn post_form(url: &str, fields: Vec<Field>) -> Result<FetchResult, Str
 }
 
 /// GET a text body (HTML partials, JSON) with the browser cache semantics the
-/// TS client had (`fetch(url, { headers: { accept } })`).
+/// default `fetch` does (`fetch(url, { headers: { accept } })`).
 pub async fn get_text(url: &str, accept: &str) -> Result<FetchResult, String> {
     let init = RequestInit::new();
     init.set_method("GET");
@@ -105,7 +105,7 @@ fn encode(s: &str) -> String {
     out
 }
 
-/// Serialize the named fields of a form (`new FormData(form)` in the TS app).
+/// Serialize the named fields of a form (`new FormData(form)`).
 pub fn form_fields(form: &web_sys::HtmlFormElement) -> Vec<Field> {
     let mut out = Vec::new();
     for el in crate::dom::query_all(form, "[name]") {

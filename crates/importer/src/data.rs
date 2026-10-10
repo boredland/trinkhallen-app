@@ -122,8 +122,8 @@ fn summary_feature(item: Item, points: &[(f64, f64)]) -> Json {
         Item::Point(i) => (points[i].0, points[i].1, 1),
         Item::Cluster { lng, lat, count } => (lng, lat, count),
     };
-    // Singletons never carry a supercluster abbreviation; the TS importer
-    // fell back to `String(count)`.
+    // Singletons never carry a supercluster abbreviation; the published
+    // snapshots use `String(count)` there.
     let abbreviated = match item {
         Item::Point(_) => Json::str("1"),
         Item::Cluster { .. } => match abbreviate(count) {

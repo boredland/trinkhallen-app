@@ -1,8 +1,8 @@
-//! Page routes — port of `src/routes/pages.tsx`.
+//! Page routes.
 //!
 //! Each handler assembles the `trinkhallen_ui::pages::*` data struct (the
 //! binding contract in `crates/ui/src/pages/mod.rs`) and wraps the rendered
-//! body in the document. SQL is ported verbatim from the TS handlers.
+//! body in the document.
 
 use std::collections::BTreeMap;
 

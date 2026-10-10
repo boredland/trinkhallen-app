@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
-/* MapLibre and the self-hosted fonts used to be imported from the JS entry
-   (src/client/app.entry.ts); one stylesheet covers everything now, so the
+/* MapLibre's stylesheet and the fonts come in through this one file, so the
    HTML only ever loads `app.css`. Fonts stay self-hosted (latin + latin-ext —
    German umlauts live in latin-ext) so nothing reaches fonts.googleapis.com. */
 @import "maplibre-gl/dist/maplibre-gl.css";
@@ -16,7 +15,7 @@
 @import "@fontsource/anton/latin-400.css";
 @import "@fontsource/anton/latin-ext-400.css";
 
-/* Class strings now live in RSX inside the Rust crates as well as in TSX. */
+/* Class strings live in RSX inside the Rust crates. */
 @source "../crates/**/*.rs";
 
 /* ---------------------------------------------------------------------------

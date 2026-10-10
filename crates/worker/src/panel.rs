@@ -1,6 +1,6 @@
 //! Side-panel view shared by the map page and `GET /api/kiosks/panel`.
 //!
-//! The pipeline is the TS `KioskList` data path verbatim: filter → sort →
+//! The pipeline is: filter → sort →
 //! count open-now over the *whole* filtered set → show the first 100.
 
 use chrono::{DateTime, Utc};
@@ -12,7 +12,7 @@ use trinkhallen_core::record::KioskRecord;
 
 /// Rows the panel renders, plus the counters in its header.
 pub struct PanelView<'a> {
-    /// Sorted, at most 100 (the TS `slice(0, 100)`).
+    /// Sorted, at most 100.
     pub kiosks: Vec<&'a KioskRecord>,
     /// Everything inside the bbox, before filtering.
     pub total_in_bbox: usize,

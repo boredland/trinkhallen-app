@@ -1,9 +1,10 @@
 //! Query-string ⇄ structured filter, and filter application.
 //!
-//! Text search reproduces the Fuse.js 7.3 configuration the TS app used
-//! (Bitap with `threshold 0.35`, `ignoreLocation`, `minMatchCharLength 2`,
-//! weighted keys, field-length norm), so search results and their order stay
-//! the same across the port — on the server panel and in the map client.
+//! Text search reproduces the Fuse.js 7.3 configuration the previous
+//! implementation used (Bitap with `threshold 0.35`, `ignoreLocation`,
+//! `minMatchCharLength 2`, weighted keys, field-length norm), so search
+//! results and their order stay stable — on the server panel and in the map
+//! client.
 
 use chrono::{DateTime, Utc};
 

@@ -12,6 +12,7 @@
 //! wall clock. That quirk is preserved deliberately: changing it would shift
 //! every open/closed answer by one or two hours relative to the live site.
 
+#[rustfmt::skip]
 mod holidays_de;
 mod weekly;
 
@@ -29,7 +30,7 @@ use crate::regions::bundesland_for_region;
 pub const WEEK_MINUTES: u32 = 7 * 24 * 60;
 
 /// Rules whose evaluation depends on the calendar date, or whose flattening
-/// disagrees with the evaluator. Mirrors the importer's original regex:
+/// disagrees with the evaluator. Matches the importer's regex:
 /// `sunrise|sunset|dawn|dusk|\[[-0-9]+\]|\b20\d\d\b|(^|[\s,;])(PH|SH)(\b|,)|
 /// \b(Jan|…|Dec)\b|\+|"|unknown` (case-insensitive).
 pub fn is_flattenable(raw: &str) -> bool {

@@ -1,20 +1,20 @@
-//! Google SSO — port of the `googleAuth` middleware half of
-//! `src/routes/auth.tsx` plus its upsert/link handlers.
+//! Google SSO: the OAuth redirect/code-exchange/userinfo steps plus the
+//! upsert/link handlers.
 //!
-//! The TS app delegated the redirect and code exchange to
-//! `@hono/oauth-providers/google`; here all three steps are ours so the
+//! All three OAuth steps are done here (no provider library) so the
 //! fail-closed `state` check from plans/006 sits in front of any network
-//! call. Endpoints and parameters mirror that library (0.9.x) exactly.
+//! call. Endpoints and parameters match Google's OAuth 2.0 web-server flow.
 
 use worker::{Env, Request, Response, Result};
 
 use super::{
     GOOGLE_STATE_COOKIE, callback_url, check_oauth_state, cookie_header, encode_form, get_bearer,
-    post_form, secret, state_cookie, unauthorized, users,
+    post_form, state_cookie, unauthorized, users,
 };
 use crate::http::{redirect, text};
 use crate::session::create_session;
 use crate::state::RequestState;
+use crate::util::env_str;
 
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
@@ -31,8 +31,8 @@ pub struct GoogleEnv {
 }
 
 pub fn google_env(env: &Env) -> Option<GoogleEnv> {
-    let client_id = secret(env, "GOOGLE_CLIENT_ID")?;
-    let client_secret = secret(env, "GOOGLE_CLIENT_SECRET")?;
+    let client_id = env_str(env, "GOOGLE_CLIENT_ID")?;
+    let client_secret = env_str(env, "GOOGLE_CLIENT_SECRET")?;
     Some(GoogleEnv {
         client_id,
         client_secret,

@@ -1,5 +1,4 @@
-//! GitHub App client — port of `src/lib/github-app.ts` plus the
-//! `authedFetch` helper its sibling `github-pr.ts` grew.
+//! GitHub App client, plus an authenticated-fetch helper shared with the PR flow.
 //!
 //! Enough to open issues/PRs against `trinkhallen-data` on behalf of the
 //! moderators. The App private key arrives as a PEM string in
@@ -25,9 +24,9 @@ pub struct GithubAppEnv {
 
 pub fn github_app_env(env: &Env) -> Option<GithubAppEnv> {
     Some(GithubAppEnv {
-        app_id: crate::auth::secret(env, "GITHUB_APP_ID")?,
-        private_key_pem: crate::auth::secret(env, "GITHUB_APP_PRIVATE_KEY")?,
-        installation_id: crate::auth::secret(env, "GITHUB_APP_INSTALLATION_ID")?,
+        app_id: crate::util::env_str(env, "GITHUB_APP_ID")?,
+        private_key_pem: crate::util::env_str(env, "GITHUB_APP_PRIVATE_KEY")?,
+        installation_id: crate::util::env_str(env, "GITHUB_APP_INSTALLATION_ID")?,
     })
 }
 

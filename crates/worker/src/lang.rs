@@ -1,5 +1,4 @@
-//! First-visit language handling for page GETs — port of the `pages.use("*")`
-//! middleware in `src/index.ts` (lines 96–137) as a pure decision function.
+//! First-visit language handling for page GETs, as a pure decision function.
 //!
 //! Two jobs:
 //!   1. `?setlang=xx` — the header switcher's explicit choice: persist a sticky
@@ -12,7 +11,7 @@
 //! `/en` URLs and crawlers with no language signal are never bounced. Normal
 //! renders set no cookie, so the HTML stays cacheable.
 //!
-//! `cookie` is the *value* of the `tk_lang` cookie (like hono's `getCookie`),
+//! `cookie` is the *value* of the `tk_lang` cookie,
 //! not the raw header.
 
 use trinkhallen_core::i18n::{DEFAULT_LANG, Lang, lang_from_path, path_for_lang, resolve_lang};
@@ -146,7 +145,7 @@ mod tests {
 
     #[test]
     fn cookie_wins_over_accept_language() {
-        // The cookie *value* carries the choice (hono's getCookie semantics).
+        // The cookie *value* carries the choice.
         let d = decide("/", "", Some("en"), Some("de-DE"));
         assert_eq!(d.location.as_deref(), Some("/en"));
         // Cookie already carries the choice — nothing to persist.
@@ -179,7 +178,7 @@ mod tests {
 
     #[test]
     fn setlang_reserialises_the_remaining_query() {
-        // Ground truth from the TS app: 302 /en/impressum?a=1+2&b=x+y&a=3
+        // Ground truth from production: 302 /en/impressum?a=1+2&b=x+y&a=3
         let d = decide("/impressum", "setlang=en&a=1%202&b=x+y&a=3", None, None);
         assert_eq!(d.location.as_deref(), Some("/en/impressum?a=1+2&b=x+y&a=3"));
         // Empty value resolves to the default language; duplicates drop entirely.

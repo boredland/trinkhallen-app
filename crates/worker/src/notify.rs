@@ -1,5 +1,5 @@
-//! Operator ping when a new report lands in the moderation queue — port of
-//! `src/lib/notify.ts` (+ the `src/lib/email.ts` composition).
+//! Operator ping when a new report lands in the moderation queue (composed
+//! as a plain-text email).
 //!
 //! Fire-and-forget by design: a reporting user's POST must never fail, stall
 //! or roll back because the mail hop is slow or Email Routing is

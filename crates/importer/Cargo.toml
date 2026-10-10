@@ -9,7 +9,7 @@ license.workspace = true
 trinkhallen-core.workspace = true
 serde.workspace = true
 # float_roundtrip: parse doubles exactly like JSON.parse so re-serialised
-# coordinates match what the TS importer wrote.
+# coordinates match the already-published region files.
 serde_json = { workspace = true, features = ["float_roundtrip"] }
 chrono.workspace = true
 serde_yaml_ng = "0.10"

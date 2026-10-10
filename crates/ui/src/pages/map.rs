@@ -1,4 +1,4 @@
-//! `/` and the map view (`pages.tsx` `renderMapPage`): the MapLibre mount,
+//! `/` and the map view: the MapLibre mount,
 //! legal overlay, kiosk sheet + backdrop and the filter sidebar with the
 //! `filters` island and the kiosk panel.
 
@@ -17,7 +17,7 @@ use crate::model::Nav;
 use crate::pages::{MapData, PageMeta};
 use crate::render::{ClientEntry, to_html};
 
-/// Static bbox the map falls back to (`data-bbox` in the TS).
+/// Static bbox the map falls back to (`data-bbox`).
 const DEFAULT_BBOX: &str = "5.87,47.27,15.04,55.06";
 
 pub fn render(data: &MapData) -> (String, PageMeta) {

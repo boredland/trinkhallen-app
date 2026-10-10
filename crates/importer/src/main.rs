@@ -3,7 +3,6 @@
 //! ```text
 //! cargo run -p trinkhallen-importer --release -- data
 //! cargo run -p trinkhallen-importer --release -- assets dist/static/assets
-//! cargo run -p trinkhallen-importer --release -- empty-assets-manifest
 //! ```
 
 mod assets;
@@ -38,11 +37,7 @@ fn run(args: &[String]) -> Result<(), String> {
             let dir = args.get(1).ok_or("usage: assets <dir>")?;
             assets::run(Path::new(dir), Path::new(ASSETS_MANIFEST)).map(drop)
         }
-        Some("empty-assets-manifest") => std::fs::write(ASSETS_MANIFEST, assets::render_empty())
-            .map_err(|e| format!("write {ASSETS_MANIFEST}: {e}")),
-        _ => {
-            Err("usage: trinkhallen-importer <data | assets <dir> | empty-assets-manifest>".into())
-        }
+        _ => Err("usage: trinkhallen-importer <data | assets <dir>>".into()),
     }
 }
 

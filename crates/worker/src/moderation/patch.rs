@@ -1,5 +1,5 @@
 //! Structured data-file edits for approved reports and submissions — the
-//! pure half of `src/lib/moderation.ts` (`applyReportPatch`,
+//! pure half of moderation (`applyReportPatch`,
 //! `appendFeatureToCollection`).
 //!
 //! Everything here operates on `serde_json::Value` rather than the typed
@@ -122,7 +122,7 @@ pub fn apply_report_patch(
         "update_payment" => match payload.get("payment").and_then(|v| v.as_object()) {
             Some(payment) if !payment.is_empty() => {
                 // Conservative: only fill missing keys; never overwrite an
-                // existing value. Mirrors run-gmaps-payment.ts's policy in the
+                // existing value. Same policy as run-gmaps-payment.ts in the
                 // data repo — we'd rather extend than argue with prior data.
                 let mut current = props
                     .get("payment")
@@ -214,7 +214,7 @@ pub fn apply_report_patch(
 
 /// Append a feature to a collection, keeping the data repo's feature order:
 /// non-OSM features first (user submissions live here), then OSM-only ones,
-/// each block sorted by feature id the way `run-osm-scrape.ts` writes files.
+/// each block sorted by feature id the way `run-osm-scrape.ts` in the data repo writes files.
 pub fn append_feature_to_collection(text: &str, feature: &Value) -> Result<String, String> {
     let mut doc = parse_collection(text)?;
     let new_osm = is_osm_only(feature);
@@ -242,7 +242,7 @@ pub fn append_feature_to_collection(text: &str, feature: &Value) -> Result<Strin
 }
 
 /// Whether every source on the feature is `osm` — `run-osm-scrape.ts`'s
-/// `isOsmOnly`, the boundary between the two sorted blocks.
+/// `isOsmOnly` (data repo), the boundary between the two sorted blocks.
 pub fn is_osm_only(feature: &Value) -> bool {
     let Some(sources) = feature
         .pointer("/properties/sources")
@@ -282,7 +282,7 @@ pub fn locale_compare(a: &str, b: &str) -> std::cmp::Ordering {
     a.cmp(b)
 }
 
-/// The PH rule test from the TS port: an OSM `PH` token (word-boundary-ish,
+/// The PH rule test: an OSM `PH` token (word-boundary-ish,
 /// so `SHOP` never matches), which is what `opening-hours` understands.
 fn has_ph_rule(hours: &str) -> bool {
     let bytes = hours.as_bytes();

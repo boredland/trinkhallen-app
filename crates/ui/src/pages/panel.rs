@@ -1,4 +1,4 @@
-//! Side-panel list (`KioskList.tsx`) — the `/api/kiosks/panel` fragment and
+//! Side-panel list — the `/api/kiosks/panel` fragment and
 //! the map sidebar body.
 
 use super::PanelData;
@@ -32,7 +32,7 @@ mod tests {
             description: None,
             address,
             // No hours → the status label is time-independent, so the row
-            // markup below is exactly what the TS renders.
+            // markup below is exactly what is rendered.
             hours: None,
             tags: vec!["wc".into()],
             payment: None,
@@ -64,7 +64,7 @@ mod tests {
         let k = kiosk();
         let html = render(&data(vec![&k]));
 
-        // Row skeleton + classes straight out of KioskList.tsx.
+        // Row skeleton + classes of the panel list.
         assert!(html.starts_with("<div class=\"block\">"), "{html}");
         assert!(
             html.contains("<ul class=\"divide-y-2 divide-border\"><li>"),
@@ -101,7 +101,7 @@ mod tests {
             "{html}"
         );
         // Navigate CTA, desktop UA → Google Maps web target (`&` is escaped in
-        // attributes, exactly as the TS renderer writes it).
+        // attributes, exactly as the renderer writes it).
         assert!(html.contains(
             "<a href=\"https://www.google.com/maps/dir/?api=1&#38;destination=50.123,8.689&#38;destination_place_id=Testkiosk\" class=\"shrink-0 border-2 border-border-hi px-2 py-1 font-display text-xs tracking-wider uppercase text-fg-muted transition-colors hover:border-neon-pink hover:text-neon-pink\" aria-label=\"Hin navigieren zu Testkiosk\">▶ Nav</a>"),
             "{html}"

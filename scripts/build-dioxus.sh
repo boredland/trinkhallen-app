@@ -43,6 +43,13 @@ if ! worker-build --version 2>/dev/null | grep -q "${WORKER_BUILD_VERSION}"; the
   cargo binstall --no-confirm --force "worker-build@${WORKER_BUILD_VERSION}"
 fi
 
+# esbuild, Tailwind, MapLibre and the fonts come from bun.lock. Workers Builds
+# installs them before the build command; a fresh clone may not have.
+if [ ! -x node_modules/.bin/esbuild ]; then
+  echo "==> installing JS build dependencies"
+  bun install --frozen-lockfile
+fi
+
 echo "==> importing data"
 cargo run --release --locked -p trinkhallen-importer -- data
 

@@ -1,11 +1,10 @@
 /**
  * Auth helpers for e2e tests.
  *
- * Mirrors the session-cookie shape from `src/lib/session.ts`:
+ * Builds the production session-cookie shape (crates/worker/src/session.rs):
  *   - cookie name: `__Host-tk_sess`
  *   - value: `<sid>.<hmac>` where hmac = HMAC-SHA256(sid, SESSION_SECRET)
- *     encoded as base64url (Node's `digest('base64url')` matches the worker's
- *     `bufferToBase64Url` helper character-for-character).
+ *     encoded as base64url without padding.
  *
  * `seedTestUser` inserts a fresh users + sessions row pair via
  * `wrangler d1 execute --local`. The caller is responsible for cleanup via

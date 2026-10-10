@@ -1,4 +1,4 @@
-//! Magic-link signup / login — port of `src/lib/magic.ts`, `src/lib/turnstile.ts`
+//! Magic-link signup / login, including Turnstile verification
 //! and the `/auth/magic*` routes.
 //!
 //! Token is a random opaque secret; the DB stores its SHA-256 so a leak
@@ -15,11 +15,12 @@
 use dioxus::prelude::*;
 use worker::{Env, Request, Response, Result};
 
-use super::{query_param, same_origin_post, secret, users};
+use super::{query_param, same_origin_post, users};
 use crate::crypto::{sha256_hex, timing_safe_equal, unix_now};
 use crate::http::redirect;
 use crate::session::create_session;
 use crate::state::RequestState;
+use crate::util::env_str;
 use trinkhallen_core::i18n::{resolve_lang, t};
 use trinkhallen_ui::model::Nav;
 use trinkhallen_ui::render::{Page, document, to_html};
@@ -187,7 +188,7 @@ pub async fn request_link(mut req: Request, env: &Env, state: &RequestState) -> 
         .to_lowercase();
     let ip = req.headers().get("cf-connecting-ip").ok().flatten();
 
-    // Bot gate before any mail goes out — see src/lib/turnstile.ts.
+    // Bot gate before any mail goes out.
     let human = verify_turnstile(
         env,
         form.get_field(TURNSTILE_FIELD).as_deref(),
@@ -207,7 +208,7 @@ pub async fn request_link(mut req: Request, env: &Env, state: &RequestState) -> 
     let link = mint_magic_link(&db, &email, user_agent.as_deref(), ip.as_deref(), now).await?;
 
     if let Some(link) = link {
-        let origin = secret(env, "PUBLIC_ORIGIN").unwrap_or_else(|| state.origin.clone());
+        let origin = env_str(env, "PUBLIC_ORIGIN").unwrap_or_else(|| state.origin.clone());
         let raw = format!("{}.{}", link.id, link.token);
         let verify_url = format!(
             "{origin}/auth/magic/verify?token={}",
@@ -324,7 +325,7 @@ pub async fn verify_turnstile(
     token: Option<&str>,
     remote_ip: Option<&str>,
 ) -> Result<bool> {
-    let Some(secret_key) = secret(env, "TURNSTILE_SECRET_KEY") else {
+    let Some(secret_key) = env_str(env, "TURNSTILE_SECRET_KEY") else {
         return Ok(true);
     };
     let Some(token) = token.filter(|t| !t.is_empty()) else {

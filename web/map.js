@@ -12,8 +12,8 @@
  *
  * Data loading and filtering happen in Rust (`trinkhallen_core::filters`), so
  * this module only renders what it is given. `callbacks` is optional; every
- * callback also fires as a `tk:*` window CustomEvent (the same events
- * `src/client/map.entry.ts` dispatched), so non-map listeners keep working:
+ * callback also fires as a `tk:*` window CustomEvent, so listeners outside
+ * the map (sheet, panel) don't need a handle:
  *
  *   tk:map-ready       { bbox, zoom }
  *   tk:bbox-changed    { bbox, zoom }

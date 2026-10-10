@@ -1,4 +1,4 @@
-//! `/me` (`pages.tsx`): the logged-out login page and the profile
+//! `/me`: the logged-out login page and the profile
 //! (`renderProfile`), including the flash banners and the account forms.
 
 use dioxus::prelude::*;
@@ -12,7 +12,7 @@ use crate::render::{ClientEntry, to_html};
 pub fn login(data: &LoginData) -> (String, PageMeta) {
     let lang = data.lang;
     let magic = data.magic.as_deref();
-    // The magic-link banners are plain German copy in both locales (TS).
+    // The magic-link banners are plain German copy in both locales.
     let ok = "mt-6 border-2 border-success/60 bg-success/10 p-4 text-success";
     let err = "mt-6 border-2 border-danger/60 bg-danger/10 p-4 text-danger";
     let banners = match magic {
@@ -89,7 +89,7 @@ pub fn login(data: &LoginData) -> (String, PageMeta) {
         }
     });
 
-    // The Turnstile loader sits between the form and the note in the TS; since
+    // The Turnstile loader sits between the form and the note; since
     // rsx cannot mix raw tags with elements, splice it into the section.
     let body = match &data.turnstile_site_key {
         Some(_) => {
@@ -240,7 +240,7 @@ pub fn profile(data: &ProfileData) -> (String, PageMeta) {
                 ul { class: "divide-y-2 divide-border",
                     for s in &data.submissions {
                         {
-                            // The TS parses the stored feature; a malformed row
+                            // The stored feature is parsed leniently: a malformed row
                             // must not take the page down, so fall back to the
                             // placeholder name.
                             let name = serde_json::from_str::<serde_json::Value>(&s.payload)
@@ -347,7 +347,7 @@ pub fn profile(data: &ProfileData) -> (String, PageMeta) {
     (body, meta)
 }
 
-/// `Stat` in the TS.
+/// Single stat tile.
 fn stat(n: u64, label: &str) -> Element {
     rsx! {
         div { class: "border-2 border-border bg-surface-2 py-3",
@@ -357,7 +357,7 @@ fn stat(n: u64, label: &str) -> Element {
     }
 }
 
-/// `StatusPill` in the TS.
+/// Request status pill.
 fn status_pill(lang: Lang, status: &str) -> Element {
     let cls = match status {
         "open" | "pending" => "border-status-open text-status-open",

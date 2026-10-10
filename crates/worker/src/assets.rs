@@ -1,5 +1,5 @@
 //! Server-side accessor for the static kiosk data (`/data/_manifest.json` +
-//! `/data/<slug>.geojson`) — port of `src/lib/asset-kiosks.ts`.
+//! `/data/<slug>.geojson`).
 //!
 //! Two layers keep this cheap: the module-scope cache lives for the isolate's
 //! lifetime (cold-start fetches happen at most once per region), and
@@ -173,8 +173,8 @@ impl KioskSet {
     }
 }
 
-/// Manifest regions whose bbox may intersect `bbox` (port of the TS
-/// `bboxesOverlap` pre-filter).
+/// Manifest regions whose bbox may intersect `bbox` (cheap pre-filter before
+/// fetching region files).
 pub fn select_region_slugs(manifest: &Manifest, bbox: Bbox) -> Vec<String> {
     manifest
         .regions
@@ -213,7 +213,7 @@ pub fn collect_in_bbox(loaded: &[Rc<RegionRecords>], bbox: Bbox, limit: usize) -
     set
 }
 
-/// Kiosks inside `bbox` (default limit 5000, as in the TS app).
+/// Kiosks inside `bbox` (default limit 5000).
 pub async fn query_kiosks_in_bbox(env: &Env, bbox: Bbox, limit: usize) -> Result<KioskSet> {
     let manifest = load_manifest(env).await?;
     let slugs = select_region_slugs(&manifest, bbox);
@@ -240,8 +240,8 @@ pub async fn count_kiosks(env: &Env) -> Result<usize> {
     Ok(n)
 }
 
-/// Regions whose (padded) bbox contains `origin`, nearest first — the TS app
-/// loads only those and expands implicitly by padding ≈5 km.
+/// Regions whose (padded) bbox contains `origin`, nearest first — only those
+/// are loaded, and the search expands implicitly by padding ≈5 km.
 fn candidate_slugs(manifest: &Manifest, origin: LatLng) -> Vec<String> {
     manifest
         .regions

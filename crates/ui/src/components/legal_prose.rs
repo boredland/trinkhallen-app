@@ -1,4 +1,4 @@
-//! `LegalProse.tsx`: the English prose bodies of the otherwise-German static
+//! Legal prose: the English prose bodies of the otherwise-German static
 //! pages (`/about`, `/impressum`, `/datenschutz`). The German versions live in
 //! `pages::about` / `pages::legal` and stay authoritative; these are courtesy
 //! translations rendered for the `en` locale. Domain nouns (Trinkhalle/Späti/
@@ -85,7 +85,7 @@ pub fn about_en(total: u64, ratings: u64, users: u64) -> String {
                     }
                     li {
                         a { class: "{A}", href: "https://github.com/boredland/trinkhallen-app", "boredland/trinkhallen-app" }
-                        " — the code (Cloudflare Workers + Hono)."
+                        " — the code (Cloudflare Workers + Rust/Dioxus)."
                     }
                 }
                 p { class: "mt-3 text-sm text-fg-dim",
@@ -131,7 +131,7 @@ pub fn about_en(total: u64, ratings: u64, users: u64) -> String {
             section {
                 h2 { class: "{H2}", "▶▶▶ Stack" }
                 ul { class: "mt-3 space-y-1.5 text-sm text-fg-muted",
-                    li { "Cloudflare Workers · Hono SSR · TypeScript · D1 (SQLite)" }
+                    li { "Cloudflare Workers · Rust · Dioxus (SSR + islands) · D1 (SQLite)" }
                     li { "MapLibre GL JS · OpenFreeMap (vector tiles, no API key)" }
                     li { "Tailwind CSS v4 · Anton / Inter · no trackers, no analytics" }
                     li { "Auth: magic link by email (Cloudflare Email Routing) or Google SSO — with automatic merge of the two when the address matches." }

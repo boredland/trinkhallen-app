@@ -42,7 +42,7 @@ pub struct FetchResult {
 pub trait BrowserApi {
     /// POST `application/x-www-form-urlencoded` to a same-origin URL with
     /// `X-Tk-Fragment: 1` and `accept: text/html`, so `/api/*` handlers answer
-    /// with the HTML fragment the island swaps in (see `src/client/rating.ts`).
+    /// with the HTML fragment the island swaps in.
     fn post_form(
         &self,
         url: &str,

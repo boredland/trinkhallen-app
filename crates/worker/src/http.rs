@@ -1,7 +1,7 @@
 //! Response, cookie and header helpers shared by every route module.
 //!
-//! Cookie serialisation mirrors hono's `serialize` byte for byte (attribute
-//! order included) so existing browser cookie jars keep matching.
+//! Cookie serialisation follows the common `Set-Cookie` attribute order
+//! (Max-Age, Domain, Path, Expires, HttpOnly, Secure, SameSite) byte for byte, so existing browser cookie jars keep matching.
 
 use worker::{Request, Response, Result};
 
@@ -82,7 +82,7 @@ pub fn with_cookie(resp: Response, cookie: &str) -> Result<Response> {
     Ok(resp)
 }
 
-/// hono `setCookie` serialisation: `name=value` then Max-Age, Domain, Path,
+/// `setCookie`-style serialisation: `name=value` then Max-Age, Domain, Path,
 /// Expires, HttpOnly, Secure, SameSite in that fixed order.
 pub fn cookie_value(
     name: &str,
@@ -111,8 +111,8 @@ pub fn cookie_value(
     c
 }
 
-/// hono `deleteCookie`: `name=; Max-Age=0; Path=…` plus the attributes the
-/// caller passed (the TS session code passes `path` + `secure` only).
+/// `deleteCookie`-style clearing: `name=; Max-Age=0; Path=…` plus the attributes the
+/// caller passed (the session code passes `path` + `secure` only).
 pub fn delete_cookie_value(name: &str, path: &str, secure: bool) -> String {
     let mut c = format!("{name}=; Max-Age=0; Path={path}");
     if secure {
@@ -121,8 +121,8 @@ pub fn delete_cookie_value(name: &str, path: &str, secure: bool) -> String {
     c
 }
 
-/// First value of `name` in the `Cookie` header, percent-decoded the way
-/// hono's `getCookie` does (strict decode, raw value when it fails).
+/// First value of `name` in the `Cookie` header, percent-decoded strictly
+/// (raw value when decoding fails).
 pub fn cookie_header(req: &Request, name: &str) -> Option<String> {
     let raw = req.headers().get("cookie").ok().flatten()?;
     for pair in raw.split(';') {

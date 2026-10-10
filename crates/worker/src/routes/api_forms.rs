@@ -1,6 +1,5 @@
 //! Form-driven APIs: check-ins, signals, ratings, reports and the `/add`
-//! submission — ports of `src/routes/api.{checkins,signals,ratings,reports,
-//! submissions}.tsx`.
+//! submission.
 
 use serde_json::{Map, Value, json};
 use trinkhallen_core::geo::LatLng;

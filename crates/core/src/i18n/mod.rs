@@ -3,8 +3,7 @@
 //! The default language (German) lives at the root and every other supported
 //! language gets a path prefix (`/en/...`). Missing English keys fall back to
 //! German per key, then to the key itself, so English can lag without breaking
-//! a page. Strings live in the generated [`catalog`] (from the TS catalog the
-//! port started from) so copy is reviewed in one place.
+//! a page. Strings live in [`catalog`] so copy is reviewed in one place.
 
 mod catalog;
 

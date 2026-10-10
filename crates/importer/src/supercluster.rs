@@ -1,4 +1,4 @@
-//! Port of `supercluster` 8 + `kdbush` 4 (the versions the TS importer ran).
+//! Port of `supercluster` 8 + `kdbush` 4 (the JS library versions the published snapshots came from).
 //!
 //! The summary snapshots must match what the JS library produced, so this
 //! mirrors its numeric behaviour instead of using idiomatic structures:

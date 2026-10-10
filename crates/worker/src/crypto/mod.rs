@@ -55,8 +55,8 @@ pub fn base64_encode(bytes: &[u8]) -> String {
     out
 }
 
-/// Whitespace-tolerant base64 decode for PEM bodies (the regex-stripped,
-/// `\s`-collapsed input of the TS port becomes pre-stripped here).
+/// Whitespace-tolerant base64 decode for PEM bodies (input is pre-stripped
+/// of whitespace here).
 pub fn base64_decode(input: &str) -> Option<Vec<u8>> {
     let mut out = Vec::with_capacity(input.len() / 4 * 3);
     let mut acc: u32 = 0;
@@ -108,9 +108,8 @@ pub fn hex_encode(bytes: &[u8]) -> String {
     out
 }
 
-/// Constant-time comparison of two equal-length-ish strings, mirroring the
-/// TS `timingSafeEqual` (length mismatch short-circuits, the rest is a
-/// folded XOR).
+/// Constant-time comparison; only a length mismatch returns early, which
+/// leaks nothing for the fixed-length hashes and signatures compared here.
 pub fn timing_safe_equal(a: &str, b: &str) -> bool {
     if a.len() != b.len() {
         return false;
@@ -122,7 +121,7 @@ pub fn timing_safe_equal(a: &str, b: &str) -> bool {
     diff == 0
 }
 
-/// Unix seconds — `Math.floor(Date.now() / 1000)` throughout the TS app.
+/// Unix seconds.
 pub fn unix_now() -> i64 {
     #[cfg(target_arch = "wasm32")]
     {
@@ -287,8 +286,8 @@ pub fn jwt_signing_input(header: &serde_json::Value, claims: &serde_json::Value)
 ///
 /// Both flows here obtain the token server-to-server over TLS from the
 /// provider's own token endpoint (Apple) or construct it locally (GitHub),
-/// so the signature is not the trust anchor — the same trade-off the TS
-/// port documented for Apple's id_token.
+/// so the signature is not the trust anchor — the same trade-off as for
+/// Apple's id_token.
 pub fn jwt_decode_payload(jwt: &str) -> Result<serde_json::Value, String> {
     let mut parts = jwt.split('.');
     let _header = parts.next().ok_or("malformed jwt")?;

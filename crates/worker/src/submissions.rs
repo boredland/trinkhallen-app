@@ -1,5 +1,5 @@
 //! `POST /add` — validate a proposed Kiosk Feature and park it in
-//! `submissions` for moderator review (port of `src/routes/api.submissions.tsx`).
+//! `submissions` for moderator review.
 //!
 //! The stored payload is a GeoJSON Feature so moderation can diff it against
 //! the data repo's files without a translation layer.

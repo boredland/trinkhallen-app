@@ -1,15 +1,24 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "trinkhallen-app"
-main = "./dist/index.js"
+main = "crates/worker/build/index.js"
 compatibility_date = "2026-01-15"
 
-# Workers Assets — serves /dist/static built by Vite
+# Full build: importer → dist/static/data, client bundle → dist/static/assets,
+# then worker-build (wasm-bindgen) into crates/worker/build/. Workers Builds
+# ignores this section and runs scripts/build-dioxus.sh as its build command;
+# `wrangler dev` uses it and rebuilds when the Rust or web sources change.
+[build]
+command = "bash scripts/build-dioxus.sh"
+watch_dir = ["crates/client/src", "crates/core/src", "crates/ui/src", "crates/worker/src", "web", "public"]
+
+# Workers Assets — serves dist/static (data, hashed assets, public/ files).
 [assets]
 directory = "./dist/static"
 binding = "ASSETS"
 
 # Hourly reconciliation of pr_opened reports/submissions against GitHub — see
-# the scheduled handler in src/index.ts.
+# the scheduled handler in src/index.ts (ported to `scheduled` in
+# crates/worker/src/lib.rs).
 [triggers]
 crons = ["17 * * * *"]
 

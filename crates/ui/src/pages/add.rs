@@ -1,4 +1,4 @@
-//! `GET /add` (`pages.tsx`): the "Späti vorschlagen" form with its pick map.
+//! `GET /add`: the "Späti vorschlagen" form with its pick map.
 
 use dioxus::prelude::*;
 use trinkhallen_core::i18n::{path_for_lang, t, tag_label};
@@ -7,7 +7,7 @@ use crate::model::Nav;
 use crate::pages::{AddData, PageMeta};
 use crate::render::{ClientEntry, to_html};
 
-/// Checkbox tags of the suggestion form (the TS literal list).
+/// Checkbox tags of the suggestion form.
 const TAGS: [&str; 12] = [
     "snacks",
     "bier",

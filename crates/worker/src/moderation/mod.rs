@@ -1,10 +1,10 @@
-//! Moderation HTTP surface — port of `src/routes/moderate.tsx`'s decision
+//! Moderation HTTP surface — the decision
 //! endpoints and role gate (the queue *page* is rendered by the other slice;
 //! [`require_moderator`] is what guards it).
 //!
 //! `/api/moderate/*` is POST-only here: approve/reject/ban/unban are the
 //! forms the queue page submits. The language-prefixed `/en/moderate` mount
-//! posts to the root endpoints, exactly as in the TS app.
+//! posts to the root endpoints.
 
 pub mod decisions;
 pub mod github;
@@ -19,7 +19,7 @@ use crate::state::RequestState;
 use decisions::{KioskRow, Moderator, ReportRow, SubmissionRow, synthetic_kiosk_row};
 
 /// Accounts deleted by their owner are anonymised onto this row; it must
-/// never be banned or shown as a user (`src/lib/users.ts`).
+/// never be banned or shown as a user.
 pub const DELETED_USER_SENTINEL: &str = "00000000-0000-0000-0000-000000000000";
 
 /// Role gate for `/moderate` and `/api/moderate/*`.
@@ -75,7 +75,7 @@ async fn dispatch(req: Request, env: &Env, state: &RequestState) -> Result<Respo
             let Some(row) = pending_submission(env, id).await? else {
                 return text("submission not pending", 404);
             };
-            // Surfaced gap in the TS app: the report path wraps its approve in
+            // Known asymmetry: the report path wraps its approve in
             // try/catch and returns the diagnostic text, submission approve
             // 500s with a generic message. Both report it here.
             match decisions::approve_submission(env, &row, &moderator).await {

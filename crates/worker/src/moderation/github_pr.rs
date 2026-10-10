@@ -1,5 +1,4 @@
-//! GitHub PR helpers on top of [`super::github_app`]. Port of
-//! `src/lib/github-pr.ts`.
+//! GitHub PR helpers on top of [`super::github_app`].
 //!
 //! `propose_change` runs the whole dance — read file → mutate → commit on a
 //! fresh branch → open PR — so moderation only passes a mutator. Falls back

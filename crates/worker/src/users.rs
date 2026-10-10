@@ -1,6 +1,5 @@
 //! Account helpers: the themed handle generator, the change-once rename and
-//! account deletion — ports of `src/lib/usernames.ts`, `src/lib/users.ts` and
-//! `deleteAccount` in `src/routes/pages.tsx`.
+//! account deletion.
 
 use worker::{D1Database, Result};
 

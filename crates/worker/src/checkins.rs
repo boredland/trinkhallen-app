@@ -1,6 +1,5 @@
-//! Check-in event log + strict verified-presence primitive — port of
-//! `src/lib/checkins.ts` (plus the PH observation filing of
-//! `src/routes/api.checkins.tsx`).
+//! Check-in event log + strict verified-presence primitive (including the PH
+//! observation filing of the check-in API).
 //!
 //! Both paths share one accuracy-aware fence: the GPS fix's reported accuracy
 //! pads [`VERIFY_RADIUS_M`] up to [`ACCURACY_CAP_M`] so a noisy urban fix at
@@ -242,7 +241,7 @@ async fn detect_impossible_travel(
 }
 
 /// Pull a region slug out of `kiosk.region` — a repo-style path like
-/// `de/hessen/frankfurt` in the TS app, already a bare slug in the Rust port.
+/// `de/hessen/frankfurt` in the data repo, already a bare slug here.
 pub fn region_slug_from_path(region: &str) -> String {
     let trimmed = region.strip_suffix(".geojson").unwrap_or(region);
     trimmed.rsplit('/').next().unwrap_or(trimmed).to_owned()

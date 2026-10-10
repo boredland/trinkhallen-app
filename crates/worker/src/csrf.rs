@@ -1,11 +1,11 @@
-//! CSRF origin check — hono's `csrf()` semantics, as defence-in-depth next to
-//! the `SameSite=Lax` session cookie.
+//! CSRF origin check, as defence-in-depth next to the `SameSite=Lax` session
+//! cookie: unsafe form-shaped requests must carry a matching `Origin` or
+//! `Sec-Fetch-Site: same-origin`.
 //!
-//! The TS app mounted it on `/api/*`, `/en/api/*`, `/me/*`, `/en/me/*`; the
-//! port also covers `/add` + `/en/add` (the `/add` form is state-changing and
-//! same-origin only). `/auth/*` is deliberately excluded — Apple's sign-in
-//! callback is a legitimate cross-origin form POST and is guarded by its own
-//! state-cookie match.
+//! It covers `/api/*`, `/en/api/*`, `/me/*`, `/en/me/*` and `/add` + `/en/add`
+//! (the `/add` form is state-changing and same-origin only). `/auth/*` is
+//! deliberately excluded — Apple's sign-in callback is a legitimate
+//! cross-origin form POST and is guarded by its own state-cookie match.
 
 /// Should this request path be checked at all?
 pub fn csrf_protected(method: &str, path: &str) -> bool {
@@ -18,9 +18,9 @@ pub fn csrf_protected(method: &str, path: &str) -> bool {
             .any(|p| path.starts_with(p))
 }
 
-/// hono only checks requests "requested by a form element": the three form
+/// Only requests "requested by a form element" are checked: the three form
 /// content types. A missing `Content-Type` counts as `text/plain` (and is
-/// therefore checked), exactly like the middleware's `|| "text/plain"`.
+/// therefore checked).
 pub fn is_form_content_type(content_type: Option<&str>) -> bool {
     let ct = content_type.unwrap_or("text/plain").to_ascii_lowercase();
     [
@@ -36,7 +36,7 @@ pub fn is_form_content_type(content_type: Option<&str>) -> bool {
 /// origin; `origin` the `Origin` header, `sec_fetch_site` the
 /// `Sec-Fetch-Site` header.
 ///
-/// hono rejects when the request is unsafe, form-shaped and *neither*
+/// Rejects when the request is unsafe, form-shaped and *neither*
 /// `Sec-Fetch-Site: same-origin` *nor* an exactly matching `Origin` is
 /// present. `Sec-Fetch-Site` wins when present (values other than the four
 /// known ones count as absent there).

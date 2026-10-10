@@ -1,8 +1,8 @@
 //! Small shared helpers: env string bindings, randomness, and the
 //! URL-encoding the language redirect needs.
 //!
-//! The query helpers deliberately mirror WHATWG `URLSearchParams` (the TS app
-//! used `new URL(...).searchParams`), including its
+//! The query helpers deliberately mirror WHATWG `URLSearchParams`
+//! including its
 //! `application/x-www-form-urlencoded` serialisation, because `?setlang=`
 //! redirects echo the remaining query back.
 
@@ -15,15 +15,15 @@ pub fn now() -> i64 {
 }
 
 /// Env string binding (var or secret) with missing/empty both counting as
-/// "unset" — how every optional credential in the TS app degrades.
+/// "unset" — how every optional credential degrades.
 pub fn env_str(env: &Env, name: &str) -> Option<String> {
     let value = env.get_binding::<worker::Secret>(name).ok()?.to_string();
     (!value.is_empty()).then_some(value)
 }
 
-/// `crypto.getRandomValues` through `getrandom`, biased exactly like the TS
-/// `randomInt` (`buf[0] % max`) so generated handles stay distribution-equal
-/// to the ported generator.
+/// `crypto.getRandomValues` through `getrandom`, biased like JS
+/// `randomInt` (`buf[0] % max`) so generated handles keep their existing
+/// distribution.
 pub fn random_int(max: u32) -> u32 {
     let mut b = [0u8; 4];
     let _ = getrandom::fill(&mut b);
@@ -51,7 +51,7 @@ fn decode_plus(s: &str) -> String {
 
 /// Percent-decoding. Lenient mode keeps invalid sequences verbatim (query
 /// strings); strict mode returns the input untouched when any escape or the
-/// resulting UTF-8 is invalid (cookie values, matching hono's `tryDecode`).
+/// resulting UTF-8 is invalid (cookie values, matching browsers' tolerant jars).
 pub fn percent_decode(s: &str, lenient: bool) -> String {
     let bytes = s.as_bytes();
     let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn query_round_trip_matches_urlsearchparams() {
-        // Ground truth from the TS app: /impressum?setlang=en&a=1%202&b=x+y&a=3
+        // Ground truth from production: /impressum?setlang=en&a=1%202&b=x+y&a=3
         // redirects to /en/impressum?a=1+2&b=x+y&a=3.
         let pairs = parse_query("setlang=en&a=1%202&b=x+y&a=3");
         assert_eq!(query_get(&pairs, "setlang"), Some("en"));

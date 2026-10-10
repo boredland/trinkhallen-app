@@ -6,18 +6,17 @@ pre-commit:
   parallel: true
   jobs:
     - name: biome
-      glob: "*.{ts,tsx,js,jsx,json,jsonc,css}"
+      glob: "*.{js,jsx,json,jsonc,ts}"
       run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
 
-    - name: typecheck
-      glob: "*.{ts,tsx}"
-      run: bunx tsc --noEmit
+    - name: rustfmt
+      glob: "*.rs"
+      run: cargo fmt --all -- {staged_files}
+      stage_fixed: true
 
-    # Run the unit tests on every commit. `bun test` discovers *.test.ts
-    # files anywhere under src/. Fast enough (~50ms) that we don't gate it
-    # on which files changed — a passing suite per commit is worth more
-    # than the saved ms.
-    - name: test
-      glob: "*.{ts,tsx}"
-      run: bun test
+    # Native check of every crate; the wasm32-only paths are covered by CI's
+    # full build.
+    - name: cargo
+      glob: "*.{rs,toml}"
+      run: cargo test --workspace --quiet

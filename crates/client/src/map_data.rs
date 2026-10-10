@@ -1,7 +1,6 @@
 //! Kiosk data for the map: the static `/data/*` files plus the filter logic.
 //!
-//! Mirrors `src/client/region-store.ts` + `client-filters.ts`, but the
-//! filtering is `trinkhallen_core::filters` so the map shows exactly what the
+//! Filtering is `trinkhallen_core::filters`, so the map shows exactly what the
 //! server panel lists:
 //!
 //!   - below [`DETAIL_ZOOM`]: one pre-baked supercluster snapshot per integer
@@ -23,7 +22,7 @@ use trinkhallen_core::record::{Feature, FeatureCollection, Manifest};
 /// Zoom at which per-region detail data replaces the summaries.
 pub const DETAIL_ZOOM: f64 = 9.0;
 /// Integer zooms with a pre-baked summary snapshot. Kept in sync with
-/// `SUMMARY_ZOOMS` in `scripts/import-data.ts`.
+/// `SUMMARY_ZOOMS` in `crates/importer/src/data.rs`.
 pub const SUMMARY_ZOOMS: [u32; 4] = [5, 6, 7, 8];
 
 #[derive(Default)]

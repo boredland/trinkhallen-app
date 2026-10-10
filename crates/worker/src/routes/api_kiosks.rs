@@ -1,4 +1,4 @@
-//! `src/routes/api.kiosks.tsx` — kiosk data APIs backed by the static asset
+//! Kiosk data APIs backed by the static asset
 //! files.
 
 use serde_json::{Map, Value, json};
@@ -66,7 +66,7 @@ pub async fn collection(
     if cacheable {
         let to_store = resp.cloned()?;
         let cache = Cache::default();
-        // Same as the TS port: the write never delays the response.
+        // The cache write never delays the response.
         ctx.wait_until(async move {
             let _ = cache.put(cache_key, to_store).await;
         });
@@ -189,7 +189,7 @@ pub async fn by_id(env: &Env, _state: &RequestState, id: &str) -> Result<Respons
 }
 
 /// The GeoJSON shape the map client consumes: `address` always, everything
-/// else only when the record carries it (mirrors the TS `toFeature`).
+/// else only when the record carries it.
 fn to_feature(r: &KioskRecord) -> Map<String, Value> {
     let mut properties = Map::new();
     properties.insert("id".into(), r.id.clone().into());
@@ -240,7 +240,7 @@ fn to_feature_collection(records: &[&KioskRecord]) -> Value {
 }
 
 /// Cache key: quantized bbox (~1 km grid) + limit + filter signature. The
-/// numbers render through [`js_num`] so keys match the TS ones byte for byte
+/// numbers render through [`js_num`] so keys stay byte-identical to existing cache entries
 /// (including float artefacts like `50.300000000000004`).
 pub fn cache_key_for(bbox: Bbox, limit: usize, sig: &str) -> String {
     let qb = quantize_bbox(bbox, 0.01);

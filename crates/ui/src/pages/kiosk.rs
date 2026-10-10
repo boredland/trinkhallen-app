@@ -1,5 +1,5 @@
 //! `/k/:id`: the kiosk detail article (sheet partial and standalone place
-//! page) and the "kiosk not found" page (`pages.tsx` `/k/:id`).
+//! page) and the "kiosk not found" page.
 
 use dioxus::prelude::*;
 use trinkhallen_core::ORIGIN;
@@ -14,14 +14,14 @@ use crate::model::{Aggregate, Nav, RatingComment, RatingRow};
 use crate::pages::{KioskDetailData, PageMeta};
 use crate::render::{ClientEntry, to_html};
 
-/// `KioskDetail.tsx` — the `<article>`, for `?partial=1` and for embedding.
+/// Kiosk detail — the `<article>`, for `?partial=1` and for embedding.
 pub fn detail(data: &KioskDetailData) -> String {
     crate::components::kiosk_detail::render(data)
 }
 
 /// The rating block on its own: the body of `POST /api/ratings` responses with
 /// `X-Tk-Fragment: 1`. Byte-identical to the block the detail page embeds, so
-/// the client's `outerHTML` swap behaves exactly like the TS one.
+/// the client's `outerHTML` swap behaves identically.
 pub fn rating_block(
     lang: Lang,
     kiosk_id: &str,
@@ -42,12 +42,12 @@ pub fn rating_block(
 }
 
 /// Direct `GET /k/:id`: breadcrumb + detail + the "on the map" link
-/// (`pages.tsx` ~1294-1331).
+/// link.
 pub fn standalone(data: &KioskDetailData) -> (String, PageMeta) {
     let lang = data.lang;
     let kiosk = data.kiosk;
 
-    // `city && stub` in the TS: the city crumb only renders for kiosks whose
+    // The city crumb only renders for kiosks whose
     // region slug is one of the landing pages.
     let city_crumb = match (kiosk.addr("city"), city_slug(kiosk)) {
         (Some(_), Some(stub)) => {
@@ -203,7 +203,7 @@ mod tests {
         assert!(html.contains("data-island=\"report\""), "{html}");
         assert!(html.contains("id=\"checkin-island\""), "{html}");
         assert!(html.contains("id=\"report-island\""), "{html}");
-        // Headings + form actions stay where the TS puts them.
+        // Headings + form actions stay where the client expects them.
         assert!(html.contains(">Bewertungen</h2>"), "{html}");
         assert!(
             html.contains("<form action=\"/api/ratings\" method=\"post\""),

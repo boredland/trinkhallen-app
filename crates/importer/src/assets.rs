@@ -141,12 +141,6 @@ pub fn render(m: &Manifest) -> String {
     )
 }
 
-/// The checked-in placeholder: valid for compiling the worker before a build
-/// has produced the bundle.
-pub fn render_empty() -> String {
-    render(&Manifest::default())
-}
-
 pub fn run(dir: &Path, manifest_rs: &Path) -> Result<Manifest, String> {
     let hash = hash_dir(dir)?;
     let manifest = resolve(dir, &hash)?;

@@ -4,6 +4,7 @@ dist/
 /target/
 /build/
 crates/worker/build/
+crates/worker/src/assets_manifest.rs
 
 # Playwright e2e artifacts
 test-results/

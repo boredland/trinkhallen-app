@@ -1,8 +1,6 @@
 /**
- * Public surface — the no-auth pages, exercised in a real browser against live
- * kiosk data (the fixture in CI, the full dataset locally). These cover the
- * data path that 500'd in dev before the ASSETS-fetch fix, plus the
- * locale-routing the unit tests check at the middleware level.
+ * Public surface — the no-auth pages, exercised in a real browser against the
+ * kiosk data the build imported, plus the locale routing.
  */
 
 import { expect, test } from "@playwright/test";

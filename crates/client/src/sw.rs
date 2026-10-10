@@ -28,7 +28,7 @@ pub fn install() {
         return;
     }
 
-    // Register after `load` like the TS bundle did.
+    // Register after `load` so it never competes with first paint.
     dom::on(&dom::window(), "load", |_| {
         wasm_bindgen_futures::spawn_local(async {
             match registration().await {

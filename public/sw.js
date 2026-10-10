@@ -42,7 +42,7 @@ const STATIC_PATH_PREFIXES = ["/assets/", "/favicon.svg", "/apple-touch-icon.svg
 // first paint after any auth transition.
 const PRIVATE_PATH_PREFIXES = ["/me", "/moderate", "/add", "/auth"];
 // Non-default locale prefixes mounted on the app. Mirrors PREFIXED_LANGS in
-// src/lib/messages.ts — sw.js cannot import from src/, so keep in sync by hand.
+// crates/core/src/i18n/mod.rs — keep in sync by hand.
 const LOCALE_PREFIXES = ["/en"];
 
 function isPrivatePath(pathname) {
@@ -98,7 +98,7 @@ self.addEventListener("activate", (event) => {
 
 // The page posts this once the user accepts the update prompt; we then activate
 // immediately, the browser fires `controllerchange`, and the page reloads onto
-// the fresh bundle. See src/client/sw-update.ts.
+// the fresh bundle. See crates/client/src/sw.rs.
 self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING" || event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();

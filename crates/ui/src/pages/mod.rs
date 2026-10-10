@@ -3,7 +3,7 @@
 //! taking `title`/`description`/`json_ld`/flags from [`PageMeta`].
 //!
 //! Contract between the ui and worker crates: these structs are the only data
-//! the pages see. Port markup and copy 1:1 from the TS sources named on each.
+//! the pages see.
 
 use serde::{Deserialize, Serialize};
 use trinkhallen_core::filters::KioskFilter;
@@ -37,7 +37,7 @@ pub struct PageMeta {
     pub nav: Option<Nav>,
 }
 
-/// Side-panel list (`KioskList.tsx`); also the `/api/kiosks/panel` fragment.
+/// Side-panel list; also the `/api/kiosks/panel` fragment.
 #[derive(Debug, Clone)]
 pub struct PanelData<'a> {
     pub lang: Lang,
@@ -52,7 +52,7 @@ pub struct PanelData<'a> {
     pub user_agent: Option<String>,
 }
 
-/// `/` and the map view (`pages.tsx` renderMapPage). `focused` = the sheet is
+/// `/` and the map view. `focused` = the sheet is
 /// pre-opened with that kiosk's detail HTML (`inner_html`).
 #[derive(Debug, Clone)]
 pub struct MapData<'a> {
@@ -73,7 +73,7 @@ pub struct FocusedKiosk<'a> {
     pub href: String,
 }
 
-/// `KioskDetail.tsx` (+ `RatingBlock`, `ReportForm`, `CheckinForm`).
+/// Kiosk detail (+ rating block, report form, check-in form).
 #[derive(Debug, Clone)]
 pub struct KioskDetailData<'a> {
     pub lang: Lang,
@@ -112,7 +112,7 @@ pub struct AboutData {
     pub users: u64,
 }
 
-/// `/add` form (`pages.tsx` GET /add).
+/// `/add` form.
 #[derive(Debug, Clone)]
 pub struct AddData {
     pub lang: Lang,

@@ -12,9 +12,8 @@
 #
 # Usage: bash crates/client/build.sh <out-dir>
 #
-# Content hashing + the asset manifest are the integrator's job (see
-# docs/dioxus-port-contracts.md); every emitted file is named deterministically
-# so hashing can rename them afterwards.
+# Content hashing + the asset manifest happen afterwards in
+# `trinkhallen-importer assets`; every file here is named deterministically.
 
 set -euo pipefail
 
@@ -28,7 +27,7 @@ OUT="$(mkdir -p "$1" && cd "$1" && pwd)"
 cd "$ROOT"
 
 # Pinned tool binaries, shared with worker-build's cache (same versions it
-# downloads) — see docs/dioxus-port.md ("NEVER set strip = true").
+# downloads) — see docs/architecture.md ("NEVER set strip = true").
 TOOLS="$HOME/.cache/worker-build"
 WB_DIR="$TOOLS/wasm-bindgen-x86_64-unknown-linux-musl-0.2.129"
 WO_DIR="$TOOLS/wasm-opt-x86_64-linux-132"
@@ -46,8 +45,9 @@ if [ ! -x "$WASM_OPT" ]; then
   curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-x86_64-linux.tar.gz |
     tar -xz -C "$WO_DIR" --strip-components=1
 fi
-ESBUILD="${ESBUILD:-bunx esbuild@0.25}"
-TAILWIND="${TAILWIND:-bunx @tailwindcss/cli@4}"
+# Locked in bun.lock (devDependencies), so builds don't drift with `@latest`.
+ESBUILD="${ESBUILD:-node_modules/.bin/esbuild}"
+TAILWIND="${TAILWIND:-node_modules/.bin/tailwindcss}"
 
 echo "==> cargo build -p trinkhallen-client --target wasm32-unknown-unknown --release"
 cargo build -p trinkhallen-client --target wasm32-unknown-unknown --release

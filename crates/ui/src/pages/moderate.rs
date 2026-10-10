@@ -1,8 +1,7 @@
-//! `/moderate` (`src/routes/moderate.tsx`): the moderation queue page.
+//! `/moderate`: the moderation queue page.
 //!
 //! Stored JSON payloads are untrusted input: a row that does not parse renders
-//! its raw text instead of taking the whole queue down (the TS `JSON.parse`
-//! threw and returned a 500).
+//! its raw text instead of taking the whole queue down.
 
 use dioxus::prelude::*;
 use trinkhallen_core::i18n::{Lang, t, tag_label, tpl};
@@ -53,8 +52,8 @@ pub fn render(data: &ModerateData) -> (String, PageMeta) {
     (body, meta)
 }
 
-/// `@handle` when present, else the email local part (the TS falls back to
-/// `user_email.split("@")[0]`).
+/// `@handle` when present, else the email local part
+/// (`user_email.split("@")[0]`).
 fn byline(username: &Option<String>, email: &Option<String>) -> String {
     match username {
         Some(u) => format!("@{u}"),

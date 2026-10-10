@@ -36,7 +36,7 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 
-/// A kiosk deep link in the active locale (mirrors the URL the user is on).
+/// A kiosk deep link in the active locale (matches the URL the user is on).
 fn kiosk_href(id: &str) -> String {
     path_for_lang(
         &format!("/k/{id}"),

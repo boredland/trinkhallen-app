@@ -229,7 +229,7 @@ fn with_query(url: &str, pairs: &[(String, String)]) -> String {
 // ── Side panel ───────────────────────────────────────────────────────────────
 
 /// Swap the map page's side panel with the fragment the server renders for the
-/// current filter (`src/routes/api.kiosks.tsx`).
+/// current filter (`/api/kiosks/panel`).
 pub fn refresh_panel(search: &str) {
     let Some(panel) = dom::document().get_element_by_id("kiosk-panel") else {
         return;

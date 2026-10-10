@@ -1,8 +1,4 @@
 //! City names and JSON-LD builders shared by the map, city and kiosk pages.
-//!
-//! Ported from `src/routes/pages.tsx` (`CITY_DISPLAY`, `cityDisplayName`,
-//! `citySlug`, `kioskHeadline`, `kioskDescription`, `kioskJsonLd`,
-//! `kioskBreadcrumbJsonLd`, `homepageJsonLd`).
 
 use serde_json::{Map, Value, json};
 use trinkhallen_core::ORIGIN;

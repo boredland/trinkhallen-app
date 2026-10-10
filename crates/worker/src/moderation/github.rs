@@ -1,4 +1,4 @@
-//! GitHub helpers outside the App/PR flow — port of `src/lib/github.ts`.
+//! GitHub helpers outside the App/PR flow.
 //!
 //! `verify_webhook_signature` follows GitHub's `X-Hub-Signature-256` spec
 //! (`sha256=<hex hmac>`); `fetch_raw_file` pulls post-merge file state for

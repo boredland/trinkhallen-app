@@ -1,10 +1,10 @@
-//! `KioskDetail.tsx`: the kiosk article, with the rating/checkin/report
-//! islands embedded (they replace `RatingBlock`, `CheckinForm`, `ReportForm`).
+//! Kiosk detail: the kiosk article, with the rating/checkin/report
+//! islands embedded.
 //!
 //! Island markup arrives as pre-rendered HTML (hydration markers included), so
 //! the three island sections put `h2` + island into the section through
 //! `dangerous_inner_html` — the section ends up with the exact child structure
-//! the TS has, island wrapper and all.
+//! the page needs, island wrapper and all.
 
 use dioxus::prelude::*;
 use trinkhallen_core::hours::{
@@ -20,7 +20,7 @@ use crate::islands::{checkin, report};
 use crate::pages::KioskDetailData;
 use crate::render::to_html;
 
-/// Payment badges in render order (`PAYMENT_ORDER` in the TS).
+/// Payment badges in render order.
 const PAYMENT_ORDER: [&str; 4] = ["cash", "cards", "contactless", "girocard"];
 
 fn payment_icon(key: &str) -> Option<&'static str> {

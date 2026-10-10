@@ -1,4 +1,4 @@
-//! `users` rows for the auth flows — the SQL from `src/routes/auth.tsx`.
+//! `users` rows for the auth flows.
 //!
 //! Three synthetic `google_sub` conventions exist because the column is
 //! `NOT NULL UNIQUE` and the app has three ways to create an account:

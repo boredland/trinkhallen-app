@@ -1,4 +1,4 @@
-//! `checkin` island: `CheckinForm.tsx` + `src/client/checkin.ts`.
+//! `checkin` island: the check-in button and the report/signal forms.
 //!
 //! Two responsibilities, one wrapper:
 //!   1. the "Ich war hier" button — best-effort geolocation, POSTs
@@ -6,7 +6,7 @@
 //!   2. the gap-fill forms (POST `/api/reports`) and the confirm/dispute
 //!      signal buttons (POST `/api/signals`).
 //!
-//! Where the TS swaps server fragments into the DOM (`form.outerHTML = …`,
+//! Where a plain-JS client would swap server fragments into the DOM (`form.outerHTML = …`,
 //! `block.outerHTML = …`), the island re-renders from state instead and emits
 //! the same markup the server fragment carries — same end state, one code
 //! path, and no raw HTML injection.
@@ -220,7 +220,7 @@ pub fn CheckinIsland(props: CheckinProps) -> Element {
             "data-checkin": "",
             "data-kiosk-id": "{props.kiosk_id}",
             "data-open": if done.read().clone() { "true" } else { "false" },
-            // Same DOM contract as checkin.ts: the fix is readable off the
+            // DOM contract: the fix is readable off the
             // wrapper once it lands.
             "data-lat": coords().map(|c| c.lat.to_string()),
             "data-lng": coords().map(|c| c.lng.to_string()),
@@ -478,7 +478,7 @@ fn gap_form(
 ) -> Element {
     let kind_key = kind.to_owned();
     if let Some(state) = swapped.read().get(&kind_key).copied() {
-        // Mirrors the fragment `POST /api/reports` returns for
+        // Matches the fragment `POST /api/reports` returns for
         // `X-Tk-Fragment: 1` (2xx) and the 409 duplicate body.
         return match state {
             Swapped::Thanks => rsx! {
@@ -681,7 +681,7 @@ fn signal_button(
         }
     };
     // rsx cannot express a dynamic attribute name, so the two markers get one
-    // arm each; the button is otherwise identical (as in the TS).
+    // arm each; the button is otherwise identical.
     if marker == "data-signal-confirm" {
         rsx! {
             button {
@@ -711,7 +711,7 @@ fn signal_button(
     }
 }
 
-/// POST `/api/signals` and record the outcome — see `src/client/checkin.ts`.
+/// POST `/api/signals` and record the outcome.
 async fn post_signal(
     lang: Lang,
     field_key: &'static str,

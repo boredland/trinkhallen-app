@@ -1,10 +1,9 @@
-//! `filters` island: `FilterChips.tsx` + the live behaviour of
-//! `attachFilterForm` in `src/client/app.entry.ts`.
+//! `filters` island: the filter chip form and its live behaviour.
 //!
 //! Chip toggles rewrite the URL query (`buildFilterQuery` rules), dispatch
 //! `tk:filters-changed` and refresh `#kiosk-panel` from its `data-panel-url`.
 //! A 150 ms trailing debounce coalesces bursts (typing, multi-chip toggles),
-//! like the TS. Without JS the form still submits as a normal GET.
+//! so the map never hammers the server. Without JS the form still submits as a normal GET.
 
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -395,7 +394,7 @@ mod tests {
         };
         assert_eq!(s.query(), "pay=cards&tags=wc&open_now=1&q=apfel");
         s.needs_hours = true;
-        s.open_now = true; // TS keeps both if the UI allowed it
+        s.open_now = true; // both stay set if the UI allows it
         assert!(s.query().contains("needs_hours=1"));
         assert_eq!(FilterState::default().query(), "");
     }
@@ -403,7 +402,7 @@ mod tests {
     #[test]
     fn merge_keeps_foreign_params_in_place() {
         // Re-serializing goes through the urlencoded writer, which escapes
-        // commas — same as `URLSearchParams#toString` in the TS.
+        // commas — same as `URLSearchParams#toString`.
         let base = "/api/kiosks/panel?lang=de&bbox=8.4,50.0,8.9,50.3&pay=cash&q=alt";
         let merged = merge_panel_url(base, "pay=cards&open_now=1");
         assert_eq!(
