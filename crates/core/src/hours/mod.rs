@@ -13,6 +13,9 @@
 //! every open/closed answer by one or two hours relative to the live site.
 
 mod holidays_de;
+mod weekly;
+
+use weekly::Weekly;
 
 use std::sync::{Arc, OnceLock};
 
@@ -146,8 +149,12 @@ impl Status {
 
 /// Holiday calendar for a Bundesland (full German name), built once.
 fn holidays_for(state: &str) -> Option<ContextHolidays> {
+    state_calendars().iter().find(|(n, _)| *n == state).map(|(_, h)| h.clone())
+}
+
+fn state_calendars() -> &'static [(&'static str, ContextHolidays)] {
     static CACHE: OnceLock<Vec<(&'static str, ContextHolidays)>> = OnceLock::new();
-    let all = CACHE.get_or_init(|| {
+    CACHE.get_or_init(|| {
         holidays_de::HOLIDAYS_DE
             .iter()
             .map(|(name, days)| {
@@ -158,8 +165,20 @@ fn holidays_for(state: &str) -> Option<ContextHolidays> {
                 (*name, ContextHolidays::new(Arc::new(cal), Arc::default()))
             })
             .collect()
-    });
-    all.iter().find(|(n, _)| *n == state).map(|(_, h)| h.clone())
+    })
+}
+
+/// opening_hours.js without a state (every kiosk outside Germany, plus German
+/// regions not tied to one Bundesland) still resolves `PH` - against the
+/// first state in its holiday table, Baden-Württemberg. Matching that keeps
+/// e.g. Swiss `PH off` kiosks closed on 6 January like the live site.
+const DEFAULT_STATE: &str = "Baden-Württemberg";
+
+fn calendar(state: Option<&str>) -> ContextHolidays {
+    state
+        .and_then(holidays_for)
+        .or_else(|| holidays_for(DEFAULT_STATE))
+        .unwrap_or_default()
 }
 
 /// Bundesland for a kiosk, when its region is German.
@@ -173,10 +192,12 @@ fn naive_utc(now: DateTime<Utc>) -> NaiveDateTime {
 
 fn evaluator(raw: &str, state: Option<&str>) -> Option<OpeningHours> {
     let oh = raw.parse::<OpeningHours>().ok()?;
-    Some(match state.and_then(holidays_for) {
-        Some(h) => oh.with_context(Context::default().with_holidays(h)),
-        None => oh,
-    })
+    Some(oh.with_context(Context::default().with_holidays(calendar(state))))
+}
+
+fn holiday_test(state: Option<&str>) -> impl Fn(NaiveDate) -> bool {
+    let cal = calendar(state);
+    move |d| cal.get_public().contains(d)
 }
 
 /// Current open/closed status. Fast path whenever `hours.week` is present.
@@ -189,10 +210,15 @@ pub fn compute_status(hours: Option<&Hours>, now: DateTime<Utc>, state: Option<&
         let at = s.until.map(|m| now + Duration::minutes(m as i64));
         return if s.open { Status::Open { until: at } } else { Status::Closed { until: at } };
     }
+    let t = naive_utc(now);
+    if let Some(w) = Weekly::parse(&hours.raw) {
+        let (open, next) = w.state_at(t, holiday_test(state));
+        let at = next.map(|n| Utc.from_utc_datetime(&n));
+        return if open { Status::Open { until: at } } else { Status::Closed { until: at } };
+    }
     let Some(oh) = evaluator(&hours.raw, state) else {
         return Status::Unknown;
     };
-    let t = naive_utc(now);
     let open = oh.is_open(t);
     let next = oh
         .next_change(t)
@@ -261,6 +287,9 @@ pub fn flatten_week(raw: &str) -> Option<Vec<u32>> {
     if !is_flattenable(raw) {
         return None;
     }
+    if let Some(w) = Weekly::parse(raw) {
+        return w.week();
+    }
     let oh = raw.parse::<OpeningHours>().ok()?;
     let start = week_start();
     let end = start + Duration::days(7);
@@ -300,17 +329,29 @@ pub fn flatten_week(raw: &str) -> Option<Vec<u32>> {
 pub fn format_hours_table(lang: Lang, raw: Option<&str>, state: Option<&str>) -> Option<Vec<HoursRow>> {
     let raw = raw.filter(|r| !r.is_empty())?;
     let l = oh_labels(lang);
-    let oh = evaluator(raw, state)?;
     let start = week_start();
-    let end = start + Duration::days(7);
     let mut day_slots: Vec<Vec<(String, String)>> = vec![Vec::new(); 7];
     let fmt = |t: NaiveDateTime| format!("{:02}:{:02}", t.hour(), t.minute());
-    for r in oh.iter_range(start, end) {
-        if r.kind != opening_hours::RuleKind::Open {
-            continue;
+    // Like `getOpenIntervals`, the table lists "unknown" spans (open ends,
+    // commented rules) alongside open ones.
+    let open_ranges: Vec<(NaiveDateTime, NaiveDateTime)> = match Weekly::parse(raw) {
+        Some(w) => w
+            .intervals(start.date(), 7, holiday_test(state))
+            .into_iter()
+            .map(|s| (start + Duration::minutes(s.start as i64), start + Duration::minutes(s.end as i64)))
+            .collect(),
+        None => {
+            let oh = evaluator(raw, state)?;
+            oh.iter_range(start, start + Duration::days(7))
+                .filter(|r| r.kind == opening_hours::RuleKind::Open)
+                .map(|r| (r.range.start, r.range.end))
+                .collect()
         }
-        let mut cur = r.range.start.max(start);
-        let stop = r.range.end.min(end);
+    };
+    let end = start + Duration::days(7);
+    for (a, b) in open_ranges {
+        let mut cur = a.max(start);
+        let stop = b.min(end);
         while cur < stop {
             let day = (cur - start).num_days();
             if !(0..7).contains(&day) {
