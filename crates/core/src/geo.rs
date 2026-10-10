@@ -67,19 +67,34 @@ pub fn parse_bbox(raw: Option<&str>) -> Option<Bbox> {
     if west >= east || south >= north {
         return None;
     }
-    Some(Bbox { west, south, east, north })
+    Some(Bbox {
+        west,
+        south,
+        east,
+        north,
+    })
 }
 
 /// A small box around a point (≈5 km), seeding the side panel for a focused
 /// kiosk or a `?c=lat,lng` deep link; mirrors the map's initial viewport.
 pub fn bbox_around(p: LatLng) -> Bbox {
-    Bbox { west: p.lng - 0.05, south: p.lat - 0.04, east: p.lng + 0.05, north: p.lat + 0.04 }
+    Bbox {
+        west: p.lng - 0.05,
+        south: p.lat - 0.04,
+        east: p.lng + 0.05,
+        north: p.lat + 0.04,
+    }
 }
 
 /// Round edges to a grid so adjacent pans share a cache key.
 pub fn quantize_bbox(b: Bbox, step: f64) -> Bbox {
     let r = |n: f64| (n / step).round() * step;
-    Bbox { west: r(b.west), south: r(b.south), east: r(b.east), north: r(b.north) }
+    Bbox {
+        west: r(b.west),
+        south: r(b.south),
+        east: r(b.east),
+        north: r(b.north),
+    }
 }
 
 pub fn bbox_overlaps(a: [f64; 4], b: Bbox) -> bool {
@@ -92,7 +107,13 @@ mod tests {
 
     #[test]
     fn parses() {
-        assert_eq!(parse_lat_lng(Some("50.11,8.68")), Some(LatLng { lat: 50.11, lng: 8.68 }));
+        assert_eq!(
+            parse_lat_lng(Some("50.11,8.68")),
+            Some(LatLng {
+                lat: 50.11,
+                lng: 8.68
+            })
+        );
         assert_eq!(parse_lat_lng(Some("91,8")), None);
         assert_eq!(parse_lat_lng(Some("x,8")), None);
         assert!(parse_bbox(Some("8.6,50.1,8.7,50.15")).is_some());
@@ -105,7 +126,16 @@ mod tests {
         assert_eq!(format_distance(229.6), "230 m");
         assert_eq!(format_distance(1234.0), "1.2 km");
         assert_eq!(format_distance(12_345.0), "12 km");
-        let d = haversine_meters(LatLng { lat: 50.11, lng: 8.68 }, LatLng { lat: 52.52, lng: 13.405 });
+        let d = haversine_meters(
+            LatLng {
+                lat: 50.11,
+                lng: 8.68,
+            },
+            LatLng {
+                lat: 52.52,
+                lng: 13.405,
+            },
+        );
         assert!((d - 423_000.0).abs() < 5_000.0, "{d}");
     }
 }

@@ -55,3 +55,57 @@ jobs:
           name: playwright-traces
           path: test-results/
           retention-days: 7
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cache/worker-build
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+      # Same script Workers Builds runs: toolchain bootstrap, data import,
+      # client bundle, worker. Then the unit tests on the warm target dir.
+      - run: bash scripts/build-dioxus.sh
+      - run: cargo test --workspace --locked
+
+  e2e-dioxus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cache/worker-build
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      - run: bunx playwright install --with-deps chromium
+      # Warm build so wrangler dev's own build pass is incremental.
+      - run: bash scripts/build-dioxus.sh
+      - run: bun run test:e2e
+        env:
+          TK_E2E_TARGET: dioxus
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces-dioxus
+          path: test-results/
+          retention-days: 7

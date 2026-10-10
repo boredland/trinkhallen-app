@@ -34,8 +34,8 @@ Cargo.toml              workspace; [profile.release] lto, codegen-units=1, opt-l
 crates/
   core/                 trinkhallen-core: pure logic, no I/O, compiles native + wasm32
                         i18n (messages), geo, kind, filters, hours (week fast path +
-                        opening-hours crate with DE Bundesland holidays), regions table,
-                        navigate targets, usernames generator/validator, tags, report kinds,
+                        opening_hours.js-compatible evaluator for the common rule subset,
+                        opening-hours crate for the rest, DE Bundesland holidays), regions table,
                         kiosk record + GeoJSON types
   ui/                   trinkhallen-ui: Dioxus components shared by SSR + client
                         (Layout chrome, KioskList, KioskDetail, FilterChips, RatingBlock,
@@ -65,27 +65,38 @@ everything around it (data loading, filtering, clustering inputs, events);
 
 ## Build
 
-```
-cargo run -p trinkhallen-importer --release          # dist/static/data, sitemap, regions table
-bunx @tailwindcss/cli -i web/app.css -o dist/static/assets/app.css --minify
-wasm client: cargo build -p trinkhallen-client --target wasm32-unknown-unknown --release
-             → wasm-bindgen --target web → wasm-opt -Oz → dist/static/assets/
-worker:      worker-build --release (crates/worker) → build/
-wrangler deploy
-```
+One script, used locally, in CI and by Workers Builds (`wrangler.dioxus.toml`
+`[build]`): `bash scripts/build-dioxus.sh`. It bootstraps Rust 1.98.1 +
+`worker-build` when missing, then:
 
-The CSS/JS bundling previously done by Vite is replaced by the Tailwind CLI
-(class scanning over `crates/**/*.rs`) and esbuild for `web/map.js` +
-maplibre-gl. Asset URLs are content-hashed by the build script and written to
-a generated manifest the worker embeds (same role as `manifest.generated.ts`).
+1. `trinkhallen-importer data` → `dist/static/data/*`, `sitemap.xml`
+   (`TRINKHALLEN_DATA_PATH` points at a local data checkout; otherwise a
+   shallow clone under `.tmp/`).
+2. `crates/client/build.sh` → client wasm (wasm-bindgen + wasm-opt), esbuild
+   bundles of `web/map.js` / `web/pwa.js`, Tailwind CSS, fonts.
+3. `trinkhallen-importer assets` moves that bundle to
+   `dist/static/assets/<hash>/` (hash over every file) and writes
+   `crates/worker/src/assets_manifest.rs`. The bundle is hashed as one
+   directory because its files import each other relatively.
+4. `public/` copied over, then `worker-build --release` → `crates/worker/build/`.
+
+Cold build in the Workers Builds image: about 65 s for the spike, so well
+inside the 20-minute limit.
+
+Local: `bunx wrangler dev -c wrangler.dioxus.toml`. Wrangler watches `src/`
+only; restart it after editing `crates/`.
 
 ## Deploy
 
-Cloudflare Workers Builds has no Rust toolchain. The build command installs it
-(`rustup` minimal profile + wasm32 target, cached tools via `cargo binstall`),
-keeping the existing Workers Builds trigger and the data-repo Deploy Hook
-working unchanged. Fallback if build time exceeds the 20-minute limit: deploy
-from GitHub Actions and point the data repo at a `repository_dispatch`.
+Workers Builds keeps the existing trigger and the data-repo Deploy Hook. At
+cutover its build command becomes `bash scripts/build-dioxus.sh` and the
+deploy command `npx wrangler deploy -c wrangler.dioxus.toml`.
+
+## Tests
+
+- `cargo test --workspace`.
+- The Playwright suite runs against either implementation:
+  `TK_E2E_TARGET=dioxus bun run test:e2e` targets the Rust worker.
 
 ## Invariants (must hold at cutover)
 

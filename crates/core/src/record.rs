@@ -56,7 +56,10 @@ pub struct KioskRecord {
 
 impl KioskRecord {
     pub fn addr(&self, key: &str) -> Option<&str> {
-        self.address.get(key).map(String::as_str).filter(|s| !s.is_empty())
+        self.address
+            .get(key)
+            .map(String::as_str)
+            .filter(|s| !s.is_empty())
     }
 
     pub fn pays(&self, key: &str) -> Option<&str> {
@@ -64,7 +67,10 @@ impl KioskRecord {
     }
 
     pub fn hours_raw(&self) -> Option<&str> {
-        self.hours.as_ref().map(|h| h.raw.as_str()).filter(|s| !s.is_empty())
+        self.hours
+            .as_ref()
+            .map(|h| h.raw.as_str())
+            .filter(|s| !s.is_empty())
     }
 }
 
@@ -178,7 +184,11 @@ pub struct ManifestEntry {
 pub struct Manifest {
     /// Non-vending kiosks across all regions, so `/about` never has to parse
     /// every region file to show one number.
-    #[serde(default, rename = "visibleTotal", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        rename = "visibleTotal",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub visible_total: Option<usize>,
     pub regions: Vec<ManifestEntry>,
 }
@@ -194,14 +204,23 @@ mod tests {
           "hours":{"raw":"Mo-Fr 08:00-20:00","week":[480,1200]},"tags":["wc"],"payment":{"cash":"yes"},
           "updated":"2026-05-01","osm_removed":false}}"#;
         let f: Feature = serde_json::from_str(json).unwrap();
-        assert_eq!(f.properties.extra.get("osm_removed"), Some(&serde_json::Value::Bool(false)));
+        assert_eq!(
+            f.properties.extra.get("osm_removed"),
+            Some(&serde_json::Value::Bool(false))
+        );
         let r = f.to_record("frankfurt");
         assert_eq!(r.region, "frankfurt");
         assert_eq!(r.addr("street"), Some("Weg"));
-        assert_eq!(r.hours.as_ref().unwrap().week.as_deref(), Some(&[480, 1200][..]));
+        assert_eq!(
+            r.hours.as_ref().unwrap().week.as_deref(),
+            Some(&[480, 1200][..])
+        );
         assert_eq!(r.updated_at, 1777593600);
         assert_eq!(r.kind, KioskKind::Kiosk);
         let back = serde_json::to_value(&f).unwrap();
-        assert_eq!(back["properties"]["osm_removed"], serde_json::Value::Bool(false));
+        assert_eq!(
+            back["properties"]["osm_removed"],
+            serde_json::Value::Bool(false)
+        );
     }
 }

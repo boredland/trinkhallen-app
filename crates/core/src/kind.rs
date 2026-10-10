@@ -23,17 +23,26 @@ pub fn classify_kind(name: Option<&str>, data_kind: Option<&str>) -> KioskKind {
     if n.is_empty() {
         return KioskKind::Kiosk;
     }
-    let words: Vec<&str> = n.split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).collect();
+    let words: Vec<&str> = n
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .collect();
     let has_word = |w: &str| words.contains(&w);
     // Equivalent to the original regexes: /^jima$/, /\bselecta\b/, /\bsielaff\b/,
     // /\bvending\s+machines?\b/, /\bautomaten[-\s]*kiosk\b/, /\bautomaten[-\s]*shop\b/.
     let vending = n == "jima"
         || has_word("selecta")
         || has_word("sielaff")
-        || words.windows(2).any(|w| w[0] == "vending" && (w[1] == "machine" || w[1] == "machines"))
+        || words
+            .windows(2)
+            .any(|w| w[0] == "vending" && (w[1] == "machine" || w[1] == "machines"))
         || automaten_compound(&n, "kiosk")
         || automaten_compound(&n, "shop");
-    if vending { KioskKind::Vending } else { KioskKind::Kiosk }
+    if vending {
+        KioskKind::Vending
+    } else {
+        KioskKind::Kiosk
+    }
 }
 
 /// `\bautomaten[-\s]*<tail>\b` — "automaten" at a word start, any run of
@@ -69,15 +78,31 @@ mod tests {
 
     #[test]
     fn data_kind_wins() {
-        assert_eq!(classify_kind(Some("Kiosk"), Some("vending_machine")), KioskKind::Vending);
+        assert_eq!(
+            classify_kind(Some("Kiosk"), Some("vending_machine")),
+            KioskKind::Vending
+        );
     }
 
     #[test]
     fn name_patterns() {
-        for n in ["JIMA", "Selecta Snack", "Sielaff", "Vending Machines", "Automaten-Kiosk", "automaten shop 24"] {
+        for n in [
+            "JIMA",
+            "Selecta Snack",
+            "Sielaff",
+            "Vending Machines",
+            "Automaten-Kiosk",
+            "automaten shop 24",
+        ] {
             assert_eq!(classify_kind(Some(n), None), KioskKind::Vending, "{n}");
         }
-        for n in ["Jima Kiosk", "Kiosk am Automatenweg", "Wasserhäuschen", "", "Automatenkioskbetrieb"] {
+        for n in [
+            "Jima Kiosk",
+            "Kiosk am Automatenweg",
+            "Wasserhäuschen",
+            "",
+            "Automatenkioskbetrieb",
+        ] {
             assert_eq!(classify_kind(Some(n), None), KioskKind::Kiosk, "{n}");
         }
     }

@@ -3,6 +3,7 @@ dist/
 .wrangler/
 /target/
 /build/
+crates/worker/build/
 
 # Playwright e2e artifacts
 test-results/

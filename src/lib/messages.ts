@@ -293,6 +293,10 @@ const DE = {
 
   // auth
   "auth.login": "Anmelden",
+  "auth.magicConfirm.title": "Einloggen bestätigen",
+  "auth.magicConfirm.body":
+    "Ein Klick noch: Bestätige, dass du dich bei trinkhallen.app einloggen willst.",
+  "auth.magicConfirm.button": "▶ Jetzt einloggen",
 
   // generic / errors
   "error.loginRequired": "Bitte anmelden.",
@@ -546,6 +550,9 @@ const EN: Record<string, string> = {
   "mod.by": "by",
 
   "auth.login": "Log in",
+  "auth.magicConfirm.title": "Confirm login",
+  "auth.magicConfirm.body": "One more click: confirm that you want to log in to trinkhallen.app.",
+  "auth.magicConfirm.button": "▶ Log in now",
 
   "error.loginRequired": "Please log in.",
   "error.kioskNotFound": "Kiosk not found",

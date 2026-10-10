@@ -51,7 +51,12 @@ impl Lang {
 /// Best-effort match of an Accept-Language header (or any candidate). Only the
 /// first two characters are considered, matching the original behaviour.
 pub fn resolve_lang(candidate: Option<&str>) -> Lang {
-    let v: String = candidate.unwrap_or("").chars().take(2).collect::<String>().to_lowercase();
+    let v: String = candidate
+        .unwrap_or("")
+        .chars()
+        .take(2)
+        .collect::<String>()
+        .to_lowercase();
     match v.as_str() {
         "en" => Lang::En,
         _ => Lang::De,
@@ -84,7 +89,11 @@ pub fn path_for_lang(path: &str, target: Lang) -> String {
     if target == DEFAULT_LANG {
         return bare;
     }
-    if bare == "/" { format!("/{}", target.code()) } else { format!("/{}{}", target.code(), bare) }
+    if bare == "/" {
+        format!("/{}", target.code())
+    } else {
+        format!("/{}{}", target.code(), bare)
+    }
 }
 
 fn lookup(table: &'static [(&'static str, &'static str)], key: &str) -> Option<&'static str> {
@@ -106,7 +115,9 @@ fn localized(
 
 /// Flat UI string. Unknown keys return the key (visible in review, never a panic).
 pub fn t(lang: Lang, key: &str) -> String {
-    localized(lang, catalog::MESSAGES_DE, catalog::MESSAGES_EN, key).unwrap_or(key).to_owned()
+    localized(lang, catalog::MESSAGES_DE, catalog::MESSAGES_EN, key)
+        .unwrap_or(key)
+        .to_owned()
 }
 
 /// `&'static` variant of [`t`] for attribute positions; unknown keys yield "".
@@ -117,14 +128,19 @@ pub fn ts(lang: Lang, key: &str) -> &'static str {
 /// Interpolated template: `{name}` placeholders replaced from `vars`;
 /// placeholders without a value become empty.
 pub fn tpl(lang: Lang, key: &str, vars: &[(&str, &dyn std::fmt::Display)]) -> String {
-    let template = localized(lang, catalog::TEMPLATES_DE, catalog::TEMPLATES_EN, key).unwrap_or(key);
+    let template =
+        localized(lang, catalog::TEMPLATES_DE, catalog::TEMPLATES_EN, key).unwrap_or(key);
     let mut out = String::with_capacity(template.len() + 16);
     let mut rest = template;
     while let Some(open) = rest.find('{') {
         out.push_str(&rest[..open]);
         let after = &rest[open + 1..];
         match after.find('}') {
-            Some(close) if after[..close].chars().all(|c| c.is_alphanumeric() || c == '_') => {
+            Some(close)
+                if after[..close]
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '_') =>
+            {
                 let name = &after[..close];
                 if let Some((_, v)) = vars.iter().find(|(k, _)| *k == name) {
                     out.push_str(&v.to_string());
@@ -142,34 +158,52 @@ pub fn tpl(lang: Lang, key: &str, vars: &[(&str, &dyn std::fmt::Display)]) -> St
 }
 
 pub fn report_kind_label(lang: Lang, kind: &str) -> String {
-    localized(lang, catalog::REPORT_KIND_DE, catalog::REPORT_KIND_EN, kind).unwrap_or(kind).to_owned()
+    localized(lang, catalog::REPORT_KIND_DE, catalog::REPORT_KIND_EN, kind)
+        .unwrap_or(kind)
+        .to_owned()
 }
 
 /// `approved`/`pr_opened` deliberately collapse to one label — the PR
 /// mechanism is not exposed to end users.
 pub fn report_status_label(lang: Lang, status: &str) -> String {
-    localized(lang, catalog::REPORT_STATUS_DE, catalog::REPORT_STATUS_EN, status)
-        .unwrap_or(status)
-        .to_owned()
+    localized(
+        lang,
+        catalog::REPORT_STATUS_DE,
+        catalog::REPORT_STATUS_EN,
+        status,
+    )
+    .unwrap_or(status)
+    .to_owned()
 }
 
 pub fn status_pill_label(lang: Lang, status: &str) -> String {
-    localized(lang, catalog::STATUS_PILL_DE, catalog::STATUS_PILL_EN, status)
-        .unwrap_or(status)
-        .to_owned()
+    localized(
+        lang,
+        catalog::STATUS_PILL_DE,
+        catalog::STATUS_PILL_EN,
+        status,
+    )
+    .unwrap_or(status)
+    .to_owned()
 }
 
 pub fn payment_label(lang: Lang, key: &str) -> String {
-    localized(lang, catalog::PAYMENT_DE, catalog::PAYMENT_EN, key).unwrap_or(key).to_owned()
+    localized(lang, catalog::PAYMENT_DE, catalog::PAYMENT_EN, key)
+        .unwrap_or(key)
+        .to_owned()
 }
 
 /// Tag display label; slugs without an override fall back to title case.
 pub fn tag_label(lang: Lang, slug: &str) -> String {
-    localized(lang, catalog::TAG_DE, catalog::TAG_EN, slug).map(str::to_owned).unwrap_or_else(|| titlecase(slug))
+    localized(lang, catalog::TAG_DE, catalog::TAG_EN, slug)
+        .map(str::to_owned)
+        .unwrap_or_else(|| titlecase(slug))
 }
 
 pub fn tag_group_label(lang: Lang, key: &str) -> String {
-    localized(lang, catalog::TAG_GROUP_DE, catalog::TAG_GROUP_EN, key).unwrap_or(key).to_owned()
+    localized(lang, catalog::TAG_GROUP_DE, catalog::TAG_GROUP_EN, key)
+        .unwrap_or(key)
+        .to_owned()
 }
 
 fn titlecase(slug: &str) -> String {
@@ -231,7 +265,11 @@ mod tests {
         assert_eq!(t(Lang::En, "nav.map"), "Map");
         assert_eq!(t(Lang::En, "no.such.key"), "no.such.key");
         assert_eq!(
-            tpl(Lang::De, "kioskList.countAll", &[("n", &3), ("suffix", &"n")]),
+            tpl(
+                Lang::De,
+                "kioskList.countAll",
+                &[("n", &3), ("suffix", &"n")]
+            ),
             "3 Trinkhallen"
         );
         assert_eq!(tpl(Lang::De, "oh.openUntil", &[]), "Offen bis ");

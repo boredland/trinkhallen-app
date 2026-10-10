@@ -84,8 +84,14 @@ impl KioskFilter {
 }
 
 fn split_csv(raw: Option<&str>) -> Vec<String> {
-    raw.map(|r| r.split(',').map(str::trim).filter(|s| !s.is_empty()).map(str::to_owned).collect())
-        .unwrap_or_default()
+    raw.map(|r| {
+        r.split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+            .collect()
+    })
+    .unwrap_or_default()
 }
 
 /// `get` returns the first value of a query parameter.
@@ -93,7 +99,10 @@ pub fn parse_filter<'a>(get: impl Fn(&str) -> Option<&'a str>) -> KioskFilter {
     let pay: Vec<String> = split_csv(get("pay"));
     let flag = |k: &str| matches!(get(k), Some("1") | Some("true"));
     KioskFilter {
-        tags: split_csv(get("tags")).into_iter().map(|t| t.to_lowercase()).collect(),
+        tags: split_csv(get("tags"))
+            .into_iter()
+            .map(|t| t.to_lowercase())
+            .collect(),
         payment: Payment {
             cards: pay.iter().any(|p| p == "cards"),
             contactless: pay.iter().any(|p| p == "contactless"),
@@ -101,7 +110,10 @@ pub fn parse_filter<'a>(get: impl Fn(&str) -> Option<&'a str>) -> KioskFilter {
         },
         open_now: flag("open_now"),
         needs_hours: flag("needs_hours"),
-        q: get("q").map(str::trim).filter(|s| !s.is_empty()).map(str::to_owned),
+        q: get("q")
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned),
     }
 }
 
@@ -140,12 +152,24 @@ impl SearchDoc {
             street: normalize_de(r.addr("street").unwrap_or("")),
             city: normalize_de(r.addr("city").unwrap_or("")),
             district: normalize_de(r.addr("district").unwrap_or("")),
-            tags: r.tags.iter().map(|t| normalize_de(t)).collect::<Vec<_>>().join(" "),
+            tags: r
+                .tags
+                .iter()
+                .map(|t| normalize_de(t))
+                .collect::<Vec<_>>()
+                .join(" "),
         }
     }
 
     fn fields(&self) -> [&str; 6] {
-        [&self.name, &self.description, &self.street, &self.city, &self.district, &self.tags]
+        [
+            &self.name,
+            &self.description,
+            &self.street,
+            &self.city,
+            &self.district,
+            &self.tags,
+        ]
     }
 }
 
@@ -216,7 +240,11 @@ fn bitap(text: &[u16], pattern: &[u16]) -> Option<f64> {
         while j >= start {
             let ju = j as usize;
             let loc = ju - 1;
-            let char_match = text.get(loc).and_then(|c| alphabet.get(c)).copied().unwrap_or(0);
+            let char_match = text
+                .get(loc)
+                .and_then(|c| alphabet.get(c))
+                .copied()
+                .unwrap_or(0);
             if loc < tlen {
                 match_mask[loc] = char_match != 0;
             }
@@ -337,7 +365,11 @@ pub fn fuzzy_search(docs: &[SearchDoc], query: &str) -> Vec<usize> {
             scored.push((score, idx));
         }
     }
-    scored.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal).then(a.1.cmp(&b.1)));
+    scored.sort_by(|a, b| {
+        a.0.partial_cmp(&b.0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then(a.1.cmp(&b.1))
+    });
     scored.into_iter().map(|(_, i)| i).collect()
 }
 
@@ -374,18 +406,28 @@ pub fn matches_structured(r: &KioskRecord, f: &KioskFilter, now: DateTime<Utc>) 
 }
 
 /// Apply text search (shaping and ordering the candidate set) then structured filters.
-pub fn apply_filters<'a>(records: &[&'a KioskRecord], f: &KioskFilter, now: DateTime<Utc>) -> Vec<&'a KioskRecord> {
+pub fn apply_filters<'a>(
+    records: &[&'a KioskRecord],
+    f: &KioskFilter,
+    now: DateTime<Utc>,
+) -> Vec<&'a KioskRecord> {
     if !f.is_active() {
         return records.to_vec();
     }
     let candidates: Vec<&KioskRecord> = match &f.q {
         Some(q) => {
             let docs: Vec<SearchDoc> = records.iter().map(|r| SearchDoc::of(r)).collect();
-            fuzzy_search(&docs, q).into_iter().map(|i| records[i]).collect()
+            fuzzy_search(&docs, q)
+                .into_iter()
+                .map(|i| records[i])
+                .collect()
         }
         None => records.to_vec(),
     };
-    candidates.into_iter().filter(|r| matches_structured(r, f, now)).collect()
+    candidates
+        .into_iter()
+        .filter(|r| matches_structured(r, f, now))
+        .collect()
 }
 
 #[cfg(test)]
@@ -416,7 +458,12 @@ mod tests {
 
     #[test]
     fn parse_and_signature() {
-        let q = [("pay", "cards,cash"), ("tags", "WC,sonne"), ("open_now", "1"), ("q", "  bock ")];
+        let q = [
+            ("pay", "cards,cash"),
+            ("tags", "WC,sonne"),
+            ("open_now", "1"),
+            ("q", "  bock "),
+        ];
         let f = parse_filter(|k| q.iter().find(|(a, _)| *a == k).map(|(_, v)| *v));
         assert_eq!(f.tags, vec!["wc", "sonne"]);
         assert!(f.payment.cards && f.payment.cash && !f.payment.contactless);
@@ -440,21 +487,45 @@ mod tests {
         let refs: Vec<&KioskRecord> = rs.iter().collect();
         let docs: Vec<SearchDoc> = refs.iter().map(|r| SearchDoc::of(r)).collect();
         let hits = fuzzy_search(&docs, "bockenheim");
-        assert_eq!(hits.first(), Some(&0), "name match should outrank street match: {hits:?}");
+        assert_eq!(
+            hits.first(),
+            Some(&0),
+            "name match should outrank street match: {hits:?}"
+        );
         assert!(hits.contains(&1));
         assert!(!hits.contains(&2));
         assert_eq!(fuzzy_search(&docs, "wasserhaeuschen"), vec![2]);
-        assert_eq!(fuzzy_search(&docs, "wasserheuschen"), vec![2], "one typo still matches");
+        assert_eq!(
+            fuzzy_search(&docs, "wasserheuschen"),
+            vec![2],
+            "one typo still matches"
+        );
         assert!(fuzzy_search(&docs, "zzzz").is_empty());
     }
 
     #[test]
     fn card_bucket_includes_girocard() {
         let mut r = rec("x", "y");
-        r.payment = Some([("girocard".to_string(), "yes".to_string())].into_iter().collect());
-        let f = KioskFilter { payment: Payment { cards: true, ..Default::default() }, ..Default::default() };
+        r.payment = Some(
+            [("girocard".to_string(), "yes".to_string())]
+                .into_iter()
+                .collect(),
+        );
+        let f = KioskFilter {
+            payment: Payment {
+                cards: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
         assert!(matches_structured(&r, &f, Utc::now()));
-        let f = KioskFilter { payment: Payment { cash: true, ..Default::default() }, ..Default::default() };
+        let f = KioskFilter {
+            payment: Payment {
+                cash: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
         assert!(!matches_structured(&r, &f, Utc::now()));
     }
 }

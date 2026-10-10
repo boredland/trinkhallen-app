@@ -64,13 +64,17 @@ pub fn is_flattenable(raw: &str) -> bool {
         if tok.len() == 4 && tok.starts_with("20") && tok[2..].bytes().all(|b| b.is_ascii_digit()) {
             return false;
         }
-        if ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].contains(&t.as_str())
+        if [
+            "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
+        ]
+        .contains(&t.as_str())
         {
             return false;
         }
         // (^|[\s,;])(PH|SH)(\b|,) — case-insensitive, preceded by start/space/comma/semicolon.
         if t == "ph" || t == "sh" {
-            let ok_before = *start == 0 || matches!(bytes[start - 1], b' ' | b'\t' | b'\n' | b',' | b';');
+            let ok_before =
+                *start == 0 || matches!(bytes[start - 1], b' ' | b'\t' | b'\n' | b',' | b';');
             let end = start + tok.len();
             let ok_after = end == bytes.len() || !is_word(bytes[end]) || bytes[end] == b',';
             if ok_before && ok_after {
@@ -119,19 +123,36 @@ pub struct WeekState {
 /// re-entering at 0.
 pub fn state_from_week(week: &[u32], minute: u32) -> WeekState {
     if week.is_empty() {
-        return WeekState { open: false, until: None };
+        return WeekState {
+            open: false,
+            until: None,
+        };
     }
     let wraps = week[0] == 0 && *week.last().unwrap_or(&0) == WEEK_MINUTES;
     if wraps && week.len() == 2 {
-        return WeekState { open: true, until: None };
+        return WeekState {
+            open: true,
+            until: None,
+        };
     }
     let lo = week.partition_point(|&b| b <= minute);
-    let next = if lo < week.len() { week[lo] } else { week[0] + WEEK_MINUTES };
+    let next = if lo < week.len() {
+        week[lo]
+    } else {
+        week[0] + WEEK_MINUTES
+    };
     // Landing on the wrap seam is not a transition — the span continues.
-    let boundary = if wraps && next % WEEK_MINUTES == 0 { week[1] + WEEK_MINUTES } else { next };
+    let boundary = if wraps && next % WEEK_MINUTES == 0 {
+        week[1] + WEEK_MINUTES
+    } else {
+        next
+    };
     let wm = WEEK_MINUTES as i64;
     let until = (((boundary as i64 - minute as i64) % wm) + wm) % wm;
-    WeekState { open: lo & 1 == 1, until: Some(until as u32) }
+    WeekState {
+        open: lo & 1 == 1,
+        until: Some(until as u32),
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -149,7 +170,10 @@ impl Status {
 
 /// Holiday calendar for a Bundesland (full German name), built once.
 fn holidays_for(state: &str) -> Option<ContextHolidays> {
-    state_calendars().iter().find(|(n, _)| *n == state).map(|(_, h)| h.clone())
+    state_calendars()
+        .iter()
+        .find(|(n, _)| *n == state)
+        .map(|(_, h)| h.clone())
 }
 
 fn state_calendars() -> &'static [(&'static str, ContextHolidays)] {
@@ -208,13 +232,21 @@ pub fn compute_status(hours: Option<&Hours>, now: DateTime<Utc>, state: Option<&
     if let Some(week) = &hours.week {
         let s = state_from_week(week, week_minute(now));
         let at = s.until.map(|m| now + Duration::minutes(m as i64));
-        return if s.open { Status::Open { until: at } } else { Status::Closed { until: at } };
+        return if s.open {
+            Status::Open { until: at }
+        } else {
+            Status::Closed { until: at }
+        };
     }
     let t = naive_utc(now);
     if let Some(w) = Weekly::parse(&hours.raw) {
         let (open, next) = w.state_at(t, holiday_test(state));
         let at = next.map(|n| Utc.from_utc_datetime(&n));
-        return if open { Status::Open { until: at } } else { Status::Closed { until: at } };
+        return if open {
+            Status::Open { until: at }
+        } else {
+            Status::Closed { until: at }
+        };
     }
     let Some(oh) = evaluator(&hours.raw, state) else {
         return Status::Unknown;
@@ -225,7 +257,11 @@ pub fn compute_status(hours: Option<&Hours>, now: DateTime<Utc>, state: Option<&
         .map(|n| Utc.from_utc_datetime(&n))
         // The evaluator reports a far-future sentinel for "never changes".
         .filter(|n| n.year() < 9000);
-    if open { Status::Open { until: next } } else { Status::Closed { until: next } }
+    if open {
+        Status::Open { until: next }
+    } else {
+        Status::Closed { until: next }
+    }
 }
 
 pub fn compute_kiosk_status(kiosk: &KioskRecord, now: DateTime<Utc>) -> Status {
@@ -248,7 +284,9 @@ pub fn format_status(lang: Lang, s: Status) -> String {
 
 /// Is `now` a public holiday in the given Bundesland? `false` without a state.
 pub fn is_public_holiday(state: Option<&str>, now: DateTime<Utc>) -> bool {
-    state.and_then(holidays_for).is_some_and(|h| h.get_public().contains(now.date_naive()))
+    state
+        .and_then(holidays_for)
+        .is_some_and(|h| h.get_public().contains(now.date_naive()))
 }
 
 /// True when the raw rule mentions `PH` as a token (`PH off`, `PH 10:00-14:00`,
@@ -278,7 +316,9 @@ pub struct HoursRow {
 
 /// Reference week (Mon 2024-01-15 … Mon 2024-01-22) for the canonical table.
 fn week_start() -> NaiveDateTime {
-    NaiveDate::from_ymd_opt(2024, 1, 15).and_then(|d| d.and_hms_opt(0, 0, 0)).unwrap_or_default()
+    NaiveDate::from_ymd_opt(2024, 1, 15)
+        .and_then(|d| d.and_hms_opt(0, 0, 0))
+        .unwrap_or_default()
 }
 
 /// Flatten a rule into alternating minute offsets over the reference week, or
@@ -326,7 +366,11 @@ pub fn flatten_week(raw: &str) -> Option<Vec<u32>> {
 
 /// Human-readable weekly table: rows of day labels + time ranges, consecutive
 /// identical days grouped. `None` when the rule cannot be parsed.
-pub fn format_hours_table(lang: Lang, raw: Option<&str>, state: Option<&str>) -> Option<Vec<HoursRow>> {
+pub fn format_hours_table(
+    lang: Lang,
+    raw: Option<&str>,
+    state: Option<&str>,
+) -> Option<Vec<HoursRow>> {
     let raw = raw.filter(|r| !r.is_empty())?;
     let l = oh_labels(lang);
     let start = week_start();
@@ -338,7 +382,12 @@ pub fn format_hours_table(lang: Lang, raw: Option<&str>, state: Option<&str>) ->
         Some(w) => w
             .intervals(start.date(), 7, holiday_test(state))
             .into_iter()
-            .map(|s| (start + Duration::minutes(s.start as i64), start + Duration::minutes(s.end as i64)))
+            .map(|s| {
+                (
+                    start + Duration::minutes(s.start as i64),
+                    start + Duration::minutes(s.end as i64),
+                )
+            })
             .collect(),
         None => {
             let oh = evaluator(raw, state)?;
@@ -360,7 +409,11 @@ pub fn format_hours_table(lang: Lang, raw: Option<&str>, state: Option<&str>) ->
             let day_start = start + Duration::days(day);
             let day_end = day_start + Duration::days(1);
             let slot_end = stop.min(day_end);
-            let end_str = if slot_end == day_end { "24:00".to_owned() } else { fmt(slot_end) };
+            let end_str = if slot_end == day_end {
+                "24:00".to_owned()
+            } else {
+                fmt(slot_end)
+            };
             day_slots[day as usize].push((fmt(cur.max(day_start)), end_str));
             cur = day_end;
         }
@@ -383,7 +436,11 @@ pub fn format_hours_table(lang: Lang, raw: Option<&str>, state: Option<&str>) ->
         }
     }
     let fmt_slots = |slots: &[(String, String)]| {
-        slots.iter().map(|(s, e)| format!("{s}–{e}")).collect::<Vec<_>>().join(", ")
+        slots
+            .iter()
+            .map(|(s, e)| format!("{s}–{e}"))
+            .collect::<Vec<_>>()
+            .join(", ")
     };
     let mut rows = Vec::new();
     let mut i = 0;
@@ -401,7 +458,14 @@ pub fn format_hours_table(lang: Lang, raw: Option<&str>, state: Option<&str>) ->
         } else {
             l.days[i].to_owned()
         };
-        rows.push(HoursRow { days, hours: if hours.is_empty() { l.closed_lower.to_owned() } else { hours } });
+        rows.push(HoursRow {
+            days,
+            hours: if hours.is_empty() {
+                l.closed_lower.to_owned()
+            } else {
+                hours
+            },
+        });
         i = j;
     }
     Some(rows)
@@ -438,15 +502,45 @@ mod tests {
 
     #[test]
     fn state_from_week_cases() {
-        assert_eq!(state_from_week(&[], 500), WeekState { open: false, until: None });
-        assert_eq!(state_from_week(&flatten_week("24/7").unwrap(), 5000), WeekState { open: true, until: None });
+        assert_eq!(
+            state_from_week(&[], 500),
+            WeekState {
+                open: false,
+                until: None
+            }
+        );
+        assert_eq!(
+            state_from_week(&flatten_week("24/7").unwrap(), 5000),
+            WeekState {
+                open: true,
+                until: None
+            }
+        );
         let mo = flatten_week("Mo 09:00-17:00").unwrap();
         assert_eq!(mo, vec![540, 1020]);
-        assert_eq!(state_from_week(&mo, 480), WeekState { open: false, until: Some(60) });
-        assert_eq!(state_from_week(&mo, 600), WeekState { open: true, until: Some(420) });
+        assert_eq!(
+            state_from_week(&mo, 480),
+            WeekState {
+                open: false,
+                until: Some(60)
+            }
+        );
+        assert_eq!(
+            state_from_week(&mo, 600),
+            WeekState {
+                open: true,
+                until: Some(420)
+            }
+        );
         assert!(state_from_week(&mo, 540).open);
         assert!(!state_from_week(&mo, 1020).open);
-        assert_eq!(state_from_week(&mo, 6 * 1440 + 23 * 60), WeekState { open: false, until: Some(600) });
+        assert_eq!(
+            state_from_week(&mo, 6 * 1440 + 23 * 60),
+            WeekState {
+                open: false,
+                until: Some(600)
+            }
+        );
         let late = flatten_week("Mo-Su 09:00-01:00").unwrap();
         let s = state_from_week(&late, 6 * 1440 + 23 * 60 + 30);
         assert!(s.open);
@@ -484,16 +578,25 @@ mod tests {
             "Mo-Fr 06:00-09:00,15:00-19:00",
         ] {
             let week = flatten_week(raw).unwrap();
-            let fast = Hours { raw: raw.into(), week: Some(week) };
-            let slow = Hours { raw: raw.into(), week: None };
+            let fast = Hours {
+                raw: raw.into(),
+                week: Some(week),
+            };
+            let slow = Hours {
+                raw: raw.into(),
+                week: None,
+            };
             for day in 0..7 {
                 for hour in [0, 1, 6, 9, 12, 17, 22, 23] {
                     let now = utc(2026, 8, 17 + day, hour, 31);
                     let f = compute_status(Some(&fast), now, None);
                     let s = compute_status(Some(&slow), now, None);
                     assert_eq!(f.is_open(), s.is_open(), "{raw} @ {now}");
-                    if let (Status::Open { until: Some(a) } | Status::Closed { until: Some(a) },
-                            Status::Open { until: Some(b) } | Status::Closed { until: Some(b) }) = (f, s) {
+                    if let (
+                        Status::Open { until: Some(a) } | Status::Closed { until: Some(a) },
+                        Status::Open { until: Some(b) } | Status::Closed { until: Some(b) },
+                    ) = (f, s)
+                    {
                         assert_eq!(a, b, "{raw} @ {now}");
                     }
                 }
@@ -505,7 +608,10 @@ mod tests {
     fn holidays_per_bundesland() {
         let ph = utc(2026, 10, 3, 12, 0); // Tag der Deutschen Einheit (Saturday)
         let plain = utc(2026, 9, 26, 12, 0);
-        let rule = Hours { raw: "Mo-Sa 06:00-22:00; PH off".into(), week: None };
+        let rule = Hours {
+            raw: "Mo-Sa 06:00-22:00; PH off".into(),
+            week: None,
+        };
         assert!(!compute_status(Some(&rule), ph, Some("Hessen")).is_open());
         assert!(compute_status(Some(&rule), plain, Some("Hessen")).is_open());
         assert!(is_public_holiday(Some("Hessen"), ph));
@@ -529,24 +635,49 @@ mod tests {
 
     #[test]
     fn table() {
-        let rows = format_hours_table(Lang::De, Some("Mo-Fr 09:00-22:00; Sa 10:00-20:00"), None).unwrap();
+        let rows =
+            format_hours_table(Lang::De, Some("Mo-Fr 09:00-22:00; Sa 10:00-20:00"), None).unwrap();
         assert_eq!(
             rows,
             vec![
-                HoursRow { days: "Mo–Fr".into(), hours: "09:00–22:00".into() },
-                HoursRow { days: "Sa".into(), hours: "10:00–20:00".into() },
-                HoursRow { days: "So".into(), hours: "geschlossen".into() },
+                HoursRow {
+                    days: "Mo–Fr".into(),
+                    hours: "09:00–22:00".into()
+                },
+                HoursRow {
+                    days: "Sa".into(),
+                    hours: "10:00–20:00".into()
+                },
+                HoursRow {
+                    days: "So".into(),
+                    hours: "geschlossen".into()
+                },
             ]
         );
         let late = format_hours_table(Lang::De, Some("Mo-Su 08:00-00:30"), None).unwrap();
-        assert_eq!(late, vec![HoursRow { days: "Mo–So".into(), hours: "08:00–00:30".into() }]);
+        assert_eq!(
+            late,
+            vec![HoursRow {
+                days: "Mo–So".into(),
+                hours: "08:00–00:30".into()
+            }]
+        );
     }
 
     #[test]
     fn status_labels() {
         let now = utc(2026, 8, 17, 10, 0);
-        let h = Hours { raw: "Mo 09:00-17:00".into(), week: Some(vec![540, 1020]) };
-        assert_eq!(format_status(Lang::De, compute_status(Some(&h), now, None)), "Offen bis 17:00");
-        assert_eq!(format_status(Lang::En, Status::Unknown), "Opening hours unknown");
+        let h = Hours {
+            raw: "Mo 09:00-17:00".into(),
+            week: Some(vec![540, 1020]),
+        };
+        assert_eq!(
+            format_status(Lang::De, compute_status(Some(&h), now, None)),
+            "Offen bis 17:00"
+        );
+        assert_eq!(
+            format_status(Lang::En, Status::Unknown),
+            "Opening hours unknown"
+        );
     }
 }

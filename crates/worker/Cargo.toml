@@ -14,11 +14,13 @@ trinkhallen-ui.workspace = true
 dioxus.workspace = true
 worker = { version = "0.8.7", features = ["d1"] }
 serde.workspace = true
-serde_json.workspace = true
+# `preserve_order` keeps JSON key order stable (JSON.stringify semantics) so
+# the GeoJSON/API bodies and the data-repo PR diffs stay byte-faithful.
+serde_json = { workspace = true, features = ["preserve_order"] }
 chrono.workspace = true
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 js-sys.workspace = true
 web-sys = { workspace = true, features = ["Crypto", "SubtleCrypto", "CryptoKey", "Cache", "CacheStorage"] }
 getrandom = { workspace = true, features = ["wasm_js"] }
-futures-util = { version = "0.3", default-features = false, features = ["std"] }
+futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"] }

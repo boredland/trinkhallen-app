@@ -1,0 +1,74 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "trinkhallen-app"
+main = "crates/worker/build/index.js"
+compatibility_date = "2026-01-15"
+
+# Dioxus build: importer → dist/static/data, Tailwind + client wasm into
+# dist/static/assets, then worker-build (wasm-bindgen) into crates/worker/build/.
+# The command locates the repo root itself, so `wrangler dev` works from the
+# repo root (Workers Builds) and from `crates/worker` alike.
+[build]
+command = "bash \"$(git rev-parse --show-toplevel)/scripts/build-dioxus.sh\""
+
+# Workers Assets — serves dist/static (data, hashed assets, public/ files).
+[assets]
+directory = "./dist/static"
+binding = "ASSETS"
+
+# Hourly reconciliation of pr_opened reports/submissions against GitHub — see
+# the scheduled handler in src/index.ts (ported to `scheduled` in
+# crates/worker/src/lib.rs).
+[triggers]
+crons = ["17 * * * *"]
+
+# Production environment
+[[d1_databases]]
+binding = "DB"
+database_name = "trinkhallen-prod"
+database_id = "27575e60-47dc-4552-ba98-15db77d6d4c2"
+migrations_dir = "migrations"
+
+# Cloudflare Email Service (Email Sending) outbound binding.
+# Operator setup:
+#   1. Onboard the sending domain: `wrangler email sending enable
+#      trinkhallen.app` (done). Otherwise env.EMAIL.send() throws
+#      E_SENDER_NOT_VERIFIED.
+#   2. Verify each notification recipient as an Email Routing destination
+#      address (Email Routing → Destination addresses → Add → click the
+#      verification mail).
+#   3. DKIM is auto-managed by Cloudflare; SPF/DMARC land with onboarding.
+#
+# No destination restriction here on purpose: magic-link mail goes to
+# arbitrary user addresses. REPORT_NOTIFY_TO below is the operator ping and
+# *must* be a verified destination address — the binding rejects anything
+# else with E_RECIPIENT_NOT_ALLOWED.
+[[send_email]]
+name = "EMAIL"
+
+[vars]
+PUBLIC_ORIGIN = "https://trinkhallen.app"
+# Public Turnstile sitekey — the paired secret is a Worker secret
+# (TURNSTILE_SECRET_KEY). Empty/unset disables the bot gate on /auth/magic.
+TURNSTILE_SITE_KEY = "0x4AAAAAAEL4lqbYMWC0QtjK"
+# Where new-report notifications go. Must be a *verified* Email Routing
+# destination address on the account. Unset/empty disables the mails.
+REPORT_NOTIFY_TO = "info@jonas-strassel.de"
+
+# Secrets (set via `wrangler secret put`):
+#   SESSION_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+#   GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_INSTALLATION_ID,
+#   APPLE_SIGN_IN_SERVICES_ID, APPLE_SIGN_IN_TEAM_ID,
+#   APPLE_SIGN_IN_KEY_ID, APPLE_SIGN_IN_PRIVATE_KEY,
+#   TURNSTILE_SECRET_KEY
+
+[[routes]]
+pattern = "trinkhallen.app"
+custom_domain = true
+
+[observability.logs]
+enabled = true
+
+# Local dev: D1 emulated via Miniflare; secrets read from .dev.vars
+[env.local]
+[env.local.vars]
+PUBLIC_ORIGIN = "http://localhost:8787"

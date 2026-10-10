@@ -47,12 +47,23 @@ fn squared_anchor_distance(r: &Region, lng: f64, lat: f64) -> f64 {
 /// file it, or it lands in a different file. `None` when no bbox contains the
 /// point.
 pub fn resolve_region_by_coords(lng: f64, lat: f64) -> Option<&'static Region> {
-    let candidates: Vec<&Region> = REGIONS.iter().filter(|r| bbox_contains(r, lng, lat)).collect();
+    let candidates: Vec<&Region> = REGIONS
+        .iter()
+        .filter(|r| bbox_contains(r, lng, lat))
+        .collect();
     if candidates.is_empty() {
         return None;
     }
-    let cities: Vec<&Region> = candidates.iter().copied().filter(|r| r.role == Role::City).collect();
-    let pool = if cities.is_empty() { candidates } else { cities };
+    let cities: Vec<&Region> = candidates
+        .iter()
+        .copied()
+        .filter(|r| r.role == Role::City)
+        .collect();
+    let pool = if cities.is_empty() {
+        candidates
+    } else {
+        cities
+    };
     pool.into_iter().min_by(|a, b| {
         squared_anchor_distance(a, lng, lat)
             .partial_cmp(&squared_anchor_distance(b, lng, lat))
@@ -102,7 +113,10 @@ pub fn bundesland_for_region(region_slug: &str) -> Option<&'static str> {
     if country != "de" {
         return None;
     }
-    BUNDESLAND_BY_SLUG.iter().find(|(k, _)| *k == land).map(|(_, v)| *v)
+    BUNDESLAND_BY_SLUG
+        .iter()
+        .find(|(k, _)| *k == land)
+        .map(|(_, v)| *v)
 }
 
 /// `tk_<prefix>_<rest>` → `<prefix>`; prefixes are `[a-z0-9]+`.
@@ -124,9 +138,19 @@ mod tests {
         for r in REGIONS {
             assert!(slugs.insert(r.slug), "dup slug {}", r.slug);
             assert!(prefixes.insert(r.prefix), "dup prefix {}", r.prefix);
-            assert!(r.prefix.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()), "{}", r.prefix);
+            assert!(
+                r.prefix
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()),
+                "{}",
+                r.prefix
+            );
             let [w, s, e, n] = r.bbox;
-            assert!(w < e && s < n && w > 5.0 && e < 18.0 && s > 45.0 && n < 56.0, "{}", r.slug);
+            assert!(
+                w < e && s < n && w > 5.0 && e < 18.0 && s > 45.0 && n < 56.0,
+                "{}",
+                r.slug
+            );
         }
         assert!(REGIONS.iter().any(|r| r.role == Role::Rest));
     }

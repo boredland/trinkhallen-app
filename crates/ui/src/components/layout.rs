@@ -6,8 +6,8 @@
 //! benefit from a virtual DOM. The header and footer are RSX components.
 
 use dioxus::prelude::*;
-use trinkhallen_core::i18n::{DEFAULT_LANG, Lang, SUPPORTED_LANGS, path_for_lang, t};
 use trinkhallen_core::ORIGIN;
+use trinkhallen_core::i18n::{DEFAULT_LANG, Lang, SUPPORTED_LANGS, path_for_lang, t};
 
 use crate::model::{Nav, SessionUser};
 use crate::render::{ClientEntry, Page, hydration_data, to_html};
@@ -15,17 +15,25 @@ use crate::render::{ClientEntry, Page, hydration_data, to_html};
 const SITE: &str = "TRINKHALLEN.APP";
 
 pub fn html_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 /// JSON for a `<script>` body: `<` escaped so `</script>` can't terminate it.
 pub fn script_json(v: &serde_json::Value) -> String {
-    serde_json::to_string(v).unwrap_or_default().replace('<', "\\u003c")
+    serde_json::to_string(v)
+        .unwrap_or_default()
+        .replace('<', "\\u003c")
 }
 
 pub fn render_document(page: &Page, body: String) -> String {
     let lang = page.lang;
-    let desc = page.description.clone().unwrap_or_else(|| t(lang, "meta.descriptionDefault"));
+    let desc = page
+        .description
+        .clone()
+        .unwrap_or_else(|| t(lang, "meta.descriptionDefault"));
     let full_title = match &page.title {
         Some(t) => format!("{t} · {SITE}"),
         None => SITE.to_owned(),
@@ -41,52 +49,100 @@ pub fn render_document(page: &Page, body: String) -> String {
     let url_for = |l: Lang| format!("{ORIGIN}{}", path_for_lang(&bare_path, l));
     let canonical = url_for(lang);
     let og_image = format!("{ORIGIN}/og-1200x630.png");
-    let is_map_page = page.entries.iter().any(|e| matches!(e, ClientEntry::Map | ClientEntry::Pick));
+    let is_map_page = page
+        .entries
+        .iter()
+        .any(|e| matches!(e, ClientEntry::Map | ClientEntry::Pick));
     let nonce = html_escape(&page.nonce);
     let e = html_escape;
 
     let mut h = String::with_capacity(8 * 1024 + body.len());
     h.push_str("<!DOCTYPE html>");
-    h.push_str(&format!("<html lang=\"{}\" data-theme=\"dark\"><head>", lang.code()));
+    h.push_str(&format!(
+        "<html lang=\"{}\" data-theme=\"dark\"><head>",
+        lang.code()
+    ));
     h.push_str("<meta charset=\"utf-8\"/>");
     h.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\"/>");
     // Dark default for the system bar; the client corrects it for light theme.
     h.push_str("<meta name=\"theme-color\" content=\"#0A0A0A\"/>");
     // Declared before any CSS so the navigation gap paints dark, not white.
     h.push_str("<meta name=\"color-scheme\" content=\"dark\"/>");
-    h.push_str(&format!("<meta name=\"description\" content=\"{}\"/>", e(&desc)));
+    h.push_str(&format!(
+        "<meta name=\"description\" content=\"{}\"/>",
+        e(&desc)
+    ));
     if page.noindex {
         h.push_str("<meta name=\"robots\" content=\"noindex, nofollow\"/>");
     }
-    h.push_str(&format!("<link rel=\"canonical\" href=\"{}\"/>", e(&canonical)));
-    h.push_str(&format!("<meta property=\"og:title\" content=\"{}\"/>", e(&full_title)));
-    h.push_str(&format!("<meta property=\"og:description\" content=\"{}\"/>", e(&desc)));
+    h.push_str(&format!(
+        "<link rel=\"canonical\" href=\"{}\"/>",
+        e(&canonical)
+    ));
+    h.push_str(&format!(
+        "<meta property=\"og:title\" content=\"{}\"/>",
+        e(&full_title)
+    ));
+    h.push_str(&format!(
+        "<meta property=\"og:description\" content=\"{}\"/>",
+        e(&desc)
+    ));
     h.push_str("<meta property=\"og:type\" content=\"website\"/>");
-    h.push_str(&format!("<meta property=\"og:url\" content=\"{}\"/>", e(&canonical)));
-    h.push_str(&format!("<meta property=\"og:image\" content=\"{og_image}\"/>"));
+    h.push_str(&format!(
+        "<meta property=\"og:url\" content=\"{}\"/>",
+        e(&canonical)
+    ));
+    h.push_str(&format!(
+        "<meta property=\"og:image\" content=\"{og_image}\"/>"
+    ));
     h.push_str("<meta property=\"og:image:type\" content=\"image/png\"/>");
     h.push_str("<meta property=\"og:image:width\" content=\"1200\"/>");
     h.push_str("<meta property=\"og:image:height\" content=\"630\"/>");
-    h.push_str(&format!("<meta property=\"og:image:alt\" content=\"{}\"/>", e(&t(lang, "meta.ogImageAlt"))));
-    h.push_str(&format!("<meta property=\"og:locale\" content=\"{}\"/>", lang.og_locale()));
+    h.push_str(&format!(
+        "<meta property=\"og:image:alt\" content=\"{}\"/>",
+        e(&t(lang, "meta.ogImageAlt"))
+    ));
+    h.push_str(&format!(
+        "<meta property=\"og:locale\" content=\"{}\"/>",
+        lang.og_locale()
+    ));
     h.push_str("<meta name=\"twitter:card\" content=\"summary_large_image\"/>");
-    h.push_str(&format!("<meta name=\"twitter:title\" content=\"{}\"/>", e(&full_title)));
-    h.push_str(&format!("<meta name=\"twitter:description\" content=\"{}\"/>", e(&desc)));
-    h.push_str(&format!("<meta name=\"twitter:image\" content=\"{og_image}\"/>"));
+    h.push_str(&format!(
+        "<meta name=\"twitter:title\" content=\"{}\"/>",
+        e(&full_title)
+    ));
+    h.push_str(&format!(
+        "<meta name=\"twitter:description\" content=\"{}\"/>",
+        e(&desc)
+    ));
+    h.push_str(&format!(
+        "<meta name=\"twitter:image\" content=\"{og_image}\"/>"
+    ));
     for l in SUPPORTED_LANGS {
-        h.push_str(&format!("<link rel=\"alternate\" hreflang=\"{}\" href=\"{}\"/>", l.code(), e(&url_for(l))));
+        h.push_str(&format!(
+            "<link rel=\"alternate\" hreflang=\"{}\" href=\"{}\"/>",
+            l.code(),
+            e(&url_for(l))
+        ));
     }
-    h.push_str(&format!("<link rel=\"alternate\" hreflang=\"x-default\" href=\"{}\"/>", e(&url_for(DEFAULT_LANG))));
+    h.push_str(&format!(
+        "<link rel=\"alternate\" hreflang=\"x-default\" href=\"{}\"/>",
+        e(&url_for(DEFAULT_LANG))
+    ));
     h.push_str(&format!("<title>{}</title>", e(&full_title)));
     h.push_str("<link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\"/>");
     h.push_str("<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.svg\"/>");
     h.push_str("<link rel=\"manifest\" href=\"/manifest.webmanifest\"/>");
     // iOS only honours these for standalone "Add to Home Screen".
     h.push_str("<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"/>");
-    h.push_str("<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\"/>");
+    h.push_str(
+        "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\"/>",
+    );
     h.push_str("<meta name=\"apple-mobile-web-app-title\" content=\"trinkhallen\"/>");
     if is_map_page {
-        h.push_str("<link rel=\"preconnect\" href=\"https://tiles.openfreemap.org\" crossorigin=\"\"/>");
+        h.push_str(
+            "<link rel=\"preconnect\" href=\"https://tiles.openfreemap.org\" crossorigin=\"\"/>",
+        );
         // The style JSON is MapLibre's first request; preload it ahead of our JS.
         h.push_str(
             "<link rel=\"preload\" href=\"https://tiles.openfreemap.org/styles/dark\" as=\"fetch\" crossorigin=\"\"/>",
@@ -96,10 +152,16 @@ pub fn render_document(page: &Page, body: String) -> String {
         h.push_str(&format!("<link rel=\"stylesheet\" href=\"{}\"/>", e(css)));
     }
     if is_map_page && !page.assets.map_js.is_empty() {
-        h.push_str(&format!("<link rel=\"modulepreload\" href=\"{}\"/>", e(&page.assets.map_js)));
+        h.push_str(&format!(
+            "<link rel=\"modulepreload\" href=\"{}\"/>",
+            e(&page.assets.map_js)
+        ));
     }
     for block in &page.json_ld {
-        h.push_str(&format!("<script type=\"application/ld+json\" nonce=\"{nonce}\">{}</script>", script_json(block)));
+        h.push_str(&format!(
+            "<script type=\"application/ld+json\" nonce=\"{nonce}\">{}</script>",
+            script_json(block)
+        ));
     }
     // Speculation Rules: Chromium prerenders /k/* and /stadt/* on intent.
     h.push_str(&format!(
@@ -121,11 +183,20 @@ pub fn render_document(page: &Page, body: String) -> String {
     }
     h.push_str("</head>");
 
-    let body_class = if page.full_bleed { "h-dvh overflow-hidden" } else { "min-h-dvh" };
+    let body_class = if page.full_bleed {
+        "h-dvh overflow-hidden"
+    } else {
+        "min-h-dvh"
+    };
     h.push_str(&format!("<body class=\"{body_class}\">"));
-    h.push_str(&to_html(rsx! { Header { lang, path: bare_path.clone(), nav: page.nav, user: page.user.clone() } }));
-    let main_class =
-        if page.full_bleed { "absolute inset-0 top-[var(--header-h)]" } else { "mx-auto w-full max-w-5xl px-4 py-8" };
+    h.push_str(&to_html(
+        rsx! { Header { lang, path: bare_path.clone(), nav: page.nav, user: page.user.clone() } },
+    ));
+    let main_class = if page.full_bleed {
+        "absolute inset-0 top-[var(--header-h)]"
+    } else {
+        "mx-auto w-full max-w-5xl px-4 py-8"
+    };
     h.push_str(&format!("<main class=\"{main_class}\">"));
     h.push_str(&body);
     h.push_str("</main>");
@@ -220,7 +291,11 @@ fn UserButton(user: SessionUser, lang: Lang) -> Element {
     let href = path_for_lang("/me", lang);
     match user.username {
         Some(name) => {
-            let initial: String = name.chars().next().map(|c| c.to_uppercase().collect()).unwrap_or_default();
+            let initial: String = name
+                .chars()
+                .next()
+                .map(|c| c.to_uppercase().collect())
+                .unwrap_or_default();
             rsx! {
                 a {
                     href: "{href}",
@@ -281,16 +356,27 @@ mod tests {
         page.json_ld = vec![serde_json::json!({"name": "</script>"})];
         let html = render_document(&page, "<p>hi</p>".into());
         assert!(html.starts_with("<!DOCTYPE html><html lang=\"en\" data-theme=\"dark\">"));
-        assert!(html.contains("<link rel=\"canonical\" href=\"https://trinkhallen.app/en/about\"/>"));
+        assert!(
+            html.contains("<link rel=\"canonical\" href=\"https://trinkhallen.app/en/about\"/>")
+        );
         assert!(html.contains("hreflang=\"de\" href=\"https://trinkhallen.app/about\""));
         assert!(html.contains("hreflang=\"x-default\" href=\"https://trinkhallen.app/about\""));
         assert!(html.contains("<title>About · TRINKHALLEN.APP</title>"));
-        assert!(html.contains("\\u003c/script>"), "JSON-LD must not close its script tag");
+        assert!(
+            html.contains("\\u003c/script>"),
+            "JSON-LD must not close its script tag"
+        );
         assert!(html.contains("nonce=\"n0nce\""));
         assert!(html.contains("window.initial_dioxus_hydration_data=\""));
         assert!(html.contains("<p>hi</p>"));
-        assert!(html.contains("href=\"/en/impressum\""), "footer links localized");
-        assert!(html.contains("href=\"/about?setlang=de\""), "switcher targets the other locale");
+        assert!(
+            html.contains("href=\"/en/impressum\""),
+            "footer links localized"
+        );
+        assert!(
+            html.contains("href=\"/about?setlang=de\""),
+            "switcher targets the other locale"
+        );
         assert!(html.contains(">Login<"));
     }
 }

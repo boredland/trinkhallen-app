@@ -81,7 +81,8 @@ impl Rule {
     /// Like [`Self::matches`] for the previous day's spill past midnight. The
     /// holiday name stays on the holiday itself.
     fn spills_from(&self, weekday: u32, holiday: Option<u32>) -> Option<u32> {
-        self.matches(weekday, holiday).map(|tag| if tag < OPEN_END_TAG { 0 } else { tag })
+        self.matches(weekday, holiday)
+            .map(|tag| if tag < OPEN_END_TAG { 0 } else { tag })
     }
 }
 
@@ -221,7 +222,9 @@ fn parse_days(t: &[Tok], mut i: usize) -> Option<(u8, bool, usize)> {
         match t.get(i) {
             Some(&Tok::Day(a)) => {
                 if t.get(i + 1) == Some(&Tok::Dash) {
-                    let Some(&Tok::Day(b)) = t.get(i + 2) else { return None };
+                    let Some(&Tok::Day(b)) = t.get(i + 2) else {
+                        return None;
+                    };
                     days |= day_mask(a, b);
                     i += 3;
                 } else {
@@ -261,7 +264,12 @@ fn parse_rule(t: &[Tok], i: usize, additional: bool, comment_tag: u32) -> Option
     let has_days = days != 0 || ph;
 
     let mut spans = Vec::new();
-    let open = |start, end| Seg { start, end, kind: Kind::Open, tag: 0 };
+    let open = |start, end| Seg {
+        start,
+        end,
+        kind: Kind::Open,
+        tag: 0,
+    };
     if t.get(i) == Some(&Tok::Always) {
         spans.push(open(0, DAY));
         i += 1;
@@ -278,12 +286,22 @@ fn parse_rule(t: &[Tok], i: usize, additional: bool, comment_tag: u32) -> Option
                     spans.push(open(a, end));
                     i += 3;
                     if t.get(i) == Some(&Tok::Plus) {
-                        spans.push(Seg { start: end, end: open_end(end), kind: Kind::Unknown, tag: OPEN_END_TAG });
+                        spans.push(Seg {
+                            start: end,
+                            end: open_end(end),
+                            kind: Kind::Unknown,
+                            tag: OPEN_END_TAG,
+                        });
                         i += 1;
                     }
                 }
                 (Some(Tok::Plus), _) => {
-                    spans.push(Seg { start: a, end: open_end(a), kind: Kind::Unknown, tag: OPEN_END_TAG });
+                    spans.push(Seg {
+                        start: a,
+                        end: open_end(a),
+                        kind: Kind::Unknown,
+                        tag: OPEN_END_TAG,
+                    });
                     i += 2;
                 }
                 _ => return None,
@@ -388,7 +406,13 @@ impl Weekly {
 
     /// Segments within one day (minutes, half-open, sorted), given that day's
     /// and the previous day's weekday and holiday status.
-    fn day(&self, weekday: u32, holiday: Option<u32>, prev_weekday: u32, prev_holiday: Option<u32>) -> Vec<Seg> {
+    fn day(
+        &self,
+        weekday: u32,
+        holiday: Option<u32>,
+        prev_weekday: u32,
+        prev_holiday: Option<u32>,
+    ) -> Vec<Seg> {
         let mut cur = Vec::new();
         let mut closed_by_rule = false;
         for r in &self.rules {
@@ -407,7 +431,14 @@ impl Weekly {
                 let mut from = s.start;
                 for c in cur.clone() {
                     if c.start > from {
-                        paint(&mut cur, Seg { start: from, end: c.start.min(s.end), ..s });
+                        paint(
+                            &mut cur,
+                            Seg {
+                                start: from,
+                                end: c.start.min(s.end),
+                                ..s
+                            },
+                        );
                     }
                     from = from.max(c.end);
                 }
@@ -419,7 +450,12 @@ impl Weekly {
 
     /// Segments (minutes from `from` 00:00) over `days` days, touching
     /// segments with the same kind and tag merged.
-    pub fn intervals(&self, from: NaiveDate, days: u32, is_holiday: impl Fn(NaiveDate) -> bool) -> Vec<Seg> {
+    pub fn intervals(
+        &self,
+        from: NaiveDate,
+        days: u32,
+        is_holiday: impl Fn(NaiveDate) -> bool,
+    ) -> Vec<Seg> {
         let mut out: Vec<Seg> = Vec::new();
         let mut prev = from - Duration::days(1);
         let tag_of = |d: NaiveDate| is_holiday(d).then(|| holiday_tag(d));
@@ -431,10 +467,17 @@ impl Weekly {
             let wd = date.weekday().num_days_from_monday();
             for s in self.day(wd, hol, prev.weekday().num_days_from_monday(), prev_hol) {
                 match out.last_mut() {
-                    Some(last) if last.end == base + s.start && (last.kind, last.tag) == (s.kind, s.tag) => {
+                    Some(last)
+                        if last.end == base + s.start
+                            && (last.kind, last.tag) == (s.kind, s.tag) =>
+                    {
                         last.end = base + s.end
                     }
-                    _ => out.push(Seg { start: base + s.start, end: base + s.end, ..s }),
+                    _ => out.push(Seg {
+                        start: base + s.start,
+                        end: base + s.end,
+                        ..s
+                    }),
                 }
             }
             prev = date;
@@ -453,15 +496,28 @@ impl Weekly {
         if segs.iter().any(|s| s.kind != Kind::Open || s.tag != 0) {
             return None;
         }
-        Some(segs.into_iter().filter(|s| s.start < week).flat_map(|s| [s.start, s.end.min(week)]).collect())
+        Some(
+            segs.into_iter()
+                .filter(|s| s.start < week)
+                .flat_map(|s| [s.start, s.end.min(week)])
+                .collect(),
+        )
     }
 
     /// Open at `now` (unknown counts as not open), and the next change within
     /// two weeks (`None` when nothing changes that long).
-    pub fn state_at(&self, now: NaiveDateTime, is_holiday: impl Fn(NaiveDate) -> bool) -> (bool, Option<NaiveDateTime>) {
+    pub fn state_at(
+        &self,
+        now: NaiveDateTime,
+        is_holiday: impl Fn(NaiveDate) -> bool,
+    ) -> (bool, Option<NaiveDateTime>) {
         // A plain weekly rule repeats within 8 days; a `PH` rule can change
         // only at the next holiday, which may be months out.
-        let horizon_days = if self.rules.iter().chain(&self.fallback).any(|r| r.ph) { 400 } else { 15 };
+        let horizon_days = if self.rules.iter().chain(&self.fallback).any(|r| r.ph) {
+            400
+        } else {
+            15
+        };
         let today = now.date();
         let start = today.and_hms_opt(0, 0, 0).unwrap_or(now);
         let minute = now.hour() * 60 + now.minute();
@@ -485,12 +541,28 @@ fn apply_rule(cur: &mut Vec<Seg>, r: &Rule, own: Option<u32>, spill: Option<u32>
     }
     for s in &r.spans {
         // A rule's own comment (open end, quoted text) wins over the holiday name.
-        let tagged = |day_tag: u32| Seg { tag: if s.tag != 0 { s.tag } else { day_tag }, ..*s };
+        let tagged = |day_tag: u32| Seg {
+            tag: if s.tag != 0 { s.tag } else { day_tag },
+            ..*s
+        };
         if let Some(tag) = own {
-            paint(cur, Seg { end: s.end.min(DAY), ..tagged(tag) });
+            paint(
+                cur,
+                Seg {
+                    end: s.end.min(DAY),
+                    ..tagged(tag)
+                },
+            );
         }
         if let Some(tag) = spill.filter(|_| s.end > DAY) {
-            paint(cur, Seg { start: s.start.saturating_sub(DAY), end: (s.end - DAY).min(DAY), ..tagged(tag) });
+            paint(
+                cur,
+                Seg {
+                    start: s.start.saturating_sub(DAY),
+                    end: (s.end - DAY).min(DAY),
+                    ..tagged(tag)
+                },
+            );
         }
     }
 }
@@ -533,15 +605,27 @@ mod tests {
     use super::*;
 
     fn week(raw: &str) -> Vec<u32> {
-        Weekly::parse(raw).unwrap_or_else(|| panic!("unsupported: {raw}")).week().expect("bakeable")
+        Weekly::parse(raw)
+            .unwrap_or_else(|| panic!("unsupported: {raw}"))
+            .week()
+            .expect("bakeable")
     }
 
-    fn state(raw: &str, now: NaiveDateTime, holiday: Option<NaiveDate>) -> (bool, Option<NaiveDateTime>) {
-        Weekly::parse(raw).unwrap().state_at(now, |d| Some(d) == holiday)
+    fn state(
+        raw: &str,
+        now: NaiveDateTime,
+        holiday: Option<NaiveDate>,
+    ) -> (bool, Option<NaiveDateTime>) {
+        Weekly::parse(raw)
+            .unwrap()
+            .state_at(now, |d| Some(d) == holiday)
     }
 
     fn dt(d: u32, h: u32, m: u32) -> NaiveDateTime {
-        NaiveDate::from_ymd_opt(2026, 10, d).unwrap().and_hms_opt(h, m, 0).unwrap()
+        NaiveDate::from_ymd_opt(2026, 10, d)
+            .unwrap()
+            .and_hms_opt(h, m, 0)
+            .unwrap()
     }
 
     /// Sat 2026-10-03, Tag der Deutschen Einheit.
@@ -557,33 +641,51 @@ mod tests {
     fn overnight_spill_survives_later_rules_for_the_next_day() {
         assert_eq!(
             week("Mo-Fr 06:30-01:00; Sa-Su 07:30-01:00"),
-            [0, 60, 390, 1500, 1830, 2940, 3270, 4380, 4710, 5820, 6150, 7200, 7650, 8700, 9090, 10080]
+            [
+                0, 60, 390, 1500, 1830, 2940, 3270, 4380, 4710, 5820, 6150, 7200, 7650, 8700, 9090,
+                10080
+            ]
         );
-        assert_eq!(week("Tu 09:00-02:00; Mo 09:00-02:00"), [540, 1560, 1980, 3000]);
+        assert_eq!(
+            week("Tu 09:00-02:00; Mo 09:00-02:00"),
+            [540, 1560, 1980, 3000]
+        );
     }
 
     #[test]
     fn overriding_rule_clears_earlier_spill_into_its_day() {
         assert_eq!(week("We 22:00-02:00; Th off"), [4200, 4320]);
-        assert_eq!(week("We 22:00-02:00; Th 10:00-12:00"), [4200, 4320, 4920, 5040]);
+        assert_eq!(
+            week("We 22:00-02:00; Th 10:00-12:00"),
+            [4200, 4320, 4920, 5040]
+        );
         assert_eq!(
             week("Mo-Fr 20:00-02:00; We 10:00-12:00"),
-            [1200, 1560, 2640, 2880, 3480, 3600, 4320, 4440, 5520, 5880, 6960, 7320]
+            [
+                1200, 1560, 2640, 2880, 3480, 3600, 4320, 4440, 5520, 5880, 6960, 7320
+            ]
         );
     }
 
     #[test]
     fn additional_and_time_only_rules_add() {
         assert_eq!(week("Mo 22:00-02:00, Tu 01:00-05:00"), [1320, 1740]);
-        assert_eq!(week("Mo 22:00-02:00; Tu off, Tu 10:00-11:00"), [1320, 1440, 2040, 2100]);
+        assert_eq!(
+            week("Mo 22:00-02:00; Tu off, Tu 10:00-11:00"),
+            [1320, 1440, 2040, 2100]
+        );
         assert_eq!(
             week("Mo-Fr 08:00-12:00; 14:00-18:00"),
-            [480, 720, 840, 1080, 1920, 2160, 2280, 2520, 3360, 3600, 3720, 3960, 4800, 5040, 5160, 5400, 6240,
-                6480, 6600, 6840, 8040, 8280, 9480, 9720]
+            [
+                480, 720, 840, 1080, 1920, 2160, 2280, 2520, 3360, 3600, 3720, 3960, 4800, 5040,
+                5160, 5400, 6240, 6480, 6600, 6840, 8040, 8280, 9480, 9720
+            ]
         );
         assert_eq!(
             week("14:00-18:00; Mo-Fr 08:00-12:00"),
-            [480, 720, 1920, 2160, 3360, 3600, 4800, 5040, 6240, 6480, 8040, 8280, 9480, 9720]
+            [
+                480, 720, 1920, 2160, 3360, 3600, 4800, 5040, 6240, 6480, 8040, 8280, 9480, 9720
+            ]
         );
     }
 
@@ -591,17 +693,31 @@ mod tests {
     fn off_with_times_subtracts_only_that_span() {
         assert_eq!(
             week("Mo-Fr 08:00-18:00; Tu 10:00-11:00 off"),
-            [480, 1080, 1920, 2040, 2100, 2520, 3360, 3960, 4800, 5400, 6240, 6840]
+            [
+                480, 1080, 1920, 2040, 2100, 2520, 3360, 3960, 4800, 5400, 6240, 6840
+            ]
         );
     }
 
     #[test]
     fn tolerant_spellings_and_wrapping_ranges() {
-        assert_eq!(week("Tu, We, Th, Fr 08:00 - 18:00"), [1920, 2520, 3360, 3960, 4800, 5400, 6240, 6840]);
-        assert_eq!(week("Mo - Fr 09:00 - 12:00"), [540, 720, 1980, 2160, 3420, 3600, 4860, 5040, 6300, 6480]);
-        assert_eq!(week("Mon-Thu 07:00-12:30"), [420, 750, 1860, 2190, 3300, 3630, 4740, 5070]);
+        assert_eq!(
+            week("Tu, We, Th, Fr 08:00 - 18:00"),
+            [1920, 2520, 3360, 3960, 4800, 5400, 6240, 6840]
+        );
+        assert_eq!(
+            week("Mo - Fr 09:00 - 12:00"),
+            [540, 720, 1980, 2160, 3420, 3600, 4860, 5040, 6300, 6480]
+        );
+        assert_eq!(
+            week("Mon-Thu 07:00-12:30"),
+            [420, 750, 1860, 2190, 3300, 3630, 4740, 5070]
+        );
         assert_eq!(week("Mo 08:00-12:00 13:30-17:30"), [480, 720, 810, 1050]);
-        assert_eq!(week("Fr-Mo 22:00-03:00"), [0, 180, 1320, 1620, 7080, 7380, 8520, 8820, 9960, 10080]);
+        assert_eq!(
+            week("Fr-Mo 22:00-03:00"),
+            [0, 180, 1320, 1620, 7080, 7380, 8520, 8820, 9960, 10080]
+        );
         assert_eq!(week("Mo 10:00-10:00"), [600, 2040]);
         assert_eq!(week("Mo-Sa 24/7"), [0, 8640]);
         assert_eq!(week("24/7"), [0, 10080]);
@@ -609,7 +725,13 @@ mod tests {
 
     #[test]
     fn rejects_what_it_cannot_reproduce() {
-        for raw in ["Tu,Th, 14:30-17:30", "Mo-Fr sunrise-sunset", "SH off", "Mo[1] off", "Apr-Oct Mo 10:00-12:00"] {
+        for raw in [
+            "Tu,Th, 14:30-17:30",
+            "Mo-Fr sunrise-sunset",
+            "SH off",
+            "Mo[1] off",
+            "Apr-Oct Mo 10:00-12:00",
+        ] {
             assert!(Weekly::parse(raw).is_none(), "{raw}");
         }
     }
@@ -617,38 +739,81 @@ mod tests {
     #[test]
     fn holidays_close_and_their_name_ends_at_midnight() {
         let raw = "Mo-Sa 08:00-20:00; Su,PH off";
-        assert_eq!(state(raw, dt(3, 12, 0), unity_day()), (false, Some(dt(4, 0, 0))));
+        assert_eq!(
+            state(raw, dt(3, 12, 0), unity_day()),
+            (false, Some(dt(4, 0, 0)))
+        );
         assert_eq!(state(raw, dt(3, 12, 0), None), (true, Some(dt(3, 20, 0))));
-        assert_eq!(state(raw, dt(4, 12, 0), unity_day()), (false, Some(dt(5, 8, 0))));
-        assert_eq!(state("Mo-Sa 08:00-20:00; ph off", dt(3, 12, 0), unity_day()).0, false);
+        assert_eq!(
+            state(raw, dt(4, 12, 0), unity_day()),
+            (false, Some(dt(5, 8, 0)))
+        );
+        assert_eq!(
+            state("Mo-Sa 08:00-20:00; ph off", dt(3, 12, 0), unity_day()).0,
+            false
+        );
     }
 
     #[test]
     fn additional_holiday_spans_add_but_still_mark_changes() {
         let raw = "Mo-Su 09:00-23:30, PH 14:00-20:00";
-        assert_eq!(state(raw, dt(3, 12, 0), unity_day()), (true, Some(dt(3, 14, 0))));
-        assert_eq!(state(raw, dt(3, 15, 0), unity_day()), (true, Some(dt(3, 20, 0))));
-        assert_eq!(state(raw, dt(3, 21, 0), unity_day()), (true, Some(dt(3, 23, 30))));
-        assert_eq!(state("Sa 07:00-20:00, PH 07:00-18:00", dt(3, 12, 0), unity_day()), (true, Some(dt(3, 18, 0))));
+        assert_eq!(
+            state(raw, dt(3, 12, 0), unity_day()),
+            (true, Some(dt(3, 14, 0)))
+        );
+        assert_eq!(
+            state(raw, dt(3, 15, 0), unity_day()),
+            (true, Some(dt(3, 20, 0)))
+        );
+        assert_eq!(
+            state(raw, dt(3, 21, 0), unity_day()),
+            (true, Some(dt(3, 23, 30)))
+        );
+        assert_eq!(
+            state("Sa 07:00-20:00, PH 07:00-18:00", dt(3, 12, 0), unity_day()),
+            (true, Some(dt(3, 18, 0)))
+        );
     }
 
     #[test]
     fn ph_followed_by_days_means_holiday_on_those_days() {
         let raw = "Mo-Fr 07:00-20:00; Sa 08:00-16:00; PH Su off";
-        assert_eq!(state(raw, dt(3, 12, 0), unity_day()), (true, Some(dt(3, 16, 0))));
+        assert_eq!(
+            state(raw, dt(3, 12, 0), unity_day()),
+            (true, Some(dt(3, 16, 0)))
+        );
     }
 
     #[test]
     fn comments_and_open_ends_are_unknown_but_still_change_state() {
-        assert_eq!(state("\"nach Vereinbarung\"", dt(7, 13, 15), None), (false, None));
-        // Unknown 10:00-18:00 on Sunday; Saturday noon waits for its end.
-        assert_eq!(state("Su 10:00-18:00 \"Kalender\"", dt(4, 12, 0), None), (false, Some(dt(4, 18, 0))));
-        assert_eq!(state("Mo-Su 11:00-18:00+", dt(7, 13, 15), None), (true, Some(dt(7, 18, 0))));
-        // 18:00+ stays unknown for ten hours.
-        assert_eq!(state("Mo-Su 11:00-18:00+", dt(5, 0, 30), None), (false, Some(dt(5, 4, 0))));
-        assert_eq!(state("Mo-Su 16:00+", dt(7, 18, 0), None), (false, Some(dt(8, 0, 0))));
         assert_eq!(
-            state("Mo-Su 10:00-21:00||\"bei schlechtem Wetter geschlossen\"", dt(7, 13, 15), None),
+            state("\"nach Vereinbarung\"", dt(7, 13, 15), None),
+            (false, None)
+        );
+        // Unknown 10:00-18:00 on Sunday; Saturday noon waits for its end.
+        assert_eq!(
+            state("Su 10:00-18:00 \"Kalender\"", dt(4, 12, 0), None),
+            (false, Some(dt(4, 18, 0)))
+        );
+        assert_eq!(
+            state("Mo-Su 11:00-18:00+", dt(7, 13, 15), None),
+            (true, Some(dt(7, 18, 0)))
+        );
+        // 18:00+ stays unknown for ten hours.
+        assert_eq!(
+            state("Mo-Su 11:00-18:00+", dt(5, 0, 30), None),
+            (false, Some(dt(5, 4, 0)))
+        );
+        assert_eq!(
+            state("Mo-Su 16:00+", dt(7, 18, 0), None),
+            (false, Some(dt(8, 0, 0)))
+        );
+        assert_eq!(
+            state(
+                "Mo-Su 10:00-21:00||\"bei schlechtem Wetter geschlossen\"",
+                dt(7, 13, 15),
+                None
+            ),
             (true, Some(dt(7, 21, 0)))
         );
         assert!(Weekly::parse("Mo-Su 16:00+").unwrap().week().is_none());

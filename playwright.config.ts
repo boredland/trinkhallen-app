@@ -33,6 +33,11 @@ if (!existsSync("dist/static/data/_manifest.json")) {
   cpSync("tests/e2e/fixtures/data", "dist/static/data", { recursive: true });
 }
 
+// TK_E2E_TARGET=dioxus runs the same suite against the Rust worker (prebuilt
+// by scripts/build-dioxus.sh) under `wrangler dev`, so one suite proves the
+// port matches the TS app. Same port and scheme, so specs need no changes.
+const dioxus = process.env.TK_E2E_TARGET === "dioxus";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.e2e.ts",
@@ -49,8 +54,12 @@ export default defineConfig({
     // `--host 127.0.0.1` forces an IPv4 bind so Playwright's poll on the same
     // URL actually reaches Vite (default is `[::1]` only). `cloudflare:*`
     // runtime virtuals are stubbed in dev (vite.config.ts) so the worker
-    // module graph resolves end-to-end.
-    command: "bun run dev -- --host 127.0.0.1",
+    // module graph resolves end-to-end. The Dioxus target runs wrangler's
+    // custom build (scripts/build-dioxus.sh) on boot; it is incremental, so a
+    // prior build keeps that inside the readiness timeout.
+    command: dioxus
+      ? "bunx wrangler dev -c wrangler.dioxus.toml --local --ip 127.0.0.1 --port 5173 --local-protocol https --var PUBLIC_ORIGIN:https://127.0.0.1:5173"
+      : "bun run dev -- --host 127.0.0.1",
     // /datenschutz is a static SSR page that doesn't hit the ASSETS binding
     // (vite-dev-server's emulation of which is shaky); / does and would crash
     // the readiness probe. Tests target /datenschutz too. https because
@@ -58,7 +67,7 @@ export default defineConfig({
     // cert in dev; Playwright ignores it via `ignoreHTTPSErrors`).
     url: "https://127.0.0.1:5173/datenschutz",
     reuseExistingServer: !process.env.CI,
-    timeout: 90_000,
+    timeout: dioxus ? 300_000 : 90_000,
     ignoreHTTPSErrors: true,
   },
   use: {

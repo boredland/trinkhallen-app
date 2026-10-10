@@ -8,9 +8,24 @@ pub struct TagGroup {
 }
 
 pub const REPORTABLE_TAG_GROUPS: [TagGroup; 3] = [
-    TagGroup { label: "Sortiment", tags: &["backwaren", "eis", "zeitungen", "gemischte_tuete", "gluecksspiele"] },
-    TagGroup { label: "Ambiente", tags: &["innenraum", "stehtisch", "ueberdacht"] },
-    TagGroup { label: "Ausstattung", tags: &["wc", "barrierefrei", "paketshop", "wlan", "geldautomat"] },
+    TagGroup {
+        label: "Sortiment",
+        tags: &[
+            "backwaren",
+            "eis",
+            "zeitungen",
+            "gemischte_tuete",
+            "gluecksspiele",
+        ],
+    },
+    TagGroup {
+        label: "Ambiente",
+        tags: &["innenraum", "stehtisch", "ueberdacht"],
+    },
+    TagGroup {
+        label: "Ausstattung",
+        tags: &["wc", "barrierefrei", "paketshop", "wlan", "geldautomat"],
+    },
 ];
 
 pub fn is_reportable_tag(slug: &str) -> bool {
@@ -18,5 +33,7 @@ pub fn is_reportable_tag(slug: &str) -> bool {
 }
 
 pub fn reportable_tags() -> impl Iterator<Item = &'static str> {
-    REPORTABLE_TAG_GROUPS.iter().flat_map(|g| g.tags.iter().copied())
+    REPORTABLE_TAG_GROUPS
+        .iter()
+        .flat_map(|g| g.tags.iter().copied())
 }

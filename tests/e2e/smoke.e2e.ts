@@ -13,7 +13,19 @@
  * authed flows is a follow-up once we have a session-seeding helper.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+
+/** The TS bundle sets `__tkCheckinInstalled`, the Rust client `__tkClientReady`
+ *  once `start()` ran to the end. Either proves the bundle loaded and ran. */
+function clientBooted(page: Page) {
+  return page.waitForFunction(
+    () => {
+      const w = window as { __tkCheckinInstalled?: boolean; __tkClientReady?: boolean };
+      return w.__tkCheckinInstalled === true || w.__tkClientReady === true;
+    },
+    { timeout: 10_000 },
+  );
+}
 
 test("page loads, JS bundle runs, check-in client installs (no console errors)", async ({
   page,
@@ -36,27 +48,25 @@ test("page loads, JS bundle runs, check-in client installs (no console errors)",
   // loads `app.entry.ts`, so it's the cheapest target for booting the bundle.
   await page.goto("/datenschutz");
   // Wait for the install marker rather than a fixed timeout — the bundle is
-  // module-loaded so installCheckinForm fires shortly after DOMContentLoaded.
-  await page.waitForFunction(
-    () => (window as { __tkCheckinInstalled?: boolean }).__tkCheckinInstalled === true,
-    { timeout: 10_000 },
-  );
+  // module-loaded so it boots shortly after DOMContentLoaded.
+  await clientBooted(page);
 
   // No "Uncaught" errors during the boot. The smoke is that the page is
   // reachable, the JS bundle parsed and ran, and nothing else screamed.
   expect(errors, `unexpected JS errors:\n${errors.join("\n")}`).toEqual([]);
 });
 
+// Drives the TS client's document-level check-in delegation on injected
+// markup. The Rust port renders check-in as a hydrated island instead; its
+// real flow is covered by interactions.e2e.ts.
 test("the click listener really attached: synthetic dispatch hits the network", async ({
   page,
 }) => {
+  test.skip(process.env.TK_E2E_TARGET === "dioxus", "TS-only delegation");
   // /datenschutz is a static SSR page (no kiosk-asset lookups) that still
   // loads `app.entry.ts`, so it's the cheapest target for booting the bundle.
   await page.goto("/datenschutz");
-  await page.waitForFunction(
-    () => (window as { __tkCheckinInstalled?: boolean }).__tkCheckinInstalled === true,
-    { timeout: 10_000 },
-  );
+  await clientBooted(page);
 
   // Stub fetch so we can detect that the document-level click delegation
   // wired up correctly, without needing an authed session or a real signal

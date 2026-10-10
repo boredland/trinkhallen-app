@@ -7,8 +7,23 @@
 //! enforced in SQL by the worker.
 
 const RESERVED: [&str; 17] = [
-    "me", "moderate", "auth", "api", "k", "stadt", "add", "about", "admin", "moderator", "support", "help",
-    "official", "trinkhallen", "system", "anonymous", "deleted",
+    "me",
+    "moderate",
+    "auth",
+    "api",
+    "k",
+    "stadt",
+    "add",
+    "about",
+    "admin",
+    "moderator",
+    "support",
+    "help",
+    "official",
+    "trinkhallen",
+    "system",
+    "anonymous",
+    "deleted",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,7 +44,10 @@ impl Invalid {
 pub fn validate_username(raw: &str) -> Result<String, Invalid> {
     let value = raw.trim().to_lowercase();
     let len = value.chars().count();
-    if !(3..=24).contains(&len) || !value.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+    if !(3..=24).contains(&len)
+        || !value
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
     {
         return Err(Invalid::Invalid);
     }
@@ -40,15 +58,17 @@ pub fn validate_username(raw: &str) -> Result<String, Invalid> {
 }
 
 pub const PREFIXES: [&str; 34] = [
-    "pfand", "wegbier", "mate", "limo", "kiosk", "korn", "pils", "astra", "aeppler", "spaeti", "brause", "hopfen",
-    "malz", "nacht", "feier", "durst", "pegel", "tresen", "theke", "deckel", "senf", "pommes", "bier", "schnaps",
-    "kippe", "bonbon", "flasche", "stulle", "koffein", "zucker", "sprudel", "spezi", "wodka", "kassen",
+    "pfand", "wegbier", "mate", "limo", "kiosk", "korn", "pils", "astra", "aeppler", "spaeti",
+    "brause", "hopfen", "malz", "nacht", "feier", "durst", "pegel", "tresen", "theke", "deckel",
+    "senf", "pommes", "bier", "schnaps", "kippe", "bonbon", "flasche", "stulle", "koffein",
+    "zucker", "sprudel", "spezi", "wodka", "kassen",
 ];
 
 pub const PERSONAS: [&str; 32] = [
-    "pirat", "held", "wicht", "koenig", "fee", "streuner", "kumpel", "nerd", "fuchs", "kobold", "geist", "baron",
-    "ritter", "lord", "hai", "ninja", "freund", "meister", "fan", "kenner", "profi", "veteran", "kaiser", "zwerg",
-    "schreck", "bandit", "magier", "riese", "kumpan", "schelm", "gnom", "pilot",
+    "pirat", "held", "wicht", "koenig", "fee", "streuner", "kumpel", "nerd", "fuchs", "kobold",
+    "geist", "baron", "ritter", "lord", "hai", "ninja", "freund", "meister", "fan", "kenner",
+    "profi", "veteran", "kaiser", "zwerg", "schreck", "bandit", "magier", "riese", "kumpan",
+    "schelm", "gnom", "pilot",
 ];
 
 /// A candidate handle from three random draws (caller supplies randomness so
@@ -64,7 +84,11 @@ pub fn handle_candidate(r_prefix: u32, r_persona: u32, r_suffix: u32) -> String 
 
 /// Wider-suffix fallback after many collisions.
 pub fn handle_candidate_wide(r_persona: u32, r_suffix: u32) -> String {
-    format!("{}_{}", PERSONAS[(r_persona as usize) % PERSONAS.len()], r_suffix % 1_000_000)
+    format!(
+        "{}_{}",
+        PERSONAS[(r_persona as usize) % PERSONAS.len()],
+        r_suffix % 1_000_000
+    )
 }
 
 #[cfg(test)]
@@ -73,7 +97,10 @@ mod tests {
 
     #[test]
     fn validation() {
-        assert_eq!(validate_username("  Pfand_Pirat_42 "), Ok("pfand_pirat_42".into()));
+        assert_eq!(
+            validate_username("  Pfand_Pirat_42 "),
+            Ok("pfand_pirat_42".into())
+        );
         assert_eq!(validate_username("ab"), Err(Invalid::Invalid));
         assert_eq!(validate_username("bad-name"), Err(Invalid::Invalid));
         assert_eq!(validate_username("admin"), Err(Invalid::Reserved));

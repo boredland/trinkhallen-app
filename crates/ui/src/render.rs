@@ -47,7 +47,12 @@ pub struct Page {
 }
 
 impl Page {
-    pub fn new(lang: Lang, path: impl Into<String>, nonce: impl Into<String>, assets: AssetUrls) -> Self {
+    pub fn new(
+        lang: Lang,
+        path: impl Into<String>,
+        nonce: impl Into<String>,
+        assets: AssetUrls,
+    ) -> Self {
         Page {
             lang,
             path: path.into(),
@@ -78,13 +83,17 @@ pub fn to_html(e: Element) -> String {
 pub fn hydration_data() -> String {
     let ctx = dioxus_fullstack_core::HydrationContext::default();
     let none: Option<dioxus::core::CapturedError> = None;
-    ctx.error_entry().insert(&none, std::panic::Location::caller());
+    ctx.error_entry()
+        .insert(&none, std::panic::Location::caller());
     ctx.serialized().data
 }
 
 /// Escape a string for a single-quoted HTML attribute.
 pub fn attr_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('\'', "&#39;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('\'', "&#39;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 /// Pre-render a hydratable island. The client finds `[data-island=name]`,
