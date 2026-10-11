@@ -11,7 +11,7 @@ This is the operator's playbook for getting `app.trinkhallen.twa` listed on Goog
 | `android/twa-manifest.json` | Source of truth for the wrapper. Bump `appVersionCode` (integer, +1 each release) and `appVersionName` here, then rebuild. |
 | `~/.android-keys/trinkhallen/upload.keystore` | The upload key. Never commit. Back this up alongside `passwords.txt`. |
 | `~/.android-keys/trinkhallen/passwords.txt` | Keystore password. PKCS12 → store password == key password. Treat like a root credential. |
-| `src/routes/well-known.tsx` | Serves `/.well-known/assetlinks.json`. The upload-key SHA-256 is already filled in. Play App Signing key SHA-256 needs to be appended after first upload (see step 4). |
+| `crates/worker/src/routes/well_known.rs` | Serves `/.well-known/assetlinks.json`. Both the upload-key and Play App Signing SHA-256 are filled in. |
 
 Rebuild flow (when you change manifest or code):
 
@@ -101,11 +101,11 @@ Once the AAB is saved to a release (no rollout needed):
 
 1. **App integrity → App signing** in the left nav.
 2. Copy the **SHA-256 certificate fingerprint** listed under "App signing key certificate" (this is Google's key, *not* your upload key).
-3. Edit `src/routes/well-known.tsx`:
-   ```ts
-   const SIGNING_CERT_SHA256: readonly string[] = [
-     "2A:94:A8:C1:A7:2F:29:36:3A:A0:E2:45:DB:55:3C:00:96:53:7D:54:DC:E2:0C:1C:5E:AB:CD:5B:0B:06:26:DE", // upload
-     "XX:XX:...", // Play App Signing — paste the value from Play Console
+3. Edit `crates/worker/src/routes/well_known.rs` (already done for the current keys):
+   ```rust
+   const SIGNING_CERT_SHA256: [&str; 2] = [
+       "2A:94:A8:C1:A7:2F:29:36:3A:A0:E2:45:DB:55:3C:00:96:53:7D:54:DC:E2:0C:1C:5E:AB:CD:5B:0B:06:26:DE", // upload
+       "XX:XX:...", // Play App Signing — paste the value from Play Console
    ];
    ```
 4. Commit + push. The auto-deploy will publish the updated `https://trinkhallen.app/.well-known/assetlinks.json`.

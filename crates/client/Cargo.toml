@@ -1,0 +1,87 @@
+[package]
+name = "trinkhallen-client"
+description = "Browser half of the port: island hydration and the non-island page behaviour, bundled to wasm by wasm-bindgen"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+trinkhallen-core.workspace = true
+trinkhallen-ui.workspace = true
+dioxus.workspace = true
+dioxus-web.workspace = true
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+js-sys.workspace = true
+futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+futures-channel = "0.3"
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+console_error_panic_hook = "0.1"
+
+[dependencies.web-sys]
+workspace = true
+features = [
+    "AbortController",
+    "AbortSignal",
+    "AddEventListenerOptions",
+    "CacheStorage",
+    "CssStyleDeclaration",
+    "CustomElementRegistry",
+    "CustomEvent",
+    "CustomEventInit",
+    "Document",
+    "DomRect",
+    "DomTokenList",
+    "Element",
+    "Event",
+    "EventTarget",
+    "FormData",
+    "Geolocation",
+    "GeolocationCoordinates",
+    "GeolocationPosition",
+    "GeolocationPositionError",
+    "Headers",
+    "History",
+    "HtmlAnchorElement",
+    "HtmlButtonElement",
+    "HtmlElement",
+    "HtmlFormElement",
+    "HtmlInputElement",
+    "HtmlMetaElement",
+    "HtmlSelectElement",
+    "HtmlTextAreaElement",
+    "Location",
+    "MediaQueryList",
+    "Navigator",
+    "Node",
+    "NodeList",
+    "Permissions",
+    "PointerEvent",
+    "PopStateEvent",
+    "PositionOptions",
+    "Request",
+    "RequestCredentials",
+    "RequestInit",
+    "RequestRedirect",
+    "Response",
+    "ScrollIntoViewOptions",
+    "ScrollLogicalPosition",
+    "ServiceWorker",
+    "ServiceWorkerContainer",
+    "ServiceWorkerRegistration",
+    "ServiceWorkerState",
+    "ShadowRoot",
+    "Storage",
+    "SubmitEvent",
+    "Text",
+    "Url",
+    "UrlSearchParams",
+    "VisibilityState",
+    "Window",
+    "console",
+]

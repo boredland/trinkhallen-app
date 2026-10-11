@@ -1,0 +1,13 @@
+[package]
+name = "trinkhallen-core"
+description = "Pure domain logic shared by the worker, the client islands and the importer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+opening-hours.workspace = true
+compact-calendar = "2.1.4"

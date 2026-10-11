@@ -1,17 +1,14 @@
 /**
  * Kiosk-data helpers for e2e tests.
  *
- * Tests stay data-agnostic: they don't hard-code a kiosk id (which would
- * couple them to either the committed fixture OR a dev's real trinkhallen-data
- * build). Instead they pull live kiosks from /api/kiosks and pick one at
- * runtime, so the same assertions pass against the fixture in CI and the full
- * dataset locally.
+ * Tests stay data-agnostic: they don't hard-code a kiosk id (the dataset
+ * changes with every trinkhallen-data push). Instead they pull live kiosks
+ * from /api/kiosks and pick one at runtime.
  */
 
 import type { Page } from "@playwright/test";
 
-/** Frankfurt-area box. Both the fixture region and the real dataset put
- *  kiosks here, so a query against it returns rows either way. */
+/** Frankfurt-area box: the densest region in the dataset. */
 export const FRANKFURT_BBOX = "8.4,50.0,8.9,50.3";
 
 export interface KioskFixture {
@@ -45,7 +42,6 @@ export async function fetchKiosks(page: Page, bbox = FRANKFURT_BBOX): Promise<Ki
 export async function firstKioskWithHours(page: Page): Promise<KioskFixture> {
   const kiosks = await fetchKiosks(page);
   const hit = kiosks.find((k) => k.hasHours) ?? kiosks[0];
-  if (!hit)
-    throw new Error("e2e: /api/kiosks returned no kiosks — is the dataset/fixture present?");
+  if (!hit) throw new Error("e2e: /api/kiosks returned no kiosks — did the data import run?");
   return hit;
 }

@@ -1,9 +1,8 @@
 name: ci
 
-# Lints, typechecks, and runs both test suites. The `test` job mirrors the
-# checks lefthook runs on commit; `e2e` runs the Playwright suite (real
-# Chromium against a spawned dev server) which is too slow for a pre-commit
-# hook. Together they're the safety net for direct pushes / external PRs.
+# Lints, builds and tests the Rust workspace, then runs the Playwright suite
+# (real Chromium against `wrangler dev`). Together they're the safety net for
+# direct pushes / external PRs.
 #
 # Cloudflare Workers Builds handles the actual deploy on every push to main;
 # this workflow exists to surface red checks before that runs.
@@ -26,9 +25,22 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cache/worker-build
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+      # Same script Workers Builds runs: toolchain bootstrap, data import,
+      # client bundle, worker. Lint and unit tests then reuse the warm target.
+      - run: bash scripts/build-dioxus.sh
+      # The build installs the minimal profile (all a deploy needs); lint
+      # also wants rustfmt.
+      - run: rustup component add rustfmt
       - run: bun run lint
-      - run: bun run typecheck
-      - run: bun test
+      - run: cargo test --workspace --locked
 
   e2e:
     runs-on: ubuntu-latest
@@ -38,16 +50,25 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cache/worker-build
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       # Cache the browser binaries; the cache key tracks the @playwright/test
       # version pinned in bun.lock so a bump re-downloads the matching build.
       - uses: actions/cache@v4
-        id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
       - run: bunx playwright install --with-deps chromium
-      # global-setup writes a test .dev.vars (SESSION_SECRET) and applies the
-      # local D1 migrations; the webServer config spawns `bun run dev` itself.
+      # Warm build so wrangler dev's own build pass is incremental.
+      - run: bash scripts/build-dioxus.sh
+      # global-setup applies the local D1 migrations; playwright.config.ts
+      # writes a test .dev.vars and spawns `wrangler dev` itself.
       - run: bun run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
