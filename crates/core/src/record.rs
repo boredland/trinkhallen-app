@@ -128,35 +128,96 @@ pub struct FeatureCollection {
 impl Feature {
     pub fn to_record(&self, region_slug: &str) -> KioskRecord {
         let p = &self.properties;
-        let [lng, lat] = self.geometry.coordinates;
-        let address = p
+        RecordProps {
+            id: p.id.clone(),
+            name: p.name.clone(),
+            description: p.description.clone(),
+            address: p.address.clone(),
+            hours: p.hours.clone(),
+            tags: p.tags.clone(),
+            payment: p.payment.clone(),
+            sources: p.sources.clone(),
+            kind: p.kind.clone(),
+            updated: p.updated.clone(),
+        }
+        .into_record(region_slug, self.geometry.coordinates)
+    }
+}
+
+/// A region file read straight into records, for callers that never write it
+/// back. Skipping [`FeatureProps::extra`] (`#[serde(flatten)]` buffers every
+/// property) and moving strings instead of cloning them halves the parse cost
+/// of a region — the bulk of a cold Worker isolate's CPU.
+#[derive(Deserialize)]
+pub struct RecordCollection {
+    features: Vec<RecordFeature>,
+}
+
+impl RecordCollection {
+    pub fn into_records(self, region_slug: &str) -> Vec<KioskRecord> {
+        self.features
+            .into_iter()
+            .map(|f| {
+                f.properties
+                    .into_record(region_slug, f.geometry.coordinates)
+            })
+            .collect()
+    }
+}
+
+#[derive(Deserialize)]
+struct RecordFeature {
+    geometry: Point,
+    properties: RecordProps,
+}
+
+/// The subset of [`FeatureProps`] a [`KioskRecord`] is built from.
+#[derive(Deserialize)]
+struct RecordProps {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    name: String,
+    description: Option<String>,
+    address: Option<BTreeMap<String, serde_json::Value>>,
+    hours: Option<Hours>,
+    tags: Option<Vec<String>>,
+    payment: Option<Payment>,
+    sources: Option<Vec<Source>>,
+    kind: Option<String>,
+    updated: Option<String>,
+}
+
+impl RecordProps {
+    fn into_record(self, region_slug: &str, [lng, lat]: [f64; 2]) -> KioskRecord {
+        let address = self
             .address
-            .as_ref()
             .map(|a| {
-                a.iter()
+                a.into_iter()
                     .filter_map(|(k, v)| match v {
-                        serde_json::Value::String(s) => Some((k.clone(), s.clone())),
-                        serde_json::Value::Number(n) => Some((k.clone(), n.to_string())),
+                        serde_json::Value::String(s) => Some((k, s)),
+                        serde_json::Value::Number(n) => Some((k, n.to_string())),
                         _ => None,
                     })
                     .collect()
             })
             .unwrap_or_default();
+        let kind = classify_kind(Some(&self.name), self.kind.as_deref());
         KioskRecord {
-            id: p.id.clone(),
+            id: self.id,
             region: region_slug.to_owned(),
-            name: p.name.clone(),
-            description: p.description.clone().filter(|s| !s.is_empty()),
+            name: self.name,
+            description: self.description.filter(|s| !s.is_empty()),
             address,
-            hours: p.hours.clone().filter(|h| !h.raw.is_empty()),
-            tags: p.tags.clone().unwrap_or_default(),
-            payment: p.payment.clone(),
+            hours: self.hours.filter(|h| !h.raw.is_empty()),
+            tags: self.tags.unwrap_or_default(),
+            payment: self.payment,
             lng,
             lat,
-            sources: p.sources.clone(),
-            updated_at: p.updated.as_deref().map(parse_ymd_seconds).unwrap_or(0),
-            updated: p.updated.clone(),
-            kind: classify_kind(Some(&p.name), p.kind.as_deref()),
+            sources: self.sources,
+            updated_at: self.updated.as_deref().map(parse_ymd_seconds).unwrap_or(0),
+            updated: self.updated,
+            kind,
         }
     }
 }
@@ -222,5 +283,29 @@ mod tests {
             back["properties"]["osm_removed"],
             serde_json::Value::Bool(false)
         );
+    }
+
+    #[test]
+    fn record_collection_matches_feature_to_record() {
+        let json = r#"{"type":"FeatureCollection","features":[
+          {"type":"Feature","geometry":{"type":"Point","coordinates":[8.68,50.11]},
+           "properties":{"id":"tk_fr_1","name":"Wasserhäuschen","description":"",
+             "address":{"street":"Weg","number":12,"geo":null},"hours":{"raw":"Mo-Fr 08:00-20:00","week":[480,1200]},
+             "tags":["wc"],"payment":{"cash":"yes"},"sources":[{"type":"osm","id":"node/1","version":3}],
+             "updated":"2026-05-01","osm_removed":false,"enrichment":{"x":[1,2]}}},
+          {"type":"Feature","geometry":{"type":"Point","coordinates":[8.7,50.2]},
+           "properties":{"id":"tk_fr_2","name":"Getränkeautomat","kind":"vending_machine","hours":{"raw":""}}}]}"#;
+        let full: FeatureCollection = serde_json::from_str(json).unwrap();
+        let expected: Vec<KioskRecord> = full
+            .features
+            .iter()
+            .map(|f| f.to_record("frankfurt"))
+            .collect();
+        let lean: RecordCollection = serde_json::from_str(json).unwrap();
+        assert_eq!(lean.into_records("frankfurt"), expected);
+        assert_eq!(expected[0].addr("number"), Some("12"));
+        assert_eq!(expected[0].description, None);
+        assert_eq!(expected[1].hours, None);
+        assert_eq!(expected[1].kind, KioskKind::Vending);
     }
 }

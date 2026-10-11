@@ -14,7 +14,7 @@ use std::rc::Rc;
 use serde::de::DeserializeOwned;
 use trinkhallen_core::geo::{Bbox, LatLng, bbox_overlaps, haversine_meters};
 use trinkhallen_core::kind::KioskKind;
-use trinkhallen_core::record::{FeatureCollection, Manifest};
+use trinkhallen_core::record::{Manifest, RecordCollection};
 use trinkhallen_core::{KioskRecord, regions::parse_prefix};
 use worker::{Env, Result};
 
@@ -70,12 +70,8 @@ async fn region_records(env: &Env, slug: &str) -> Result<Rc<RegionRecords>> {
     if let Some(rs) = CACHE.with(|c| c.borrow().regions.get(slug).cloned()) {
         return Ok(rs);
     }
-    let collection: FeatureCollection = fetch_json(env, &format!("/data/{slug}.geojson")).await?;
-    let records: RegionRecords = collection
-        .features
-        .iter()
-        .map(|f| f.to_record(slug))
-        .collect();
+    let collection: RecordCollection = fetch_json(env, &format!("/data/{slug}.geojson")).await?;
+    let records: RegionRecords = collection.into_records(slug);
     let records = Rc::new(records);
     CACHE.with(|c| {
         c.borrow_mut()
@@ -294,13 +290,38 @@ pub async fn find_nearby_kiosks(
     Ok(set)
 }
 
+/// Lower bound on the distance from `origin` to anything inside `bbox`,
+/// padded because the importer's region bboxes are rounded (features sit up
+/// to ~1e-4° outside them) and shrunk because the clamped point is not quite
+/// the closest one on a sphere.
+fn min_distance_to_bbox(origin: LatLng, [w, s, e, n]: [f64; 4]) -> f64 {
+    const PAD: f64 = 0.01;
+    let clamped = LatLng {
+        lat: origin.lat.clamp(s - PAD, n + PAD),
+        lng: origin.lng.clamp(w - PAD, e + PAD),
+    };
+    haversine_meters(origin, clamped) * 0.9
+}
+
 /// Closest kiosk to `origin` across the whole dataset (never a vending
-/// machine — an automat is never the recommendation).
+/// machine — an automat is never the recommendation). Regions are visited
+/// nearest-bbox first and the scan stops once no remaining region can beat
+/// the best hit, so a cold isolate parses one or two region files instead of
+/// all of them.
 pub async fn find_nearest_kiosk(env: &Env, origin: LatLng) -> Result<Option<(KioskRecord, f64)>> {
     let manifest = load_manifest(env).await?;
+    let mut order: Vec<(f64, &str)> = manifest
+        .regions
+        .iter()
+        .map(|r| (min_distance_to_bbox(origin, r.bbox), r.slug.as_str()))
+        .collect();
+    order.sort_by(|a, b| a.0.total_cmp(&b.0));
     let mut best: Option<(KioskRecord, f64)> = None;
-    for entry in &manifest.regions {
-        let records = region_records(env, &entry.slug).await?;
+    for (bound, slug) in order {
+        if best.as_ref().is_some_and(|(_, bd)| *bd <= bound) {
+            break;
+        }
+        let records = region_records(env, slug).await?;
         for r in records.iter().filter(|r| visible(r)) {
             let d = haversine_meters(
                 origin,
