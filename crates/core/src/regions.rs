@@ -147,9 +147,11 @@ mod tests {
                 "{}",
                 r.prefix
             );
+            // Envelope of every covered country, Canary Islands included; a
+            // bbox outside it is almost always a lat/lng swap in regions.yml.
             let [w, s, e, n] = r.bbox;
             assert!(
-                w < e && s < n && w > 5.0 && e < 18.0 && s > 45.0 && n < 56.0,
+                w < e && s < n && w > -19.0 && e < 18.0 && s > 27.0 && n < 56.0,
                 "{}",
                 r.slug
             );
@@ -166,6 +168,7 @@ mod tests {
         assert_eq!(slug(9.0, 50.8), Some("hessen-rest"));
         assert_eq!(slug(16.37, 48.21), Some("wien-rest"));
         assert_eq!(slug(8.54, 47.37), Some("schweiz-rest"));
+        assert_eq!(slug(-3.70, 40.42), Some("madrid-rest"));
         assert_eq!(slug(-30.0, 30.0), None);
     }
 
