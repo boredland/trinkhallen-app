@@ -15,6 +15,8 @@ Disallow: /en/me
 Disallow: /en/add
 Disallow: /en/moderate
 Disallow: /*?partial=1
+# Map deep links (?c=lat,lng) canonicalise to / and each costs a full render.
+Disallow: /*?c=
 
 # AI retrieval / grounding bots — explicitly allowed (they answer live queries
 # rather than vacuuming for training corpora). The UAs are grouped so the
@@ -38,6 +40,7 @@ Disallow: /en/me
 Disallow: /en/add
 Disallow: /en/moderate
 Disallow: /*?partial=1
+Disallow: /*?c=
 
 # Training-only crawlers — declined.
 User-agent: CCBot
@@ -47,6 +50,17 @@ Disallow: /
 User-agent: cohere-ai
 Disallow: /
 User-agent: Bytespider
+Disallow: /
+
+# SEO-tool crawlers: no visitors, and every page they walk is a billed render.
+User-agent: SemrushBot
+User-agent: AhrefsBot
+User-agent: DotBot
+User-agent: MJ12bot
+User-agent: DataForSeoBot
+User-agent: PetalBot
+User-agent: QlyzeBot
+User-agent: Barkrowler
 Disallow: /
 
 Sitemap: https://trinkhallen.app/sitemap.xml
