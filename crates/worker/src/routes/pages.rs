@@ -48,7 +48,7 @@ pub async fn dispatch(
             city_page(env, state, &p["/stadt/".len()..]).await
         }
         (Method::Get, p) if p.starts_with("/k/") => {
-            kiosk_page(&req, env, state, &p["/k/".len()..], &q).await
+            kiosk_page(env, state, &p["/k/".len()..], &q).await
         }
         (Method::Get, "/add") => add_page(state, &q),
         (Method::Post, "/add") => crate::routes::submit_add(req, env, state).await,
@@ -107,7 +107,6 @@ async fn map_page(env: &Env, state: &RequestState, q: &[(String, String)]) -> Re
 // ── /k/:id ──────────────────────────────────────────────────────────────────
 
 async fn kiosk_page(
-    req: &Request,
     env: &Env,
     state: &RequestState,
     id: &str,
@@ -168,7 +167,7 @@ async fn kiosk_page(
     let data = KioskDetailData {
         lang,
         kiosk: &kiosk,
-        user_agent: crate::http::header(req, "user-agent"),
+        user_agent: state.user_agent.clone(),
         aggregate,
         own_rating,
         rating_comments,

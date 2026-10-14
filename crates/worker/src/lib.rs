@@ -16,6 +16,7 @@ pub mod http;
 pub mod lang;
 pub mod moderation;
 pub mod notify;
+pub mod page_cache;
 pub mod panel;
 pub mod ratings;
 pub mod reports;
@@ -27,6 +28,7 @@ pub mod submissions;
 pub mod users;
 pub mod util;
 
+use trinkhallen_core::navigate::UaBucket;
 use worker::{Context, Env, Method, Request, Response, Result};
 
 use crate::state::{RequestState, asset_urls};
@@ -109,18 +111,42 @@ async fn handle(req: Request, env: &Env, ctx: &Context, nonce: &str) -> Result<R
         }
     }
 
+    let user_agent = http::header(&req, "user-agent");
+    let cache_key = (method == Method::Get
+        && user.is_none()
+        && page_cache::cacheable(&routes::bare_path(&path)))
+    .then(|| page_cache::key(&path, &query, UaBucket::of(user_agent.as_deref())));
+    if let Some(key) = &cache_key {
+        if let Some(hit) = page_cache::lookup(key, nonce).await? {
+            return Ok(hit);
+        }
+    }
+
+    // A shared render must not bake in this request's nonce or exact UA.
+    let (render_nonce, render_ua) = match &cache_key {
+        Some(_) => (
+            page_cache::NONCE_SLOT.to_owned(),
+            UaBucket::of(user_agent.as_deref())
+                .representative()
+                .map(str::to_owned),
+        ),
+        None => (nonce.to_owned(), user_agent),
+    };
     let state = RequestState {
         lang: trinkhallen_core::i18n::lang_from_path(&path),
         user,
-        nonce: nonce.to_owned(),
+        nonce: render_nonce,
         origin,
         path,
         url,
         assets: asset_urls(),
-        user_agent: http::header(&req, "user-agent"),
+        user_agent: render_ua,
     };
 
     let resp = routes::dispatch(req, env, ctx, &state).await?;
+    if let Some(key) = cache_key {
+        return page_cache::finish(ctx, key, resp, nonce).await;
+    }
     match session_cookie {
         Some(c) => http::with_cookie(resp, &c),
         None => Ok(resp),

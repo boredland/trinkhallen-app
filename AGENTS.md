@@ -37,6 +37,12 @@ data repo.
 - **`crates/worker/src/assets.rs`** caches the manifest + per-region
   records at module scope, invalidated only by a deploy. Don't sprinkle
   parallel fetch sites; go through the helpers.
+- **`crates/worker/src/page_cache.rs`** edge-caches anonymous page GETs
+  for 5 min, keyed by path + query + UA bucket; any session cookie
+  bypasses it. A new per-request input to an anonymous page (header,
+  cookie, geo) must join the key or bypass the cache. Pages render with a
+  placeholder nonce that is swapped per response, so never emit the
+  nonce anywhere but `nonce="…"` attributes.
 - **`public/sw.js`** has a `VERSION` constant (v9 today). Any change to
   the cache strategy or the cached URL set must bump it. Auth-sensitive
   routes (`/me`, `/moderate`, `/add`, `/auth/*`) pass through; the SW
