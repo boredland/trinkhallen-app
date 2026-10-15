@@ -136,7 +136,8 @@ fn row(
     let accepts_card = CARD_KEYS.iter().any(|k| kiosk.pays(k) == Some("yes"));
     let has_wc = kiosk.tags.iter().any(|t| t == "wc");
     let has_seating = kiosk.tags.iter().any(|t| t == "sitzgelegenheiten");
-    let any_icon = accepts_card || has_wc || has_seating;
+    let has_terrace = kiosk.tags.iter().any(|t| t == "draussen");
+    let any_icon = accepts_card || has_wc || has_seating || has_terrace;
 
     let (glyph, status_cls) = match status {
         Status::Open { .. } => ("▶▶▶ ", "text-status-open"),
@@ -161,6 +162,9 @@ fn row(
                     }
                     div { class: "mt-1 flex flex-wrap items-center gap-1.5 text-xs",
                         span { class: "{status_cls}", "{glyph}{status_label}" }
+                        if let Some(key) = kiosk.kind.badge_key() {
+                            span { class: "border border-neon-amber px-1 font-display text-[0.65rem] tracking-wider uppercase text-neon-amber", "{t(lang, key)}" }
+                        }
                         if let Some(d) = dist_label {
                             span {
                                 class: "font-mono tabular-nums text-neon-cyan",
@@ -182,6 +186,13 @@ fn row(
                                         aria_label: "{tag_label(lang, \"sitzgelegenheiten\")}",
                                         title: "{tag_label(lang, \"sitzgelegenheiten\")}",
                                         "🪑"
+                                    }
+                                }
+                                if has_terrace {
+                                    span {
+                                        aria_label: "{tag_label(lang, \"draussen\")}",
+                                        title: "{tag_label(lang, \"draussen\")}",
+                                        "⛱️"
                                     }
                                 }
                                 if has_wc {

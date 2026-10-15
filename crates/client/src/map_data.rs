@@ -16,7 +16,6 @@ use chrono::{TimeZone, Utc};
 use serde_json::{Value, json};
 
 use trinkhallen_core::filters::{KioskFilter, apply_filters, parse_filter};
-use trinkhallen_core::kind::KioskKind;
 use trinkhallen_core::record::{Feature, FeatureCollection, Manifest};
 
 /// Zoom at which per-region detail data replaces the summaries.
@@ -122,7 +121,7 @@ fn filter_features(
     let records: Vec<trinkhallen_core::KioskRecord> =
         owned.iter().map(|(slug, f)| f.to_record(slug)).collect();
     let visible: Vec<usize> = (0..records.len())
-        .filter(|&i| records[i].kind != KioskKind::Vending)
+        .filter(|&i| records[i].kind.is_listed())
         .collect();
     let refs: Vec<&trinkhallen_core::KioskRecord> = visible.iter().map(|&i| &records[i]).collect();
     let kept: HashSet<&str> = apply_filters(&refs, filter, now)

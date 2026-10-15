@@ -20,7 +20,7 @@ pub const REPORTABLE_TAG_GROUPS: [TagGroup; 3] = [
     },
     TagGroup {
         label: "Ambiente",
-        tags: &["innenraum", "stehtisch", "ueberdacht"],
+        tags: &["innenraum", "draussen", "stehtisch", "ueberdacht"],
     },
     TagGroup {
         label: "Ausstattung",

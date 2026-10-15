@@ -27,6 +27,7 @@ pub struct FilterState {
     pub cards: bool,
     pub wc: bool,
     pub sitz: bool,
+    pub draussen: bool,
     pub q: String,
 }
 
@@ -38,6 +39,7 @@ impl FilterState {
             cards: f.payment.cards,
             wc: f.tags.iter().any(|t| t == "wc"),
             sitz: f.tags.iter().any(|t| t == "sitzgelegenheiten"),
+            draussen: f.tags.iter().any(|t| t == "draussen"),
             q: f.q.clone().unwrap_or_default(),
         }
     }
@@ -54,6 +56,9 @@ impl FilterState {
         }
         if self.sitz {
             tags.push("sitzgelegenheiten");
+        }
+        if self.draussen {
+            tags.push("draussen");
         }
         if !tags.is_empty() {
             parts.push(("tags".into(), tags.join(",")));
@@ -196,6 +201,14 @@ pub fn FilterIsland(props: FilterProps) -> Element {
                 let schedule = schedule.clone();
                 move |on: bool| {
                     state.write().sitz = on;
+                    schedule();
+                }
+            })}
+            {chip("tag_draussen", "⛱️", t(lang, "filter.draussen"), state.read().draussen, {
+                let mut state = state;
+                let schedule = schedule.clone();
+                move |on: bool| {
+                    state.write().draussen = on;
                     schedule();
                 }
             })}

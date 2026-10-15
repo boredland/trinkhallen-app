@@ -13,7 +13,6 @@ use std::rc::Rc;
 
 use serde::de::DeserializeOwned;
 use trinkhallen_core::geo::{Bbox, LatLng, bbox_overlaps, haversine_meters};
-use trinkhallen_core::kind::KioskKind;
 use trinkhallen_core::record::{Manifest, RecordCollection};
 use trinkhallen_core::{KioskRecord, regions::parse_prefix};
 use worker::{Env, Result};
@@ -101,25 +100,21 @@ pub async fn region_kiosks(env: &Env, slug: &str) -> Result<Option<Rc<RegionReco
     region_records(env, slug).await.map(Some)
 }
 
-/// All non-vending kiosks in the named region (`/stadt/:slug`).
+/// All listed places in the named region (`/stadt/:slug`).
 pub async fn kiosks_by_region(env: &Env, slug: &str) -> Result<Rc<RegionRecords>> {
     let records = match region_kiosks(env, slug).await? {
         Some(rs) => rs,
         None => Rc::new(RegionRecords::new()),
     };
     Ok(Rc::new(
-        records
-            .iter()
-            .filter(|r| r.kind == KioskKind::Kiosk)
-            .cloned()
-            .collect(),
+        records.iter().filter(|r| visible(r)).cloned().collect(),
     ))
 }
 
 /// Vending machines stay addressable via `/k/:id` deep links but are dropped
 /// from every collection view.
 pub fn visible(r: &KioskRecord) -> bool {
-    r.kind == KioskKind::Kiosk
+    r.kind.is_listed()
 }
 
 pub async fn get_kiosk_by_id(env: &Env, id: &str) -> Result<Option<KioskRecord>> {
@@ -342,6 +337,7 @@ pub async fn find_nearest_kiosk(env: &Env, origin: LatLng) -> Result<Option<(Kio
 mod tests {
     use super::*;
     use std::collections::BTreeMap;
+    use trinkhallen_core::kind::KioskKind;
 
     fn rec(id: &str, name: &str, lng: f64, lat: f64) -> KioskRecord {
         KioskRecord {

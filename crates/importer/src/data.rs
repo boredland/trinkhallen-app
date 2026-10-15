@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use trinkhallen_core::hours::flatten_week;
-use trinkhallen_core::kind::{KioskKind, classify_kind};
+use trinkhallen_core::kind::classify_kind;
 
 use crate::json::Json;
 use crate::regions::{self, Region};
@@ -203,7 +203,7 @@ pub fn import(
             let props = f.get("properties");
             let name = props.and_then(|p| p.get("name")).and_then(Json::as_str);
             let kind = props.and_then(|p| p.get("kind")).and_then(Json::as_str);
-            if classify_kind(name, kind) != KioskKind::Vending {
+            if classify_kind(name, kind).is_listed() {
                 stats.visible_total += 1;
             }
             // The overview and sitemap use the data repo's own flag only; the

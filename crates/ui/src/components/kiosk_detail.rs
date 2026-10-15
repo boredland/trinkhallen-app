@@ -91,6 +91,7 @@ fn article(data: &KioskDetailData) -> Element {
 
     // Computed lead sentence — only a fallback. A real, data-provided
     // description always wins, so we don't show both.
+    let kind_noun = t(lang, kiosk.kind.noun_key());
     let intro = match (kiosk.description.as_ref(), kiosk.addr("city"), district) {
         (Some(_), _, _) => None,
         (None, Some(city), Some(district)) => Some(tpl(
@@ -98,6 +99,7 @@ fn article(data: &KioskDetailData) -> Element {
             "kiosk.introCityDistrict",
             &[
                 ("name", &kiosk.name),
+                ("type", &kind_noun),
                 ("district", &district),
                 ("city", &city),
             ],
@@ -105,7 +107,7 @@ fn article(data: &KioskDetailData) -> Element {
         (None, Some(city), None) => Some(tpl(
             lang,
             "kiosk.introCity",
-            &[("name", &kiosk.name), ("city", &city)],
+            &[("name", &kiosk.name), ("type", &kind_noun), ("city", &city)],
         )),
         (None, None, _) => None,
     };
@@ -155,6 +157,9 @@ fn article(data: &KioskDetailData) -> Element {
             }
             header { class: "border-b-2 border-border p-6",
                 p { class: "mb-3 font-display text-sm tracking-wider uppercase {status_cls}", "{glyph}{status_label}" }
+                if let Some(key) = kiosk.kind.badge_key() {
+                    p { class: "mb-2 inline-block border-2 border-neon-amber px-2 py-0.5 font-display text-xs tracking-wider uppercase text-neon-amber", "{t(lang, key)}" }
+                }
                 h1 { class: "font-display text-3xl tracking-wide text-fg sm:text-5xl", "{kiosk.name}" }
                 p { class: "mt-3 text-fg-muted",
                     "{addr_line1}"

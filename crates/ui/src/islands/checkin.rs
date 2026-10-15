@@ -48,6 +48,7 @@ fn tag_icon(slug: &str) -> &'static str {
         "gemischte_tuete" => "🍬",
         "gluecksspiele" => "🎰",
         "innenraum" => "🏠",
+        "draussen" => "⛱️",
         "stehtisch" => "🧍",
         "ueberdacht" => "☂️",
         "wc" => "🚻",

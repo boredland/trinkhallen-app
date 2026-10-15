@@ -1,10 +1,13 @@
-//! "Is this kiosk actually a vending machine?"
+//! What sort of place a record is.
 //!
 //! The `shop=kiosk`/`shop=beverages` Overpass filter catches some OSM nodes
 //! that are pure vending machines (JIMA, Sielaff, "Automaten-Kiosk"). The data
 //! repo tags canonical cases with `properties.kind = "vending_machine"`; a
 //! conservative name match covers the rest. Vending entries are hidden from
 //! collection views (map, lists, nearest) but `/k/:id` deep links still load.
+//! In Spain the data repo also imports chinos (`kind = "convenience"`) and
+//! Chinese-run bars (`kind = "bar"`); those are listed like kiosks and only
+//! labelled differently.
 
 use serde::{Deserialize, Serialize};
 
@@ -13,11 +16,41 @@ use serde::{Deserialize, Serialize};
 pub enum KioskKind {
     Kiosk,
     Vending,
+    Chino,
+    Bar,
+}
+
+impl KioskKind {
+    /// Shown on the map and in lists; vending machines are not.
+    pub fn is_listed(self) -> bool {
+        self != KioskKind::Vending
+    }
+
+    /// i18n key for the noun in "X is {type} in {city}".
+    pub fn noun_key(self) -> &'static str {
+        match self {
+            KioskKind::Chino => "kind.chino",
+            KioskKind::Bar => "kind.bar",
+            KioskKind::Kiosk | KioskKind::Vending => "kind.kiosk",
+        }
+    }
+
+    /// i18n key for the short list/detail badge; plain kiosks get none.
+    pub fn badge_key(self) -> Option<&'static str> {
+        match self {
+            KioskKind::Chino => Some("kind.badge.chino"),
+            KioskKind::Bar => Some("kind.badge.bar"),
+            KioskKind::Kiosk | KioskKind::Vending => None,
+        }
+    }
 }
 
 pub fn classify_kind(name: Option<&str>, data_kind: Option<&str>) -> KioskKind {
-    if data_kind == Some("vending_machine") {
-        return KioskKind::Vending;
+    match data_kind {
+        Some("vending_machine") => return KioskKind::Vending,
+        Some("convenience") => return KioskKind::Chino,
+        Some("bar") => return KioskKind::Bar,
+        _ => {}
     }
     let n = name.unwrap_or("").trim().to_lowercase();
     if n.is_empty() {
@@ -81,6 +114,11 @@ mod tests {
         assert_eq!(
             classify_kind(Some("Kiosk"), Some("vending_machine")),
             KioskKind::Vending
+        );
+        assert_eq!(classify_kind(Some("Selecta"), Some("bar")), KioskKind::Bar);
+        assert_eq!(
+            classify_kind(Some("Alimentación"), Some("convenience")),
+            KioskKind::Chino
         );
     }
 
